@@ -40,4 +40,11 @@ Would yield the following Cassandra row (as seen from `cassandra-cli`):
 		=> (column=field2, value=bar, timestamp=1321938505072000)
 
 
+#### Dynamic ColumnFamily Determination
+[TODO]
+
+
+
+#### Dynamic RowKey Generation
+[TODO]
 
