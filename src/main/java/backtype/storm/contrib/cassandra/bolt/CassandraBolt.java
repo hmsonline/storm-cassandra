@@ -24,13 +24,9 @@ import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Tuple;
 
 @SuppressWarnings("serial")
-public class CassandraBolt implements IRichBolt {
+public class CassandraBolt implements IRichBolt, CassandraConstants {
 	private static final Logger LOG = LoggerFactory
 			.getLogger(CassandraBolt.class);
-
-	public static String CASSANDRA_HOST = "cassandra.host";
-	public static final String CASSANDRA_PORT = "cassandra.port";
-	public static final String CASSANDRA_KEYSPACE = "cassandra.keyspace";
 
 	private OutputCollector collector;
 	private boolean autoAck = true;
@@ -70,13 +66,15 @@ public class CassandraBolt implements IRichBolt {
 		this.cassandraHost = (String) stormConf.get(CASSANDRA_HOST);
 		this.cassandraKeyspace = (String) stormConf.get(CASSANDRA_KEYSPACE);
 		this.cassandraPort = String.valueOf(stormConf.get(CASSANDRA_PORT));
-		// for (Object key : stormConf.keySet()) {
-		// LOG.debug("Property: " + key + "=" + stormConf.get(key));
-		//
-		// }
+
 		this.collector = collector;
 
-		// setup Cassandra connection 
+		initCassandraConnection();
+
+	}
+
+	private void initCassandraConnection() {
+		// setup Cassandra connection
 		try {
 			this.cluster = HFactory.getOrCreateCluster("cassandra-bolt",
 					new CassandraHostConfigurator(this.cassandraHost + ":"
@@ -88,7 +86,6 @@ public class CassandraBolt implements IRichBolt {
 			throw new IllegalStateException("Failed to prepare CassandraBolt",
 					e);
 		}
-
 	}
 
 	@Override
@@ -131,7 +128,7 @@ public class CassandraBolt implements IRichBolt {
 		}
 
 	}
-	
+
 	public boolean isAutoAck() {
 		return autoAck;
 	}
@@ -139,6 +136,5 @@ public class CassandraBolt implements IRichBolt {
 	public void setAutoAck(boolean autoAck) {
 		this.autoAck = autoAck;
 	}
-
 
 }
