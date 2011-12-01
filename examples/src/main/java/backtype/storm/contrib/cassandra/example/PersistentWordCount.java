@@ -9,9 +9,9 @@ import backtype.storm.topology.IRichBolt;
 import backtype.storm.topology.TopologyBuilder;
 
 public class PersistentWordCount {
-	private static final int WORD_SPOUT = 1;
-	private static final int COUNT_BOLT = 2;
-	private static final int CASSANDRA_BOLT = 3;
+	private static final String WORD_SPOUT = "WORD_SPOUT";
+	private static final String COUNT_BOLT ="COUNT_BOLT";
+	private static final String CASSANDRA_BOLT = "CASSANDRA_BOLT";
 	
 	public static void main(String[] args) throws Exception{
 		Config config = new Config();
