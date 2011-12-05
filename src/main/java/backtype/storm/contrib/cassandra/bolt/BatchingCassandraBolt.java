@@ -1,5 +1,6 @@
 package backtype.storm.contrib.cassandra.bolt;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -19,18 +20,23 @@ import backtype.storm.contrib.cassandra.bolt.determinable.DefaultRowKeyDetermina
 import backtype.storm.contrib.cassandra.bolt.determinable.RowKeyDeterminable;
 import backtype.storm.task.OutputCollector;
 import backtype.storm.task.TopologyContext;
-import backtype.storm.topology.IRichBolt;
 import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Tuple;
 
 @SuppressWarnings("serial")
-public class BatchingCassandraBolt extends AbstractBatchingBolt implements CassandraConstants {
+public class BatchingCassandraBolt extends AbstractBatchingBolt implements
+		CassandraConstants {
 	private static final Logger LOG = LoggerFactory
 			.getLogger(BatchingCassandraBolt.class);
 
+	public static enum AckStrategy {
+		ACK_IGNORE, ACK_ON_RECEIVE, ACK_ON_WRITE;
+	}
+
+	private AckStrategy ackStrategy = AckStrategy.ACK_IGNORE;
+
 	private OutputCollector collector;
-	private boolean autoAck = true;
 
 	private Fields declaredFields;
 
@@ -47,13 +53,16 @@ public class BatchingCassandraBolt extends AbstractBatchingBolt implements Cassa
 	public BatchingCassandraBolt(String columnFamily, String rowkeyField) {
 		this(new DefaultColumnFamilyDeterminable(columnFamily),
 				new DefaultRowKeyDeterminable(rowkeyField));
-		LOG.debug("Created new BatchingCassandraBolt");
 	}
 
 	public BatchingCassandraBolt(ColumnFamilyDeterminable cfDeterminable,
 			RowKeyDeterminable rkDeterminable) {
 		this.cfDeterminable = cfDeterminable;
 		this.rkDeterminable = rkDeterminable;
+	}
+
+	public void setAckStrategy(AckStrategy strategy) {
+		this.ackStrategy = strategy;
 	}
 
 	/*
@@ -72,6 +81,10 @@ public class BatchingCassandraBolt extends AbstractBatchingBolt implements Cassa
 
 		initCassandraConnection();
 
+		if (this.ackStrategy == AckStrategy.ACK_ON_RECEIVE) {
+			super.setAckOnReceive(true);
+		}
+
 	}
 
 	private void initCassandraConnection() {
@@ -89,34 +102,37 @@ public class BatchingCassandraBolt extends AbstractBatchingBolt implements Cassa
 		}
 	}
 
-
-	
 	@Override
 	public void executeBatch(List<Tuple> inputs) {
-		try{
-		Mutator<String> mutator = HFactory.createMutator(this.keyspace,
-				new StringSerializer());
-		for(Tuple input : inputs){
-			String columnFamily = this.cfDeterminable
-					.determineColumnFamily(input);
-			Object rowKey = this.rkDeterminable.determineRowKey(input);
-			Fields fields = input.getFields();
-			for (int i = 0; i < fields.size(); i++) {
-				// LOG.debug("Name: " + fields.get(i) + ", Value: "
-				// + input.getValue(i));
-				mutator.addInsertion(rowKey.toString(), columnFamily, HFactory
-						.createStringColumn(fields.get(i), input.getValue(i)
-								.toString()));
-				if (this.autoAck) {
-					this.collector.ack(input);
+		ArrayList<Tuple> tuplesToAck = new ArrayList<Tuple>();
+		try {
+			Mutator<String> mutator = HFactory.createMutator(this.keyspace,
+					new StringSerializer());
+			for (Tuple input : inputs) {
+				String columnFamily = this.cfDeterminable
+						.determineColumnFamily(input);
+				Object rowKey = this.rkDeterminable.determineRowKey(input);
+				Fields fields = input.getFields();
+				for (int i = 0; i < fields.size(); i++) {
+					// LOG.debug("Name: " + fields.get(i) + ", Value: "
+					// + input.getValue(i));
+					mutator.addInsertion(rowKey.toString(), columnFamily,
+							HFactory.createStringColumn(fields.get(i), input
+									.getValue(i).toString()));
+					tuplesToAck.add(input);
 				}
 			}
+			mutator.execute();
+			if (this.ackStrategy == AckStrategy.ACK_ON_WRITE) {
+				LOG.debug("Acking successful tuples...");
+				for (Tuple tupleToAck : tuplesToAck) {
+					this.collector.ack(tupleToAck);
+				}
+			}
+		} catch (Throwable e) {
+			LOG.warn("Unable to write batch.", e);
 		}
-		mutator.execute();
-		} catch(Throwable e){
-			LOG.warn("Caught throwable.", e);
-		}
-		LOG.debug("Batch successfully processed.");
+
 	}
 
 	@Override
@@ -131,15 +147,5 @@ public class BatchingCassandraBolt extends AbstractBatchingBolt implements Cassa
 		}
 
 	}
-
-	public boolean isAutoAck() {
-		return autoAck;
-	}
-
-	public void setAutoAck(boolean autoAck) {
-		this.autoAck = autoAck;
-	}
-
-
 
 }
