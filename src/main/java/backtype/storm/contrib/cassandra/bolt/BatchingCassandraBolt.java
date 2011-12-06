@@ -123,14 +123,15 @@ public class BatchingCassandraBolt extends AbstractBatchingBolt implements
 				}
 			}
 			mutator.execute();
+
+		} catch (Throwable e) {
+			LOG.warn("Unable to write batch.", e);
+		} finally {
 			if (this.ackStrategy == AckStrategy.ACK_ON_WRITE) {
-				LOG.debug("Acking successful tuples...");
 				for (Tuple tupleToAck : tuplesToAck) {
 					this.collector.ack(tupleToAck);
 				}
 			}
-		} catch (Throwable e) {
-			LOG.warn("Unable to write batch.", e);
 		}
 
 	}
