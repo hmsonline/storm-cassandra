@@ -5,6 +5,7 @@ import backtype.storm.LocalCluster;
 import backtype.storm.StormSubmitter;
 import backtype.storm.contrib.cassandra.bolt.BatchingCassandraBolt;
 import backtype.storm.contrib.cassandra.bolt.CassandraBolt;
+import backtype.storm.contrib.cassandra.bolt.DefaultBatchingCassandraBolt;
 import backtype.storm.topology.TopologyBuilder;
 import backtype.storm.tuple.Fields;
 
@@ -26,7 +27,7 @@ public class PersistentWordCount {
 		
 		// create a CassandraBolt that writes to the "stormcf" column
 		// family and uses the Tuple field "word" as the row key
-		BatchingCassandraBolt cassandraBolt = new BatchingCassandraBolt("stormcf", "word");
+		BatchingCassandraBolt cassandraBolt = new DefaultBatchingCassandraBolt("stormcf", "word");
 		cassandraBolt.setAckStrategy(BatchingCassandraBolt.AckStrategy.ACK_ON_WRITE);
 
 		

@@ -103,9 +103,16 @@ public abstract class AbstractBatchingBolt implements IRichBolt,
 		@Override
 		public void run() {
 			while (!stopRequested) {
-				ArrayList<Tuple> batch = new ArrayList<Tuple>();
-				queue.drainTo(batch);
-				executeBatch(batch);
+			    try {
+			        ArrayList<Tuple> batch = new ArrayList<Tuple>();
+			        // drainTo() does not block, take() does.
+			        Tuple t = queue.take();
+			        batch.add(t);
+	                queue.drainTo(batch);
+	                executeBatch(batch);
+                    
+                }
+                catch (InterruptedException e) {}				
 			}
 		}
 
