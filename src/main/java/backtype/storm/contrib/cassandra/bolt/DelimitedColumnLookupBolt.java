@@ -7,9 +7,10 @@ import java.util.Map;
 import backtype.storm.task.OutputCollector;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.OutputFieldsDeclarer;
+import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Tuple;
 
-@SuppressWarnings("serial")
+
 /**
  * A bolt implementation that emits tuples based on a combination of cassandra
  * rowkey, collumnkey, and delimiter.
@@ -20,8 +21,7 @@ import backtype.storm.tuple.Tuple;
  * <li>Fetch the corresponding row from cassandra</li>
  * <li>Fetch the column <code>columnKeyField</code> value from the row.</li>
  * <li>Split the column value into an array based on <code>delimiter</code></li>
- * <li>For each value, emit a tuple with <code>{emitIdFieldName}={value}</code> 
- * 
+ * <li>For each value, emit a tuple with <code>{emitIdFieldName}={value}</code></li>
  * </ol>
  * For example, given the following cassandra row:
  * <br/>
@@ -37,7 +37,7 @@ import backtype.storm.tuple.Tuple;
  * delimiter = ":"
  * emitIdFieldName = "id"
  * emitValueFieldName = "follower"
- * <pre>
+ * </pre>
  * 
  * if the following tuple were received by the bolt:
  * <pre>
@@ -54,16 +54,17 @@ import backtype.storm.tuple.Tuple;
  * @author tgoetz
  *
  */
+@SuppressWarnings("serial")
 public class DelimitedColumnLookupBolt extends BaseCassandraBolt {
-    
+
     private String rowKeyField;
     private String columnKeyField;
     private String delimiter;
-    
+
     private String emitIdFieldName;
     private String emitValueFieldName;
-    
-    
+
+    private String[] declaredFields;
 
     @Override
     public void prepare(Map stormConf, TopologyContext context,
@@ -73,8 +74,8 @@ public class DelimitedColumnLookupBolt extends BaseCassandraBolt {
 
     @Override
     public void execute(Tuple input) {
-        // TODO Auto-generated method stub
-
+        String emitIdFieldValue = input.getStringByField(this.emitIdFieldName);
+//        String delimitedValueKey = 
     }
 
     @Override
@@ -83,10 +84,12 @@ public class DelimitedColumnLookupBolt extends BaseCassandraBolt {
 
     }
 
+    /**
+     * foo
+     */
     @Override
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
-        // TODO Auto-generated method stub
-
+        declarer.declare(new Fields(this.declaredFields));
     }
 
 }

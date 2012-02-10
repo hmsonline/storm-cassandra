@@ -1,3 +1,5 @@
+drop keyspace stormks;
+
 create keyspace stormks
   with placement_strategy = 'SimpleStrategy'
   and strategy_options = {replication_factor : 1}
@@ -22,3 +24,71 @@ create column family stormcf
   and replicate_on_write = true
   and row_cache_provider = 'ConcurrentLinkedHashCacheProvider'
   and compaction_strategy = 'org.apache.cassandra.db.compaction.SizeTieredCompactionStrategy';
+  
+  create column family followers_delimited
+  with column_type = 'Standard'
+  and comparator = 'UTF8Type'
+  and default_validation_class = 'UTF8Type'
+  and key_validation_class = 'UTF8Type'
+  and rows_cached = 0.0
+  and row_cache_save_period = 0
+  and row_cache_keys_to_save = 2147483647
+  and keys_cached = 200000.0
+  and key_cache_save_period = 14400
+  and read_repair_chance = 1.0
+  and gc_grace = 864000
+  and min_compaction_threshold = 4
+  and max_compaction_threshold = 32
+  and replicate_on_write = true
+  and row_cache_provider = 'ConcurrentLinkedHashCacheProvider'
+  and compaction_strategy = 'org.apache.cassandra.db.compaction.SizeTieredCompactionStrategy';
+  
+  set followers_delimited['sally']['followers']='bob:tim:alice:adam:jim:chris:jai';
+  set followers_delimited['bob']['followers']='sally:nathan:jim:mary:david:vivian';
+  set followers_delimited['bob']['followers']='sally:nathan:jim:mary:david:vivian';
+  set followers_delimited['tim']['followers']='alex';
+  set followers_delimited['nathan']['followers']='sally:bob:adam:harry:chris:vivian:emily:jordan';
+  set followers_delimited['adam']['followers']='david:carissa';
+  set followers_delimited['mike']['followers']='john:bob';
+  set followers_delimited['john']['followers']='alice:nathan:jim:mike:bob';
+    
+  
+  create column family followers2
+  with column_type = 'Standard'
+  and comparator = 'LexicalUUIDType'
+  and default_validation_class = 'UTF8Type'
+  and key_validation_class = 'UTF8Type'
+  and rows_cached = 0.0
+  and row_cache_save_period = 0
+  and row_cache_keys_to_save = 2147483647
+  and keys_cached = 200000.0
+  and key_cache_save_period = 14400
+  and read_repair_chance = 1.0
+  and gc_grace = 864000
+  and min_compaction_threshold = 4
+  and max_compaction_threshold = 32
+  and replicate_on_write = true
+  and row_cache_provider = 'ConcurrentLinkedHashCacheProvider'
+  and compaction_strategy = 'org.apache.cassandra.db.compaction.SizeTieredCompactionStrategy';
+  
+  create column family tweeters_delimited
+  with column_type = 'Standard'
+  and comparator = 'UTF8Type'
+  and default_validation_class = 'UTF8Type'
+  and key_validation_class = 'UTF8Type'
+  and rows_cached = 0.0
+  and row_cache_save_period = 0
+  and row_cache_keys_to_save = 2147483647
+  and keys_cached = 200000.0
+  and key_cache_save_period = 14400
+  and read_repair_chance = 1.0
+  and gc_grace = 864000
+  and min_compaction_threshold = 4
+  and max_compaction_threshold = 32
+  and replicate_on_write = true
+  and row_cache_provider = 'ConcurrentLinkedHashCacheProvider'
+  and compaction_strategy = 'org.apache.cassandra.db.compaction.SizeTieredCompactionStrategy';
+  
+  set tweeters_delimited['http://github.com/ptgoetz']['tweeted_by']='sally:bob:tim:george:nathan';
+  set tweeters_delimited['http://github.com/hmsonline']['tweeted_by']='adam:david:sally:nathan';
+  set tweeters_delimited['http://github.com/nathanmarz']['tweeted_by']='tim:mike:john';
