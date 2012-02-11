@@ -28,6 +28,8 @@ public abstract class BaseCassandraBolt implements IRichBolt,
     protected Cluster cluster;
     protected Keyspace keyspace;
     
+    protected OutputCollector collector;
+    
     @Override
     public void prepare(Map stormConf, TopologyContext context,
             OutputCollector collector) {
@@ -36,6 +38,8 @@ public abstract class BaseCassandraBolt implements IRichBolt,
         this.cassandraKeyspace = (String) stormConf.get(CASSANDRA_KEYSPACE);
         this.cassandraPort = String.valueOf(stormConf.get(CASSANDRA_PORT));
         initCassandraConnection();
+        
+        this.collector = collector;
     }
 
     private void initCassandraConnection() {
