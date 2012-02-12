@@ -11,7 +11,7 @@ import backtype.storm.Config;
 import backtype.storm.LocalCluster;
 import backtype.storm.LocalDRPC;
 import backtype.storm.StormSubmitter;
-import backtype.storm.contrib.cassandra.bolt.CassandraBolt;
+import backtype.storm.contrib.cassandra.bolt.CassandraConstants;
 import backtype.storm.contrib.cassandra.bolt.DelimitedColumnLookupBolt;
 import backtype.storm.drpc.CoordinatedBolt.FinishedCallback;
 import backtype.storm.drpc.LinearDRPCTopologyBuilder;
@@ -25,7 +25,7 @@ import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Tuple;
 import backtype.storm.tuple.Values;
 
-public class CassandraReachTopology {
+public class CassandraReachTopology implements CassandraConstants{
 
     public static void main(String[] args) throws Exception{
         LinearDRPCTopologyBuilder builder = new LinearDRPCTopologyBuilder("reach");
@@ -44,9 +44,9 @@ public class CassandraReachTopology {
         
         
         Config config = new Config();
-        config.put(CassandraBolt.CASSANDRA_HOST, "localhost");
-        config.put(CassandraBolt.CASSANDRA_PORT, 9160);
-        config.put(CassandraBolt.CASSANDRA_KEYSPACE, "stormks");
+        config.put(CASSANDRA_HOST, "localhost");
+        config.put(CASSANDRA_PORT, 9160);
+        config.put(CASSANDRA_KEYSPACE, "stormks");
         
         if(args==null || args.length==0) {
             config.setMaxTaskParallelism(3);
