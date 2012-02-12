@@ -4,16 +4,16 @@ package backtype.storm.contrib.cassandra.bolt;
 
 import java.util.Map;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import me.prettyprint.cassandra.serializers.StringSerializer;
 import me.prettyprint.cassandra.service.template.ColumnFamilyResult;
 import me.prettyprint.cassandra.service.template.ColumnFamilyTemplate;
 import me.prettyprint.cassandra.service.template.ThriftColumnFamilyTemplate;
 
-import backtype.storm.task.OutputCollector;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import backtype.storm.task.TopologyContext;
+import backtype.storm.topology.BasicOutputCollector;
 import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Tuple;
@@ -41,32 +41,33 @@ import backtype.storm.tuple.Values;
  * and the following bolt setup:
  * 
  * <pre>
- * rowKeyField = "id"
+ * rowKeyField = "rowKey"
  * columnKeyField = "followers"
  * delimiter = ":"
- * emitIdFieldName = "id"
+ * emitIdFieldName = "rowKey"
  * emitValueFieldName = "follower"
  * </pre>
  * 
  * if the following tuple were received by the bolt:
  * 
  * <pre>
- * {id:mike}
+ * {rowKey:mike}
  * </pre>
  * 
  * The following tuples would be emitted:
  * 
  * <pre>
- * {id:mike, follower:john}
- * {id:mike, follower:bob}
+ * {rowKey:mike, follower:john}
+ * {rowKey:mike, follower:bob}
  * </pre>
  * 
  * @author tgoetz
  */
 @SuppressWarnings("serial")
 public class DelimitedColumnLookupBolt extends BaseCassandraBolt {
-    
-    private static final Logger LOG = LoggerFactory.getLogger(DelimitedColumnLookupBolt.class);
+
+    private static final Logger LOG = LoggerFactory
+                    .getLogger(DelimitedColumnLookupBolt.class);
     private String columnFamily;
     private String rowKeyField;
     private String columnKeyField;
@@ -75,10 +76,12 @@ public class DelimitedColumnLookupBolt extends BaseCassandraBolt {
     private String emitIdFieldName;
     private String emitValueFieldName;
 
-    //private String[] declaredFields;
+    private boolean isDrpc = false;
+
     public DelimitedColumnLookupBolt(String columnFamily, String rowKeyField,
                     String columnKeyField, String delimiter,
-                    String emitIdFieldName, String emitValueFieldName) {
+                    String emitIdFieldName, String emitValueFieldName,
+                    boolean isDrpc) {
         super();
         this.columnFamily = columnFamily;
         this.rowKeyField = rowKeyField;
@@ -86,52 +89,64 @@ public class DelimitedColumnLookupBolt extends BaseCassandraBolt {
         this.delimiter = delimiter;
         this.emitIdFieldName = emitIdFieldName;
         this.emitValueFieldName = emitValueFieldName;
-    }
-    
-
-    @Override
-    public void prepare(Map stormConf, TopologyContext context,
-                    OutputCollector collector) {
-        super.prepare(stormConf, context, collector);
+        this.isDrpc = isDrpc;
     }
 
-
+    public DelimitedColumnLookupBolt(String columnFamily, String rowKeyField,
+                    String columnKeyField, String delimiter,
+                    String emitIdFieldName, String emitValueFieldName) {
+        this(columnFamily, rowKeyField, columnKeyField, delimiter,
+                        emitIdFieldName, emitValueFieldName, false);
+    }
 
     @Override
-    public void execute(Tuple input) {
+    public void prepare(Map stormConf, TopologyContext context) {
+        super.prepare(stormConf, context);
+    }
+
+    @Override
+    public void execute(Tuple input, BasicOutputCollector collector) {
+//        LOG.debug("Tuple: " + input);
         String rowKey = input.getStringByField(this.rowKeyField);
-        Object id = input.getValue(0);
-        //String colKey = input.getStringByField(this.columnKeyField);
-        
-        ColumnFamilyTemplate<String, String> template = 
-                        new ThriftColumnFamilyTemplate<String, String>(
-                                        this.keyspace, 
-                                        this.columnFamily, 
-                                        new StringSerializer(), 
-                                        new StringSerializer());
-        ColumnFamilyResult<String, String> result = 
-                        template.queryColumns(rowKey);
+//        LOG.debug("Row Key: " + rowKey);
+
+        ColumnFamilyTemplate<String, String> template = new ThriftColumnFamilyTemplate<String, String>(
+                        this.keyspace, this.columnFamily,
+                        new StringSerializer(), new StringSerializer());
+
+        ColumnFamilyResult<String, String> result = template
+                        .queryColumns(rowKey);
+//        LOG.debug("looking for column: " + this.columnKeyField);
         String delimVal = result.getString(this.columnKeyField);
-        
-        String[] vals = delimVal.split(this.delimiter);
-        for(String val : vals){
-            LOG.debug("Emitting: {" + rowKey + ":" + val + "}");
-            this.collector.emit(new Values(rowKey, val));
+        if (delimVal != null) {
+            String[] vals = delimVal.split(this.delimiter);
+            for (String val : vals) {
+//                LOG.debug("Emitting: {" + rowKey + ":" + val + "}");
+                if (this.isDrpc) {
+                    collector.emit(new Values(input.getValue(0), rowKey, val));
+                }
+                else {
+                    collector.emit(new Values(rowKey, val));
+                }
+            }
         }
     }
 
     @Override
     public void cleanup() {
-        // TODO Auto-generated method stub
-
     }
 
-    /**
-     * foo
-     */
     @Override
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
-        declarer.declare(new Fields(this.emitIdFieldName, this.emitValueFieldName));
+        if (this.isDrpc) {
+            declarer.declare(new Fields("id", this.emitIdFieldName,
+                            this.emitValueFieldName));
+        }
+        else {
+            declarer.declare(new Fields(this.emitIdFieldName,
+                            this.emitValueFieldName));
+        }
+
     }
 
 }
