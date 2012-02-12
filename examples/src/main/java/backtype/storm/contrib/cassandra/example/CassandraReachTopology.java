@@ -1,4 +1,4 @@
-// Copyright (c) 2012 Health Market Science, Inc.
+// Copyright (c) 2012 P. Taylor Goetz
 
 package backtype.storm.contrib.cassandra.example;
 
