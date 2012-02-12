@@ -7,7 +7,7 @@ create keyspace stormks
 
 use stormks;
 
-create column family stormcf
+  create column family stormcf
   with column_type = 'Standard'
   and comparator = 'UTF8Type'
   and default_validation_class = 'UTF8Type'
@@ -51,26 +51,7 @@ create column family stormcf
   set followers_delimited['adam']['followers']='david:carissa';
   set followers_delimited['mike']['followers']='john:bob';
   set followers_delimited['john']['followers']='alice:nathan:jim:mike:bob';
-    
-  
-  create column family followers2
-  with column_type = 'Standard'
-  and comparator = 'LexicalUUIDType'
-  and default_validation_class = 'UTF8Type'
-  and key_validation_class = 'UTF8Type'
-  and rows_cached = 0.0
-  and row_cache_save_period = 0
-  and row_cache_keys_to_save = 2147483647
-  and keys_cached = 200000.0
-  and key_cache_save_period = 14400
-  and read_repair_chance = 1.0
-  and gc_grace = 864000
-  and min_compaction_threshold = 4
-  and max_compaction_threshold = 32
-  and replicate_on_write = true
-  and row_cache_provider = 'ConcurrentLinkedHashCacheProvider'
-  and compaction_strategy = 'org.apache.cassandra.db.compaction.SizeTieredCompactionStrategy';
-  
+
   create column family tweeters_delimited
   with column_type = 'Standard'
   and comparator = 'UTF8Type'
