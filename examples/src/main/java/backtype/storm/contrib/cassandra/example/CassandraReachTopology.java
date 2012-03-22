@@ -13,6 +13,7 @@ import backtype.storm.LocalDRPC;
 import backtype.storm.StormSubmitter;
 import backtype.storm.contrib.cassandra.bolt.CassandraConstants;
 import backtype.storm.contrib.cassandra.bolt.DelimitedColumnLookupBolt;
+import backtype.storm.contrib.cassandra.bolt.ValueLessColumnLookupBolt;
 import backtype.storm.drpc.CoordinatedBolt.FinishedCallback;
 import backtype.storm.drpc.LinearDRPCTopologyBuilder;
 import backtype.storm.task.OutputCollector;
@@ -30,11 +31,17 @@ public class CassandraReachTopology implements CassandraConstants{
     public static void main(String[] args) throws Exception{
         LinearDRPCTopologyBuilder builder = new LinearDRPCTopologyBuilder("reach");
         
-        DelimitedColumnLookupBolt tweetersBolt = 
-                        new DelimitedColumnLookupBolt("tweeters_delimited", "rowKey", "tweeted_by", ":", "rowKey", "tweeter", true);
+//        DelimitedColumnLookupBolt tweetersBolt = 
+//                        new DelimitedColumnLookupBolt("tweeters_delimited", "rowKey", "tweeted_by", ":", "rowKey", "tweeter", true);
+//        
+//        DelimitedColumnLookupBolt followersBolt = 
+//                        new DelimitedColumnLookupBolt("followers_delimited", "tweeter", "followers", ":", "rowKey", "follower", true);
         
-        DelimitedColumnLookupBolt followersBolt = 
-                        new DelimitedColumnLookupBolt("followers_delimited", "tweeter", "followers", ":", "rowKey", "follower", true);
+        ValueLessColumnLookupBolt tweetersBolt = 
+                        new ValueLessColumnLookupBolt("tweeters", "rowKey","rowKey", "tweeter", true);
+        
+        ValueLessColumnLookupBolt followersBolt = 
+                        new ValueLessColumnLookupBolt("followers", "tweeter", "rowKey", "follower", true);
         
         builder.addBolt(new InitBolt());
         builder.addBolt(tweetersBolt).shuffleGrouping();

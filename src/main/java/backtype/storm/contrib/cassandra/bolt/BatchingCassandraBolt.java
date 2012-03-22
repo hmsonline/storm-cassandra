@@ -12,8 +12,6 @@ import org.slf4j.LoggerFactory;
 
 import backtype.storm.contrib.cassandra.bolt.determinable.ColumnFamilyDeterminable;
 import backtype.storm.contrib.cassandra.bolt.determinable.DefaultColumnFamilyDeterminable;
-import backtype.storm.contrib.cassandra.bolt.determinable.DefaultRowKeyDeterminable;
-import backtype.storm.contrib.cassandra.bolt.determinable.RowKeyDeterminable;
 import backtype.storm.task.OutputCollector;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.OutputFieldsDeclarer;
@@ -39,7 +37,7 @@ public abstract class BatchingCassandraBolt extends AbstractBatchingBolt impleme
 	private String cassandraPort;
 	private String cassandraKeyspace;
 
-	private Cluster cluster;
+	protected Cluster cluster;
 	protected Keyspace keyspace;
 
 	protected ColumnFamilyDeterminable cfDeterminable;
