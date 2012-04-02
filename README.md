@@ -8,6 +8,15 @@ How the Storm `Tuple` data is written to Cassandra is dynamically configurable -
 provide classes that "determine" a column family, row key, and column name/values, and the 
 bolt will write the data to a Cassandra cluster.
 
+### Project Location
+Primary development of storm-cassandra will take place at: 
+https://github.com/ptgoetz/storm-cassandra
+
+Point/stable (non-SNAPSHOT) release souce code will be pushed to:
+https://github.com/nathanmarz/storm-contrib
+
+Maven artifacts for releases will be available on maven central.
+
 ### Building from Source
 
 		$ mvn install
