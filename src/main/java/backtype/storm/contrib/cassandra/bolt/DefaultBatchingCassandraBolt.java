@@ -59,8 +59,8 @@ public class DefaultBatchingCassandraBolt extends BatchingCassandraBolt implemen
                     mutator.addInsertion(rowKey.toString(), columnFamily,
                             HFactory.createStringColumn(fields.get(i), input
                                     .getValue(i).toString()));
-                    tuplesToAck.add(input);
                 }
+                tuplesToAck.add(input);
             }
             mutator.execute();
 
