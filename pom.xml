@@ -9,7 +9,7 @@
 
 
 	<modelVersion>4.0.0</modelVersion>
-	<groupId>com.github.ptgoetz</groupId>
+	<groupId>com.hmsonline</groupId>
 	<artifactId>storm-cassandra</artifactId>
 	<version>0.1.2-SNAPSHOT</version>
 	<name>Storm Cassandra Support</name>
@@ -23,9 +23,9 @@
 		</license>
 	</licenses>
 	<scm>
-		<connection>scm:git:git@github.com:ptgoetz/storm-cassandra.git</connection>
-		<developerConnection>scm:git:git@github.com:ptgoetz/storm-cassandra.git</developerConnection>
-		<url>:git@github.com:ptgoetz/storm-cassandra.git</url>
+		<connection>scm:git:git@github.com:hmsonline/storm-cassandra.git</connection>
+		<developerConnection>scm:git:git@github.com:hmsonline/storm-cassandra.git</developerConnection>
+		<url>:git@github.com:hmsonline/storm-cassandra.git</url>
 	</scm>
 
 	<developers>
