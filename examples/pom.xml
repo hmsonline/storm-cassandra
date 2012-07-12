@@ -3,20 +3,30 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>backtype.storm.contrib</groupId>
 	<artifactId>storm-cassandra-examples</artifactId>
-	<version>0.1.0-SNAPSHOT</version>
+	<version>0.2.0-SNAPSHOT</version>
 	<name>Storm Cassandra Examples</name>
 	<description>Storm Cassandra Examples</description>
-	<!-- <repositories> <repository> <id>clojars.org</id> <url>http://clojars.org/repo</url> 
-		</repository> </repositories> -->
+	<repositories>
+		<repository>
+			<id>clojars.org</id>
+			<url>http://clojars.org/repo</url>
+		</repository>
+	</repositories>
+	<pluginRepositories>
+		<pluginRepository>
+			<id>clojars.org</id>
+			<url>http://clojars.org/repo</url>
+		</pluginRepository>
+	</pluginRepositories>
 	<properties>
 		<spring.version>2.5.6</spring.version>
-		<storm.version>0.6.2</storm.version>
+		<storm.version>0.7.4</storm.version>
 	</properties>
 	<dependencies>
 		<dependency>
 			<groupId>com.github.ptgoetz</groupId>
 			<artifactId>storm-cassandra</artifactId>
-			<version>0.1.0-SNAPSHOT</version>
+			<version>0.2.0-SNAPSHOT</version>
 		</dependency>
 		<dependency>
 			<groupId>storm</groupId>
@@ -69,13 +79,17 @@
 					<executable>java</executable>
 					<includeProjectDependencies>true</includeProjectDependencies>
 					<includePluginDependencies>true</includePluginDependencies>
-					<mainClass>backtype.storm.contrib.cassandra.example.PersistentWordCount</mainClass>
+					<mainClass>backtype.storm.contrib.cassandra.example.CassandraReachTopology</mainClass>
 					<systemProperties>
 						<systemProperty>
 							<key>log4j.configuration</key>
 							<value>file:./src/main/resources/log4j.properties</value>
 						</systemProperty>
 					</systemProperties>
+					<executableDependency>
+						<groupId>storm</groupId>
+						<artifactId>storm</artifactId>
+					</executableDependency>
 				</configuration>
 				<dependencies>
 					<dependency>

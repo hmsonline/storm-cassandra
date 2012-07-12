@@ -59,6 +59,7 @@ public abstract class BatchingCassandraBolt extends AbstractBatchingBolt impleme
 	/*
 	 * IRichBolt Implementation
 	 */
+	@SuppressWarnings("rawtypes")
 	@Override
 	public void prepare(Map stormConf, TopologyContext context,
 			OutputCollector collector) {

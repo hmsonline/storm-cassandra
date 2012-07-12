@@ -29,7 +29,8 @@ public abstract class BaseCassandraBolt implements IBasicBolt,
     
 //    protected OutputCollector collector;
     
-    @Override
+    @SuppressWarnings("rawtypes")
+	@Override
     public void prepare(Map stormConf, TopologyContext context) {
 //        LOG.debug("Preparing...");
         this.cassandraHost = (String) stormConf.get(CASSANDRA_HOST);

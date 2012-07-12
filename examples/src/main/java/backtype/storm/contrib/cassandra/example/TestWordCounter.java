@@ -8,12 +8,10 @@ import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.BasicOutputCollector;
 import backtype.storm.topology.IBasicBolt;
 import java.util.HashMap;
-import org.apache.log4j.Logger;
 import static backtype.storm.utils.Utils.tuple;
 
 
 public class TestWordCounter implements IBasicBolt {
-    public static Logger LOG = Logger.getLogger(TestWordCounter.class);
 
     Map<String, Integer> _counts;
     
@@ -39,5 +37,11 @@ public class TestWordCounter implements IBasicBolt {
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
         declarer.declare(new Fields("word", "count"));
     }
+
+	@Override
+	public Map<String, Object> getComponentConfiguration() {
+		// TODO Auto-generated method stub
+		return null;
+	}
 
 }

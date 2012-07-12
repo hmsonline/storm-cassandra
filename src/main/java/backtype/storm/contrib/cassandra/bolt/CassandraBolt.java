@@ -59,6 +59,7 @@ public class CassandraBolt implements IRichBolt, CassandraConstants {
 	/*
 	 * IRichBolt Implementation
 	 */
+	@SuppressWarnings("rawtypes")
 	@Override
 	public void prepare(Map stormConf, TopologyContext context,
 			OutputCollector collector) {
@@ -135,6 +136,11 @@ public class CassandraBolt implements IRichBolt, CassandraConstants {
 
 	public void setAutoAck(boolean autoAck) {
 		this.autoAck = autoAck;
+	}
+
+	@Override
+	public Map<String, Object> getComponentConfiguration() {
+		return null;
 	}
 
 }

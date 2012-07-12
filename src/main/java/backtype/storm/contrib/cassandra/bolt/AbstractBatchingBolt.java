@@ -38,6 +38,7 @@ import backtype.storm.tuple.Tuple;
 public abstract class AbstractBatchingBolt implements IRichBolt,
 		CassandraConstants {
 
+	@SuppressWarnings("unused")
 	private static final Logger LOG = LoggerFactory
 			.getLogger(AbstractBatchingBolt.class);
 	
@@ -49,6 +50,7 @@ public abstract class AbstractBatchingBolt implements IRichBolt,
 
 	private BatchThread batchThread;
 
+	@SuppressWarnings("rawtypes")
 	@Override
 	public void prepare(Map stormConf, TopologyContext context,
 			OutputCollector collector) {
