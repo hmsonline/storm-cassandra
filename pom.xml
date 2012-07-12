@@ -36,9 +36,6 @@
 		</developer>
 	</developers>
 
-
-
-
  	<repositories>
 		<repository>
 			<id>clojars.org</id>

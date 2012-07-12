@@ -53,21 +53,65 @@ Would yield the following Cassandra row (as seen from `cassandra-cli`):
 		=> (column=field2, value=bar, timestamp=1321938505072000)
 
 
-#### Dynamic ColumnFamily Determination
-[TODO]
 
 
+# Examples
+The "examples" directory contains two examples:
 
-#### Dynamic RowKey Generation
-[TODO]
+* CassandraReachTopology
 
+* PersistentWordCount
 
-### Running the Persistent Word Count Example
+## Cassandra Reach Topology
 
-The "examples" directory contains a sample `PersistentWordCount` topology that illustrates 
-the basic usage of the Cassandra Bolt implementation. It reuses the [`TestWordSpout`](https://github.com/nathanmarz/storm/blob/master/src/jvm/backtype/storm/testing/TestWordSpout.java) 
+The [`CassandraReachTopology`](https://github.com/ptgoetz/storm-cassandra/blob/master/examples/src/main/java/backtype/storm/contrib/cassandra/example/CassandraReachTopology.java) 
+example is a Storm [Distributed RPC](https://github.com/nathanmarz/storm/wiki/Distributed-RPC) example 
+that is essentially a clone of Nathan Marz' [`ReachTopology`](https://github.com/nathanmarz/storm-starter/blob/master/src/jvm/storm/starter/ReachTopology.java), 
+that instead of using in-memory data stores  is backed by a [Cassandra](http://cassandra.apache.org/) database and uses generic 
+*storm-cassandra* bolts to query the database.
+
+## Persistent Word Count  
+The sample [`PersistentWordCount`](https://github.com/ptgoetz/storm-cassandra/blob/master/examples/src/main/java/backtype/storm/contrib/cassandra/example/PersistentWordCount.java) 
+topology illustrates the basic usage of the Cassandra Bolt implementation. It reuses the [`TestWordSpout`](https://github.com/nathanmarz/storm/blob/master/src/jvm/backtype/storm/testing/TestWordSpout.java) 
 spout and [`TestWordCounter`](https://github.com/nathanmarz/storm/blob/master/src/jvm/backtype/storm/testing/TestWordCounter.java) 
 bolt from the Storm tutorial, and adds an instance of `CassandraBolt` to persist the results.
+
+
+## Preparation
+In order to run the examples, you will need a Cassandra database running on `localhost:9160`.
+
+### Build the Example Source
+
+		$ cd examples
+		$ mvn install
+	
+### Create Cassandra Schema and Sample Data
+Install and run [Apache Cassandra](http://cassandra.apache.org/).
+
+Create the sample schema using `cassandra-cli`:
+
+		$ cd schema
+		$ cassandra-cli -h localhost -f cassandra_schema.txt
+
+## Running the Cassandra Reach Topology
+
+To run the `CassandraReachTopology` execute the following maven command:
+
+		$ mvn exec:java -Dexec.mainClass=backtype.storm.contrib.cassandra.example.CassandraReachTopology
+
+Among the output, you should see the following:
+
+	Reach of http://github.com/hmsonline: 3
+	Reach of http://github.com/nathanmarz: 3
+	Reach of http://github.com/ptgoetz: 4
+	Reach of http://github.com/boneill: 0
+
+To enable logging of all tuples sent within the topology, run the following command:
+
+		$ mvn exec:java -Dexec.mainClass=backtype.storm.contrib.cassandra.example.CassandraReachTopology -Ddebug=true
+
+
+## Running the Persistent Word Count Example
 
 The `PersistentWordCount` example build the following topology:
 
@@ -81,22 +125,10 @@ and emits a tuple containing the word and corresponding count ("word", "count").
 3. The `CassandraBolt` receives the ("word", "count") tuple and writes it to the
 Cassandra database using the word as the row key.
 
-#### Build the Example Source
 
-		$ cd examples
-		$ mvn install
-	
-#### Create Cassandra Schema
-Install and run [Apache Cassandra](http://cassandra.apache.org/).
+Run the `PersistentWordCount` topology:
 
-Create the sample schema using `cassandra-cli`:
-
-		$ cd schema
-		$ cassandra-cli -h localhost -f cassandra_schema.txt
-	
-Run the example topology:
-
-		$ mvn exec:java
+		$ mvn exec:java -Dexec.mainClass=backtype.storm.contrib.cassandra.example.PersistentWordCount
 	
 View the end result in `cassandra-cli`:
 

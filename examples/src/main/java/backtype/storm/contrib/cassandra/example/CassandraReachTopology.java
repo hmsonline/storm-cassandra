@@ -56,7 +56,9 @@ public class CassandraReachTopology implements CassandraConstants{
             config.setMaxTaskParallelism(3);
             LocalDRPC drpc = new LocalDRPC();
             LocalCluster cluster = new LocalCluster();
-            config.setDebug(true);
+            if("true".equals(System.getProperty("debug"))){
+            	config.setDebug(true);
+            }
             cluster.submitTopology("reach-drpc", config, builder.createLocalTopology(drpc));
             
             String[] urlsToTry = new String[] {"http://github.com/hmsonline","http://github.com/nathanmarz", "http://github.com/ptgoetz", "http://github.com/boneill"};
