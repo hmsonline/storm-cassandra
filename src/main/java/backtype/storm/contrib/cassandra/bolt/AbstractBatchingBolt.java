@@ -35,7 +35,7 @@ import backtype.storm.tuple.Tuple;
  * 
  */
 @SuppressWarnings("serial")
-public abstract class AbstractBatchingBolt implements IRichBolt,
+public abstract class AbstractBatchingBolt extends BaseCassandraBolt implements IRichBolt,
 		CassandraConstants {
 
 	private static final Logger LOG = LoggerFactory
@@ -52,6 +52,7 @@ public abstract class AbstractBatchingBolt implements IRichBolt,
 	@Override
 	public void prepare(Map stormConf, TopologyContext context,
 			OutputCollector collector) {
+		super.prepare(stormConf, context);
 		this.collector = collector;
 		this.queue = new LinkedBlockingQueue<Tuple>();
 		this.batchThread = new BatchThread();
