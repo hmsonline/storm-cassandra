@@ -63,13 +63,17 @@ public class DefaultBatchingCassandraBolt extends BatchingCassandraBolt implemen
                 tuplesToAck.add(input);
             }
             mutator.execute();
-
-        } catch (Throwable e) {
-            LOG.warn("Unable to write batch.", e);
-        } finally {
             if (this.ackStrategy == AckStrategy.ACK_ON_WRITE) {
                 for (Tuple tupleToAck : tuplesToAck) {
                     this.collector.ack(tupleToAck);
+                }
+            }
+
+        } catch (Throwable e) {
+            LOG.warn("Unable to write batch.", e);
+            if (this.ackStrategy == AckStrategy.ACK_ON_WRITE) {
+                for (Tuple tupleToAck : tuplesToAck) {
+                    this.collector.fail(tupleToAck);
                 }
             }
         }
