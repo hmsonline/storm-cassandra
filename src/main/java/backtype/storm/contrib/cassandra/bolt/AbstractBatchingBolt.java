@@ -35,90 +35,87 @@ import backtype.storm.tuple.Tuple;
  * 
  */
 @SuppressWarnings("serial")
-public abstract class AbstractBatchingBolt extends BaseCassandraBolt implements IRichBolt,
-		CassandraConstants {
+public abstract class AbstractBatchingBolt extends BaseCassandraBolt implements IRichBolt, CassandraConstants {
 
-	private static final Logger LOG = LoggerFactory
-			.getLogger(AbstractBatchingBolt.class);
-	
-	private boolean ackOnReceive = false;
-	
-	private OutputCollector collector;
+    private static final Logger LOG = LoggerFactory.getLogger(AbstractBatchingBolt.class);
 
-	private LinkedBlockingQueue<Tuple> queue;
+    private boolean ackOnReceive = false;
 
-	private BatchThread batchThread;
+    private OutputCollector collector;
 
-	@Override
-	public void prepare(Map stormConf, TopologyContext context,
-			OutputCollector collector) {
-		super.prepare(stormConf, context);
-		this.collector = collector;
-		this.queue = new LinkedBlockingQueue<Tuple>();
-		this.batchThread = new BatchThread();
-		this.batchThread.start();
-	}
-	
-	public void setAckOnReceive(boolean ackOnReceive){
-		this.ackOnReceive = ackOnReceive;
-	}
+    private LinkedBlockingQueue<Tuple> queue;
 
-	@Override
-	public final void execute(Tuple input) {
-		if(this.ackOnReceive){
-			this.collector.ack(input);
-		}
-		this.queue.offer(input);
-	}
+    private BatchThread batchThread;
 
-	@Override
-	public void cleanup() {
-		this.batchThread.stopRunning();
-	}
+    @Override
+    public void prepare(Map stormConf, TopologyContext context, OutputCollector collector) {
+        super.prepare(stormConf, context);
+        this.collector = collector;
+        this.queue = new LinkedBlockingQueue<Tuple>();
+        this.batchThread = new BatchThread();
+        this.batchThread.start();
+    }
 
-	/**
-	 * Process a <code>java.util.List</code> of
-	 * <code>backtype.storm.tuple.Tuple</code> objects that have been
-	 * cached/batched.
-	 * <p/>
-	 * This method is analagous to the <code>execute(Tuple input)</code> method
-	 * defined in the bolt interface. Subclasses are responsible for processing
-	 * and/or ack'ing tuples as necessary. The only difference is that tuples
-	 * are passed in as a list, as opposed to one at a time.
-	 * <p/>
-	 * 
-	 * 
-	 * @param inputs
-	 */
-	public abstract void executeBatch(List<Tuple> inputs);
+    public void setAckOnReceive(boolean ackOnReceive) {
+        this.ackOnReceive = ackOnReceive;
+    }
 
-	private class BatchThread extends Thread {
+    @Override
+    public final void execute(Tuple input) {
+        if (this.ackOnReceive) {
+            this.collector.ack(input);
+        }
+        this.queue.offer(input);
+    }
 
-		boolean stopRequested = false;
+    @Override
+    public void cleanup() {
+        this.batchThread.stopRunning();
+    }
 
-		BatchThread() {
-			super("batch-bolt-thread");
-			super.setDaemon(true);
-		}
+    /**
+     * Process a <code>java.util.List</code> of
+     * <code>backtype.storm.tuple.Tuple</code> objects that have been
+     * cached/batched.
+     * <p/>
+     * This method is analagous to the <code>execute(Tuple input)</code> method
+     * defined in the bolt interface. Subclasses are responsible for processing
+     * and/or ack'ing tuples as necessary. The only difference is that tuples
+     * are passed in as a list, as opposed to one at a time.
+     * <p/>
+     * 
+     * 
+     * @param inputs
+     */
+    public abstract void executeBatch(List<Tuple> inputs);
 
-		@Override
-		public void run() {
-			while (!stopRequested) {
-			    try {
-			        ArrayList<Tuple> batch = new ArrayList<Tuple>();
-			        // drainTo() does not block, take() does.
-			        Tuple t = queue.take();
-			        batch.add(t);
-	                queue.drainTo(batch);
-	                executeBatch(batch);
-                    
+    private class BatchThread extends Thread {
+
+        boolean stopRequested = false;
+
+        BatchThread() {
+            super("batch-bolt-thread");
+            super.setDaemon(true);
+        }
+
+        @Override
+        public void run() {
+            while (!stopRequested) {
+                try {
+                    ArrayList<Tuple> batch = new ArrayList<Tuple>();
+                    // drainTo() does not block, take() does.
+                    Tuple t = queue.take();
+                    batch.add(t);
+                    queue.drainTo(batch);
+                    executeBatch(batch);
+
+                } catch (InterruptedException e) {
                 }
-                catch (InterruptedException e) {}				
-			}
-		}
+            }
+        }
 
-		synchronized void stopRunning() {
-			this.stopRequested = true;
-		}
-	}
+        synchronized void stopRunning() {
+            this.stopRequested = true;
+        }
+    }
 }

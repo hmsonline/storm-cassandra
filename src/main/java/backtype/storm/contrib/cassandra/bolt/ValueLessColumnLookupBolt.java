@@ -67,76 +67,70 @@ import com.netflix.astyanax.serializers.StringSerializer;
  * @author tgoetz
  */
 @SuppressWarnings("serial")
-public class ValueLessColumnLookupBolt extends BaseCassandraBolt implements
-		IBasicBolt {
+public class ValueLessColumnLookupBolt extends BaseCassandraBolt implements IBasicBolt {
 
-	private static final Logger LOG = LoggerFactory
-			.getLogger(ValueLessColumnLookupBolt.class);
-	private ColumnFamily<String, String> columnFamily;
-	private String rowKeyField;
+    private static final Logger LOG = LoggerFactory.getLogger(ValueLessColumnLookupBolt.class);
+    private ColumnFamily<String, String> columnFamily;
+    private String rowKeyField;
 
-	private String emitIdFieldName;
-	private String emitValueFieldName;
+    private String emitIdFieldName;
+    private String emitValueFieldName;
 
-	private boolean isDrpc = false;
+    private boolean isDrpc = false;
 
-	public ValueLessColumnLookupBolt(String columnFamily, String rowKeyField,
-			String emitIdFieldName, String emitValueFieldName, boolean isDrpc) {
-		super();
-		this.columnFamily = new ColumnFamily<String, String>(columnFamily,
-				StringSerializer.get(), StringSerializer.get());
+    public ValueLessColumnLookupBolt(String columnFamily, String rowKeyField, String emitIdFieldName,
+            String emitValueFieldName, boolean isDrpc) {
+        super();
+        this.columnFamily = new ColumnFamily<String, String>(columnFamily, StringSerializer.get(),
+                StringSerializer.get());
 
-		this.rowKeyField = rowKeyField;
-		this.emitIdFieldName = emitIdFieldName;
-		this.emitValueFieldName = emitValueFieldName;
-		this.isDrpc = isDrpc;
-	}
+        this.rowKeyField = rowKeyField;
+        this.emitIdFieldName = emitIdFieldName;
+        this.emitValueFieldName = emitValueFieldName;
+        this.isDrpc = isDrpc;
+    }
 
-	public ValueLessColumnLookupBolt(String columnFamily, String rowKeyField,
-			String columnKeyField, String delimiter, String emitIdFieldName,
-			String emitValueFieldName) {
-		this(columnFamily, rowKeyField, emitIdFieldName, emitValueFieldName,
-				false);
-	}
+    public ValueLessColumnLookupBolt(String columnFamily, String rowKeyField, String columnKeyField, String delimiter,
+            String emitIdFieldName, String emitValueFieldName) {
+        this(columnFamily, rowKeyField, emitIdFieldName, emitValueFieldName, false);
+    }
 
-	@Override
-	public void prepare(Map stormConf, TopologyContext context) {
-		super.prepare(stormConf, context);
-	}
+    @Override
+    public void prepare(Map stormConf, TopologyContext context) {
+        super.prepare(stormConf, context);
+    }
 
-	@Override
-	public void execute(Tuple input, BasicOutputCollector collector) {
-		String rowKey = input.getStringByField(this.rowKeyField);
-		try {
-			OperationResult<ColumnList<String>> result = this.keyspace
-					.prepareQuery(this.columnFamily).getKey(rowKey).execute();
-			ColumnList<String> columns = result.getResult();
-			for (Column<String> col : columns) {
-				if (this.isDrpc) {
-					collector.emit(new Values(input.getValue(0), rowKey, col.getName()));
-				} else {
-					collector.emit(new Values(rowKey, col.getName()));
-				}
-			}
-		} catch (ConnectionException e) {
-			LOG.warn("Could emit for row [" + rowKey + "] from Cassandra.");
-		}
-	}
+    @Override
+    public void execute(Tuple input, BasicOutputCollector collector) {
+        String rowKey = input.getStringByField(this.rowKeyField);
+        try {
+            OperationResult<ColumnList<String>> result = this.keyspace.prepareQuery(this.columnFamily).getKey(rowKey)
+                    .execute();
+            ColumnList<String> columns = result.getResult();
+            for (Column<String> col : columns) {
+                if (this.isDrpc) {
+                    collector.emit(new Values(input.getValue(0), rowKey, col.getName()));
+                } else {
+                    collector.emit(new Values(rowKey, col.getName()));
+                }
+            }
+        } catch (ConnectionException e) {
+            LOG.warn("Could emit for row [" + rowKey + "] from Cassandra.");
+        }
+    }
 
-	@Override
-	public void cleanup() {
-	}
+    @Override
+    public void cleanup() {
+    }
 
-	@Override
-	public void declareOutputFields(OutputFieldsDeclarer declarer) {
-		if (this.isDrpc) {
-			declarer.declare(new Fields("id", this.emitIdFieldName,
-					this.emitValueFieldName));
-		} else {
-			declarer.declare(new Fields(this.emitIdFieldName,
-					this.emitValueFieldName));
-		}
+    @Override
+    public void declareOutputFields(OutputFieldsDeclarer declarer) {
+        if (this.isDrpc) {
+            declarer.declare(new Fields("id", this.emitIdFieldName, this.emitValueFieldName));
+        } else {
+            declarer.declare(new Fields(this.emitIdFieldName, this.emitValueFieldName));
+        }
 
-	}
+    }
 
 }
