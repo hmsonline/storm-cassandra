@@ -7,6 +7,9 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import backtype.storm.contrib.cassandra.bolt.determinable.DefaultColumnFamilyDeterminable;
+import backtype.storm.contrib.cassandra.bolt.determinable.DefaultColumnsDeterminable;
+import backtype.storm.contrib.cassandra.bolt.determinable.DefaultRowKeyDeterminable;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.BasicOutputCollector;
 import backtype.storm.topology.IBasicBolt;
@@ -82,7 +85,8 @@ public class DelimitedColumnLookupBolt extends BaseCassandraBolt implements IBas
 
     public DelimitedColumnLookupBolt(String columnFamily, String rowKeyField, String columnKeyField, String delimiter,
             String emitIdFieldName, String emitValueFieldName, boolean isDrpc) {
-        super();
+        super(new DefaultColumnFamilyDeterminable(columnFamily), new DefaultRowKeyDeterminable(rowKeyField), 
+                new DefaultColumnsDeterminable());
 
         this.columnFamily = new ColumnFamily<String, String>(columnFamily, StringSerializer.get(),
                 StringSerializer.get());

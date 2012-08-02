@@ -1,5 +1,6 @@
 package backtype.storm.contrib.cassandra.bolt;
 
+import java.io.Serializable;
 import java.util.List;
 
 import org.slf4j.Logger;
@@ -14,13 +15,10 @@ import backtype.storm.contrib.cassandra.bolt.determinable.RowKeyDeterminable;
 import backtype.storm.tuple.Tuple;
 
 @SuppressWarnings("serial")
-public class DefaultBatchingCassandraBolt extends BatchingCassandraBolt implements CassandraConstants {
-    private RowKeyDeterminable rkDeterminable;
-
+public class DefaultBatchingCassandraBolt extends BatchingCassandraBolt implements CassandraConstants, Serializable {
     public DefaultBatchingCassandraBolt(ColumnFamilyDeterminable cfDeterminable, RowKeyDeterminable rkDeterminable,
             ColumnsDeterminable colsDeterminable) {
-        super(cfDeterminable, colsDeterminable);
-        this.rkDeterminable = rkDeterminable;
+        super(cfDeterminable, rkDeterminable, colsDeterminable);
     }
 
     public DefaultBatchingCassandraBolt(String columnFamily, String rowKey) {
@@ -33,7 +31,7 @@ public class DefaultBatchingCassandraBolt extends BatchingCassandraBolt implemen
     @Override
     public void executeBatch(List<Tuple> inputs) {
         try {
-            this.writeTuples(inputs, this.cfDeterminable, this.rkDeterminable, this.colsDeterminable);
+            this.writeTuples(inputs);
             // NOTE: Changed this to ack on all or none since that is how the
             // mutation executes.
             if (this.ackStrategy == AckStrategy.ACK_ON_WRITE) {
@@ -43,6 +41,8 @@ public class DefaultBatchingCassandraBolt extends BatchingCassandraBolt implemen
             }
         } catch (Throwable e) {
             LOG.warn("Unable to write batch.", e);
+            e.printStackTrace();
+            System.exit(-1); // TODO: REMOVE ME!!!!
         }
     }
 }

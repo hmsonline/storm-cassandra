@@ -1,6 +1,6 @@
 package backtype.storm.contrib.cassandra.bolt;
 
-import java.util.HashMap;
+import java.io.Serializable;
 import java.util.Map;
 
 import org.slf4j.Logger;
@@ -20,25 +20,19 @@ import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Tuple;
 
 @SuppressWarnings("serial")
-public class CassandraBolt extends BaseCassandraBolt implements IRichBolt, CassandraConstants {
+public class CassandraBolt extends BaseCassandraBolt implements IRichBolt, CassandraConstants, Serializable {
     private static final Logger LOG = LoggerFactory.getLogger(CassandraBolt.class);
 
     private OutputCollector collector;
     private boolean autoAck = true;
-
     private Fields declaredFields;
-
-    private ColumnFamilyDeterminable cfDeterminable;
-    private RowKeyDeterminable rkDeterminable;
-    private ColumnsDeterminable colsDeterminable;
     
     public CassandraBolt(String columnFamily, String rowkeyField) {
         this(new DefaultColumnFamilyDeterminable(columnFamily), new DefaultRowKeyDeterminable(rowkeyField), new DefaultColumnsDeterminable());
     }
 
     public CassandraBolt(ColumnFamilyDeterminable cfDeterminable, RowKeyDeterminable rkDeterminable, ColumnsDeterminable colsDeterminable) {
-        this.cfDeterminable = cfDeterminable;
-        this.rkDeterminable = rkDeterminable;
+        super(cfDeterminable, rkDeterminable, colsDeterminable);
     }
 
     /*
@@ -55,7 +49,7 @@ public class CassandraBolt extends BaseCassandraBolt implements IRichBolt, Cassa
     public void execute(Tuple input) {
         LOG.debug("Tuple received: " + input);
         try {
-            this.writeTuple(input, this.cfDeterminable, this.rkDeterminable, this.colsDeterminable);
+            this.writeTuple(input);
             if (this.autoAck) {
                 this.collector.ack(input);
             }

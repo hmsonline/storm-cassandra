@@ -1,5 +1,6 @@
 package backtype.storm.contrib.cassandra.bolt;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -8,6 +9,9 @@ import java.util.concurrent.LinkedBlockingQueue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import backtype.storm.contrib.cassandra.bolt.determinable.ColumnFamilyDeterminable;
+import backtype.storm.contrib.cassandra.bolt.determinable.ColumnsDeterminable;
+import backtype.storm.contrib.cassandra.bolt.determinable.RowKeyDeterminable;
 import backtype.storm.task.OutputCollector;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.IRichBolt;
@@ -35,7 +39,7 @@ import backtype.storm.tuple.Tuple;
  * 
  */
 @SuppressWarnings("serial")
-public abstract class AbstractBatchingBolt extends BaseCassandraBolt implements IRichBolt, CassandraConstants {
+public abstract class AbstractBatchingBolt extends BaseCassandraBolt implements IRichBolt, CassandraConstants, Serializable {
 
     private static final Logger LOG = LoggerFactory.getLogger(AbstractBatchingBolt.class);
 
@@ -47,6 +51,12 @@ public abstract class AbstractBatchingBolt extends BaseCassandraBolt implements 
 
     private BatchThread batchThread;
 
+    
+    public AbstractBatchingBolt(ColumnFamilyDeterminable cfDeterminable, RowKeyDeterminable rkDeterminable,
+            ColumnsDeterminable colsDeterminable) {
+        super(cfDeterminable, rkDeterminable, colsDeterminable);
+    }
+    
     @Override
     public void prepare(Map stormConf, TopologyContext context, OutputCollector collector) {
         super.prepare(stormConf, context);

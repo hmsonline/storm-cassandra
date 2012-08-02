@@ -51,7 +51,7 @@
 		<storm.version>0.7.1</storm.version>
 		<cassandra.version>1.0.2</cassandra.version>
 	</properties>
-	
+
 	<dependencies>
 		<dependency>
 			<groupId>junit</groupId>
@@ -85,6 +85,7 @@
 			<groupId>org.apache.cassandra</groupId>
 			<artifactId>cassandra-all</artifactId>
 			<version>1.1.2</version>
+			<scope>test</scope>
 			<exclusions>
 				<exclusion>
 					<groupId>org.slf4j</groupId>
@@ -105,7 +106,6 @@
 			<groupId>com.google.guava</groupId>
 			<artifactId>guava</artifactId>
 			<version>11.0.1</version>
-			<scope>test</scope>
 		</dependency>
 	</dependencies>
 	<build>

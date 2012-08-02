@@ -1,5 +1,6 @@
 package backtype.storm.contrib.cassandra.bolt;
 
+import java.io.Serializable;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -11,7 +12,6 @@ import backtype.storm.contrib.cassandra.bolt.determinable.ColumnFamilyDeterminab
 import backtype.storm.contrib.cassandra.bolt.determinable.ColumnsDeterminable;
 import backtype.storm.contrib.cassandra.bolt.determinable.RowKeyDeterminable;
 import backtype.storm.task.TopologyContext;
-import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Tuple;
 
 import com.netflix.astyanax.AstyanaxContext;
@@ -27,7 +27,7 @@ import com.netflix.astyanax.model.ColumnFamily;
 import com.netflix.astyanax.serializers.StringSerializer;
 import com.netflix.astyanax.thrift.ThriftFamilyFactory;
 
-public abstract class BaseCassandraBolt implements CassandraConstants {
+public abstract class BaseCassandraBolt implements CassandraConstants, Serializable {
 
     private static final Logger LOG = LoggerFactory.getLogger(BaseCassandraBolt.class);
 
@@ -37,17 +37,23 @@ public abstract class BaseCassandraBolt implements CassandraConstants {
 
     protected Cluster cluster;
     protected Keyspace keyspace;
-
-    // protected OutputCollector collector;
-
+    
+    protected ColumnFamilyDeterminable cfDeterminable;
+    protected RowKeyDeterminable rkDeterminable;
+    protected ColumnsDeterminable colsDeterminable;
+    
+    public BaseCassandraBolt(ColumnFamilyDeterminable cfDeterminable, RowKeyDeterminable rkDeterminable,
+            ColumnsDeterminable colsDeterminable) {
+        this.cfDeterminable = cfDeterminable;
+        this.rkDeterminable = rkDeterminable;
+        this.colsDeterminable = colsDeterminable;        
+    }
+    
     public void prepare(Map stormConf, TopologyContext context) {
-        // LOG.debug("Preparing...");
         this.cassandraHost = (String) stormConf.get(CASSANDRA_HOST);
         this.cassandraKeyspace = (String) stormConf.get(CASSANDRA_KEYSPACE);
         this.cassandraPort = String.valueOf(stormConf.get(CASSANDRA_PORT));
         initCassandraConnection();
-
-        // this.collector = collector;
     }
 
     private void initCassandraConnection() {
@@ -71,41 +77,39 @@ public abstract class BaseCassandraBolt implements CassandraConstants {
         }
     }
 
-    public void writeTuple(Tuple input, ColumnFamilyDeterminable cfDeterminer, RowKeyDeterminable rkDeterminer,
-            ColumnsDeterminable colsDeterminer) throws ConnectionException {
-        String columnFamilyName = cfDeterminer.determineColumnFamily(input);
-        String rowKey = (String) rkDeterminer.determineRowKey(input);
-        Map<String, String> columns = colsDeterminer.determineColumns(input);
+    public void writeTuple(Tuple input) throws ConnectionException {
+        String columnFamilyName = cfDeterminable.determineColumnFamily(input);
+        String rowKey = (String) rkDeterminable.determineRowKey(input);
+        Map<String, String> columns = colsDeterminable.determineColumns(input);
         MutationBatch mutation = keyspace.prepareMutationBatch();
         ColumnFamily<String, String> columnFamily = new ColumnFamily<String, String>(columnFamilyName,
                 StringSerializer.get(), StringSerializer.get());
-        this.addTupleToMutation(input, columnFamily, rowKey, mutation, colsDeterminer);
+        this.addTupleToMutation(input, columnFamily, rowKey, mutation);
         mutation.execute();
     }
 
-    public void writeTuples(List<Tuple> inputs, ColumnFamilyDeterminable cfDeterminer, RowKeyDeterminable rkDeterminer,
-            ColumnsDeterminable colsDeterminer) throws ConnectionException {
+    public void writeTuples(List<Tuple> inputs) throws ConnectionException {
         MutationBatch mutation = keyspace.prepareMutationBatch();
         for (Tuple input : inputs) {
-            String columnFamilyName = cfDeterminer.determineColumnFamily(input);
-            String rowKey = (String) rkDeterminer.determineRowKey(input);
+            String columnFamilyName = cfDeterminable.determineColumnFamily(input);
+            String rowKey = (String) rkDeterminable.determineRowKey(input);
             ColumnFamily<String, String> columnFamily = new ColumnFamily<String, String>(columnFamilyName,
                     StringSerializer.get(), StringSerializer.get());
-            this.addTupleToMutation(input, columnFamily, rowKey, mutation, colsDeterminer);
+            this.addTupleToMutation(input, columnFamily, rowKey, mutation);
         }
         mutation.execute();
     }
 
     private void addTupleToMutation(Tuple input, ColumnFamily<String, String> columnFamily, String rowKey,
-            MutationBatch mutation, ColumnsDeterminable colsDeterminer) {
-        Map<String, String> columns = colsDeterminer.determineColumns(input);
-        for (Map.Entry<String,String> entry : columns.entrySet()) {
+            MutationBatch mutation) {
+        Map<String, String> columns = colsDeterminable.determineColumns(input);
+        for (Map.Entry<String, String> entry : columns.entrySet()) {
             mutation.withRow(columnFamily, rowKey).putColumn(entry.getKey(), entry.getValue(), null);
         }
     }
-    
+
     public Map<String, Object> getComponentConfiguration() {
         // TODO Auto-generated method stub
-        return new HashMap<String,Object>();
+        return new HashMap<String, Object>();
     }
 }

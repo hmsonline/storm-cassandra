@@ -1,5 +1,6 @@
 package backtype.storm.contrib.cassandra.bolt;
 
+import java.io.Serializable;
 import java.util.Map;
 
 import org.slf4j.Logger;
@@ -7,15 +8,14 @@ import org.slf4j.LoggerFactory;
 
 import backtype.storm.contrib.cassandra.bolt.determinable.ColumnFamilyDeterminable;
 import backtype.storm.contrib.cassandra.bolt.determinable.ColumnsDeterminable;
-import backtype.storm.contrib.cassandra.bolt.determinable.DefaultColumnFamilyDeterminable;
-import backtype.storm.contrib.cassandra.bolt.determinable.DefaultColumnsDeterminable;
+import backtype.storm.contrib.cassandra.bolt.determinable.RowKeyDeterminable;
 import backtype.storm.task.OutputCollector;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.tuple.Fields;
 
 @SuppressWarnings("serial")
-public abstract class BatchingCassandraBolt extends AbstractBatchingBolt implements CassandraConstants {
+public abstract class BatchingCassandraBolt extends AbstractBatchingBolt implements CassandraConstants, Serializable {
     private static final Logger LOG = LoggerFactory.getLogger(BatchingCassandraBolt.class);
 
     public static enum AckStrategy {
@@ -28,18 +28,9 @@ public abstract class BatchingCassandraBolt extends AbstractBatchingBolt impleme
 
     private Fields declaredFields;
 
-    protected ColumnFamilyDeterminable cfDeterminable;
-    protected ColumnsDeterminable colsDeterminable;
-
-    // protected RowKeyDeterminable rkDeterminable;
-
-    public BatchingCassandraBolt(String columnFamily) {
-        this(new DefaultColumnFamilyDeterminable(columnFamily), new DefaultColumnsDeterminable());
-    }
-
-    public BatchingCassandraBolt(ColumnFamilyDeterminable cfDeterminable, ColumnsDeterminable colsDeterminable) {
-        this.cfDeterminable = cfDeterminable;
-        // this.rkDeterminable = rkDeterminable;
+    public BatchingCassandraBolt(ColumnFamilyDeterminable cfDeterminable, RowKeyDeterminable rkDeterminable,
+            ColumnsDeterminable colsDeterminable) {
+        super(cfDeterminable, rkDeterminable, colsDeterminable);
     }
 
     public void setAckStrategy(AckStrategy strategy) {
