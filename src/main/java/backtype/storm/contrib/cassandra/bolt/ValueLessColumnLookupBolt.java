@@ -7,9 +7,9 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import backtype.storm.contrib.cassandra.bolt.determinable.DefaultColumnFamilyDeterminable;
-import backtype.storm.contrib.cassandra.bolt.determinable.DefaultColumnsDeterminable;
-import backtype.storm.contrib.cassandra.bolt.determinable.DefaultRowKeyDeterminable;
+import backtype.storm.contrib.cassandra.bolt.mapper.DefaultColumnFamilyMapper;
+import backtype.storm.contrib.cassandra.bolt.mapper.DefaultColumnsMapper;
+import backtype.storm.contrib.cassandra.bolt.mapper.DefaultRowKeyMapper;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.BasicOutputCollector;
 import backtype.storm.topology.IBasicBolt;
@@ -83,8 +83,8 @@ public class ValueLessColumnLookupBolt extends BaseCassandraBolt implements IBas
 
     public ValueLessColumnLookupBolt(String columnFamily, String rowKeyField, String emitIdFieldName,
             String emitValueFieldName, boolean isDrpc) {
-        super(new DefaultColumnFamilyDeterminable(columnFamily), new DefaultRowKeyDeterminable(rowKeyField), 
-                new DefaultColumnsDeterminable());
+        super(new DefaultColumnFamilyMapper(columnFamily), new DefaultRowKeyMapper(rowKeyField), 
+                new DefaultColumnsMapper());
         
         this.columnFamily = new ColumnFamily<String, String>(columnFamily, StringSerializer.get(),
                 StringSerializer.get());

@@ -6,12 +6,12 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import backtype.storm.contrib.cassandra.bolt.determinable.ColumnFamilyDeterminable;
-import backtype.storm.contrib.cassandra.bolt.determinable.ColumnsDeterminable;
-import backtype.storm.contrib.cassandra.bolt.determinable.DefaultColumnFamilyDeterminable;
-import backtype.storm.contrib.cassandra.bolt.determinable.DefaultColumnsDeterminable;
-import backtype.storm.contrib.cassandra.bolt.determinable.DefaultRowKeyDeterminable;
-import backtype.storm.contrib.cassandra.bolt.determinable.RowKeyDeterminable;
+import backtype.storm.contrib.cassandra.bolt.mapper.ColumnFamilyMapper;
+import backtype.storm.contrib.cassandra.bolt.mapper.ColumnsMapper;
+import backtype.storm.contrib.cassandra.bolt.mapper.DefaultColumnFamilyMapper;
+import backtype.storm.contrib.cassandra.bolt.mapper.DefaultColumnsMapper;
+import backtype.storm.contrib.cassandra.bolt.mapper.DefaultRowKeyMapper;
+import backtype.storm.contrib.cassandra.bolt.mapper.RowKeyMapper;
 import backtype.storm.task.OutputCollector;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.IRichBolt;
@@ -28,10 +28,10 @@ public class CassandraBolt extends BaseCassandraBolt implements IRichBolt, Cassa
     private Fields declaredFields;
     
     public CassandraBolt(String columnFamily, String rowkeyField) {
-        this(new DefaultColumnFamilyDeterminable(columnFamily), new DefaultRowKeyDeterminable(rowkeyField), new DefaultColumnsDeterminable());
+        this(new DefaultColumnFamilyMapper(columnFamily), new DefaultRowKeyMapper(rowkeyField), new DefaultColumnsMapper());
     }
 
-    public CassandraBolt(ColumnFamilyDeterminable cfDeterminable, RowKeyDeterminable rkDeterminable, ColumnsDeterminable colsDeterminable) {
+    public CassandraBolt(ColumnFamilyMapper cfDeterminable, RowKeyMapper rkDeterminable, ColumnsMapper colsDeterminable) {
         super(cfDeterminable, rkDeterminable, colsDeterminable);
     }
 

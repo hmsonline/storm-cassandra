@@ -6,9 +6,9 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import backtype.storm.contrib.cassandra.bolt.determinable.ColumnFamilyDeterminable;
-import backtype.storm.contrib.cassandra.bolt.determinable.ColumnsDeterminable;
-import backtype.storm.contrib.cassandra.bolt.determinable.RowKeyDeterminable;
+import backtype.storm.contrib.cassandra.bolt.mapper.ColumnFamilyMapper;
+import backtype.storm.contrib.cassandra.bolt.mapper.ColumnsMapper;
+import backtype.storm.contrib.cassandra.bolt.mapper.RowKeyMapper;
 import backtype.storm.task.OutputCollector;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.OutputFieldsDeclarer;
@@ -28,8 +28,8 @@ public abstract class BatchingCassandraBolt extends AbstractBatchingBolt impleme
 
     private Fields declaredFields;
 
-    public BatchingCassandraBolt(ColumnFamilyDeterminable cfDeterminable, RowKeyDeterminable rkDeterminable,
-            ColumnsDeterminable colsDeterminable) {
+    public BatchingCassandraBolt(ColumnFamilyMapper cfDeterminable, RowKeyMapper rkDeterminable,
+            ColumnsMapper colsDeterminable) {
         super(cfDeterminable, rkDeterminable, colsDeterminable);
     }
 

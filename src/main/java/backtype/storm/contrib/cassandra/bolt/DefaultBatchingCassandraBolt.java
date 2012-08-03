@@ -6,24 +6,24 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import backtype.storm.contrib.cassandra.bolt.determinable.ColumnFamilyDeterminable;
-import backtype.storm.contrib.cassandra.bolt.determinable.ColumnsDeterminable;
-import backtype.storm.contrib.cassandra.bolt.determinable.DefaultColumnFamilyDeterminable;
-import backtype.storm.contrib.cassandra.bolt.determinable.DefaultColumnsDeterminable;
-import backtype.storm.contrib.cassandra.bolt.determinable.DefaultRowKeyDeterminable;
-import backtype.storm.contrib.cassandra.bolt.determinable.RowKeyDeterminable;
+import backtype.storm.contrib.cassandra.bolt.mapper.ColumnFamilyMapper;
+import backtype.storm.contrib.cassandra.bolt.mapper.ColumnsMapper;
+import backtype.storm.contrib.cassandra.bolt.mapper.DefaultColumnFamilyMapper;
+import backtype.storm.contrib.cassandra.bolt.mapper.DefaultColumnsMapper;
+import backtype.storm.contrib.cassandra.bolt.mapper.DefaultRowKeyMapper;
+import backtype.storm.contrib.cassandra.bolt.mapper.RowKeyMapper;
 import backtype.storm.tuple.Tuple;
 
 @SuppressWarnings("serial")
 public class DefaultBatchingCassandraBolt extends BatchingCassandraBolt implements CassandraConstants, Serializable {
-    public DefaultBatchingCassandraBolt(ColumnFamilyDeterminable cfDeterminable, RowKeyDeterminable rkDeterminable,
-            ColumnsDeterminable colsDeterminable) {
+    public DefaultBatchingCassandraBolt(ColumnFamilyMapper cfDeterminable, RowKeyMapper rkDeterminable,
+            ColumnsMapper colsDeterminable) {
         super(cfDeterminable, rkDeterminable, colsDeterminable);
     }
 
     public DefaultBatchingCassandraBolt(String columnFamily, String rowKey) {
-        this(new DefaultColumnFamilyDeterminable(columnFamily), new DefaultRowKeyDeterminable(rowKey), 
-                new DefaultColumnsDeterminable());
+        this(new DefaultColumnFamilyMapper(columnFamily), new DefaultRowKeyMapper(rowKey), 
+                new DefaultColumnsMapper());
     }
 
     private static final Logger LOG = LoggerFactory.getLogger(DefaultBatchingCassandraBolt.class);
