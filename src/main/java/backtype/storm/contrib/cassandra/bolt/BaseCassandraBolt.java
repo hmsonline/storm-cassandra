@@ -80,7 +80,6 @@ public abstract class BaseCassandraBolt implements CassandraConstants, Serializa
     public void writeTuple(Tuple input) throws ConnectionException {
         String columnFamilyName = cfDeterminable.determineColumnFamily(input);
         String rowKey = (String) rkDeterminable.determineRowKey(input);
-        Map<String, String> columns = colsDeterminable.determineColumns(input);
         MutationBatch mutation = keyspace.prepareMutationBatch();
         ColumnFamily<String, String> columnFamily = new ColumnFamily<String, String>(columnFamilyName,
                 StringSerializer.get(), StringSerializer.get());
@@ -98,6 +97,7 @@ public abstract class BaseCassandraBolt implements CassandraConstants, Serializa
             this.addTupleToMutation(input, columnFamily, rowKey, mutation);
         }
         mutation.execute();
+        LOG.debug("Wrote [" + inputs.size() + "] tuples to Cassandra.");
     }
 
     private void addTupleToMutation(Tuple input, ColumnFamily<String, String> columnFamily, String rowKey,

@@ -30,19 +30,16 @@ public class DefaultBatchingCassandraBolt extends BatchingCassandraBolt implemen
 
     @Override
     public void executeBatch(List<Tuple> inputs) {
+        LOG.info("Executing batch [" + inputs.size() + "]");
         try {
             this.writeTuples(inputs);
-            // NOTE: Changed this to ack on all or none since that is how the
-            // mutation executes.
             if (this.ackStrategy == AckStrategy.ACK_ON_WRITE) {
                 for (Tuple tupleToAck : inputs) {
                     this.collector.ack(tupleToAck);
                 }
             }
         } catch (Throwable e) {
-            LOG.warn("Unable to write batch.", e);
-            e.printStackTrace();
-            System.exit(-1); // TODO: REMOVE ME!!!!
+            LOG.error("Unable to write batch.", e);
         }
     }
 }
