@@ -21,7 +21,7 @@ public abstract class BaseCassandraBolt implements IBasicBolt,
                     .getLogger(BaseCassandraBolt.class);
 
     private String cassandraHost;
-    private String cassandraPort;
+//    private String cassandraPort;
     private String cassandraKeyspace;
 
     protected Cluster cluster;
@@ -35,7 +35,7 @@ public abstract class BaseCassandraBolt implements IBasicBolt,
 //        LOG.debug("Preparing...");
         this.cassandraHost = (String) stormConf.get(CASSANDRA_HOST);
         this.cassandraKeyspace = (String) stormConf.get(CASSANDRA_KEYSPACE);
-        this.cassandraPort = String.valueOf(stormConf.get(CASSANDRA_PORT));
+//        this.cassandraPort = String.valueOf(stormConf.get(CASSANDRA_PORT));
         initCassandraConnection();
         
 //        this.collector = collector;
@@ -44,8 +44,7 @@ public abstract class BaseCassandraBolt implements IBasicBolt,
     private void initCassandraConnection() {
         try {
             this.cluster = HFactory.getOrCreateCluster("cassandra-bolt",
-                            new CassandraHostConfigurator(this.cassandraHost
-                                            + ":" + this.cassandraPort));
+                            new CassandraHostConfigurator(this.cassandraHost));
             this.keyspace = HFactory.createKeyspace(this.cassandraKeyspace,
                             this.cluster);
         }

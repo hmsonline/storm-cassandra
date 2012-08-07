@@ -34,7 +34,7 @@ public class CassandraBolt implements IRichBolt, CassandraConstants {
 	private Fields declaredFields;
 
 	private String cassandraHost;
-	private String cassandraPort;
+//	private String cassandraPort;
 	private String cassandraKeyspace;
 
 	private Cluster cluster;
@@ -66,7 +66,7 @@ public class CassandraBolt implements IRichBolt, CassandraConstants {
 		LOG.debug("Preparing...");
 		this.cassandraHost = (String) stormConf.get(CASSANDRA_HOST);
 		this.cassandraKeyspace = (String) stormConf.get(CASSANDRA_KEYSPACE);
-		this.cassandraPort = String.valueOf(stormConf.get(CASSANDRA_PORT));
+//		this.cassandraPort = String.valueOf(stormConf.get(CASSANDRA_PORT));
 
 		this.collector = collector;
 
@@ -78,8 +78,7 @@ public class CassandraBolt implements IRichBolt, CassandraConstants {
 		// setup Cassandra connection
 		try {
 			this.cluster = HFactory.getOrCreateCluster("cassandra-bolt",
-					new CassandraHostConfigurator(this.cassandraHost + ":"
-							+ this.cassandraPort));
+					new CassandraHostConfigurator(this.cassandraHost));
 			this.keyspace = HFactory.createKeyspace(this.cassandraKeyspace,
 					this.cluster);
 		} catch (Throwable e) {
