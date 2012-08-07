@@ -48,8 +48,7 @@ public class CassandraReachTopology implements CassandraConstants{
         
         
         Config config = new Config();
-        config.put(CASSANDRA_HOST, "localhost");
-        config.put(CASSANDRA_PORT, 9160);
+        config.put(CASSANDRA_HOST, "localhost:9160");
         config.put(CASSANDRA_KEYSPACE, "stormks");
         
         if(args==null || args.length==0) {
