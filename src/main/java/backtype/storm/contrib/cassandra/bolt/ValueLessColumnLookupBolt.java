@@ -4,20 +4,26 @@ package backtype.storm.contrib.cassandra.bolt;
 
 import java.util.Map;
 
-import me.prettyprint.cassandra.serializers.StringSerializer;
-import me.prettyprint.cassandra.service.template.ColumnFamilyResult;
-import me.prettyprint.cassandra.service.template.ColumnFamilyTemplate;
-import me.prettyprint.cassandra.service.template.ThriftColumnFamilyTemplate;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import backtype.storm.contrib.cassandra.bolt.mapper.DefaultColumnFamilyMapper;
+import backtype.storm.contrib.cassandra.bolt.mapper.DefaultColumnsMapper;
+import backtype.storm.contrib.cassandra.bolt.mapper.DefaultRowKeyMapper;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.BasicOutputCollector;
+import backtype.storm.topology.IBasicBolt;
 import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Tuple;
 import backtype.storm.tuple.Values;
+
+import com.netflix.astyanax.connectionpool.OperationResult;
+import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
+import com.netflix.astyanax.model.Column;
+import com.netflix.astyanax.model.ColumnFamily;
+import com.netflix.astyanax.model.ColumnList;
+import com.netflix.astyanax.serializers.StringSerializer;
 
 /**
  * A bolt implementation that emits tuples based on a combination of cassandra
@@ -64,12 +70,11 @@ import backtype.storm.tuple.Values;
  * @author tgoetz
  */
 @SuppressWarnings("serial")
-public class ValueLessColumnLookupBolt extends BaseCassandraBolt {
+public class ValueLessColumnLookupBolt extends BaseCassandraBolt implements IBasicBolt {
 
-    @SuppressWarnings("unused")
-	private static final Logger LOG = LoggerFactory
-                    .getLogger(ValueLessColumnLookupBolt.class);
-    private String columnFamily;
+    private static final Logger LOG = LoggerFactory.getLogger(ValueLessColumnLookupBolt.class);
+    private ColumnFamily<String, String> columnFamily;
+    private String columnFamilyName;
     private String rowKeyField;
 
     private String emitIdFieldName;
@@ -77,47 +82,46 @@ public class ValueLessColumnLookupBolt extends BaseCassandraBolt {
 
     private boolean isDrpc = false;
 
-    public ValueLessColumnLookupBolt(String columnFamily, String rowKeyField,
-                    String emitIdFieldName, String emitValueFieldName,
-                    boolean isDrpc) {
-        super();
-        this.columnFamily = columnFamily;
+    public ValueLessColumnLookupBolt(String columnFamily, String rowKeyField, String emitIdFieldName,
+            String emitValueFieldName, boolean isDrpc) {
+        super(new DefaultColumnFamilyMapper(columnFamily), new DefaultRowKeyMapper(rowKeyField), 
+                new DefaultColumnsMapper());
+        this.columnFamilyName = columnFamily;
         this.rowKeyField = rowKeyField;
         this.emitIdFieldName = emitIdFieldName;
         this.emitValueFieldName = emitValueFieldName;
         this.isDrpc = isDrpc;
     }
 
-    public ValueLessColumnLookupBolt(String columnFamily, String rowKeyField,
-                    String columnKeyField, String delimiter,
-                    String emitIdFieldName, String emitValueFieldName) {
-        this(columnFamily, rowKeyField, 
-                        emitIdFieldName, emitValueFieldName, false);
+    public ValueLessColumnLookupBolt(String columnFamily, String rowKeyField, String columnKeyField, String delimiter,
+            String emitIdFieldName, String emitValueFieldName) {
+        this(columnFamily, rowKeyField, emitIdFieldName, emitValueFieldName, false);
     }
 
+    @Override
     @SuppressWarnings("rawtypes")
-	@Override
     public void prepare(Map stormConf, TopologyContext context) {
         super.prepare(stormConf, context);
+        this.columnFamily = new ColumnFamily<String, String>(this.columnFamilyName, StringSerializer.get(),
+                StringSerializer.get());
     }
 
     @Override
     public void execute(Tuple input, BasicOutputCollector collector) {
         String rowKey = input.getStringByField(this.rowKeyField);
-
-        ColumnFamilyTemplate<String, String> template = new ThriftColumnFamilyTemplate<String, String>(
-                        this.keyspace, this.columnFamily,
-                        new StringSerializer(), new StringSerializer());
-
-        ColumnFamilyResult<String, String> result = template
-                        .queryColumns(rowKey);
-        for(String val : result.getColumnNames()){
-            if (this.isDrpc) {
-                collector.emit(new Values(input.getValue(0), rowKey, val));
+        try {
+            OperationResult<ColumnList<String>> result = this.keyspace.prepareQuery(this.columnFamily).getKey(rowKey)
+                    .execute();
+            ColumnList<String> columns = result.getResult();
+            for (Column<String> col : columns) {
+                if (this.isDrpc) {
+                    collector.emit(new Values(input.getValue(0), rowKey, col.getName()));
+                } else {
+                    collector.emit(new Values(rowKey, col.getName()));
+                }
             }
-            else {
-                collector.emit(new Values(rowKey, val));
-            }
+        } catch (ConnectionException e) {
+            LOG.warn("Could not emit for row [" + rowKey + "] from Cassandra.", e);
         }
     }
 
@@ -128,19 +132,11 @@ public class ValueLessColumnLookupBolt extends BaseCassandraBolt {
     @Override
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
         if (this.isDrpc) {
-            declarer.declare(new Fields("id", this.emitIdFieldName,
-                            this.emitValueFieldName));
-        }
-        else {
-            declarer.declare(new Fields(this.emitIdFieldName,
-                            this.emitValueFieldName));
+            declarer.declare(new Fields("id", this.emitIdFieldName, this.emitValueFieldName));
+        } else {
+            declarer.declare(new Fields(this.emitIdFieldName, this.emitValueFieldName));
         }
 
     }
-
-	@Override
-	public Map<String, Object> getComponentConfiguration() {
-		return null;
-	}
 
 }

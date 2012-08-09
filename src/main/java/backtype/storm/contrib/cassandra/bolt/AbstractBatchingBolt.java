@@ -1,5 +1,6 @@
 package backtype.storm.contrib.cassandra.bolt;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -9,6 +10,9 @@ import backtype.storm.utils.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import backtype.storm.contrib.cassandra.bolt.mapper.ColumnFamilyMapper;
+import backtype.storm.contrib.cassandra.bolt.mapper.ColumnsMapper;
+import backtype.storm.contrib.cassandra.bolt.mapper.RowKeyMapper;
 import backtype.storm.task.OutputCollector;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.IRichBolt;
@@ -36,7 +40,7 @@ import backtype.storm.tuple.Tuple;
  * 
  */
 @SuppressWarnings("serial")
-public abstract class AbstractBatchingBolt implements IRichBolt,
+public abstract class AbstractBatchingBolt extends BaseCassandraBolt implements IRichBolt,
 		CassandraConstants {
 
 	@SuppressWarnings("unused")
@@ -50,11 +54,17 @@ public abstract class AbstractBatchingBolt implements IRichBolt,
 	private LinkedBlockingQueue<Tuple> queue;
 
 	private BatchThread batchThread;
+	
+	    public AbstractBatchingBolt(ColumnFamilyMapper cfDeterminable, RowKeyMapper rkDeterminable,
+	            ColumnsMapper colsDeterminable) {
+	        super(cfDeterminable, rkDeterminable, colsDeterminable);
+	    }
 
 	@SuppressWarnings("rawtypes")
 	@Override
 	public void prepare(Map stormConf, TopologyContext context,
 			OutputCollector collector) {
+	        super.prepare(stormConf, context);
 		int batchMaxSize = Utils.getInt(Utils.get(stormConf, CASSANDRA_BATCH_MAX_SIZE, 0));
 
 		this.collector = collector;
@@ -127,13 +137,15 @@ public abstract class AbstractBatchingBolt implements IRichBolt,
 					}
 	                executeBatch(batch);
                     
-                }
-                catch (InterruptedException e) {}				
-			}
-		}
 
-		synchronized void stopRunning() {
-			this.stopRequested = true;
-		}
-	}
+                } catch (InterruptedException e) {
+
+                }
+            }
+        }
+
+        synchronized void stopRunning() {
+            this.stopRequested = true;
+        }
+    }
 }
