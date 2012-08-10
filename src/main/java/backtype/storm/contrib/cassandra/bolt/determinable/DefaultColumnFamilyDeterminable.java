@@ -2,6 +2,7 @@ package backtype.storm.contrib.cassandra.bolt.determinable;
 
 import backtype.storm.tuple.Tuple;
 
+@SuppressWarnings("serial")
 public class DefaultColumnFamilyDeterminable implements
 		ColumnFamilyDeterminable {
 	

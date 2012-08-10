@@ -11,11 +11,9 @@ import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Values;
 import backtype.storm.utils.Utils;
 import java.util.Random;
-import org.apache.log4j.Logger;
 
 
 public class TestWordSpout implements IRichSpout {
-    public static Logger LOG = Logger.getLogger(TestWordSpout.class);
     boolean _isDistributed;
     SpoutOutputCollector _collector;
 
@@ -59,4 +57,21 @@ public class TestWordSpout implements IRichSpout {
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
         declarer.declare(new Fields("word"));
     }
+
+	@Override
+	public void activate() {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void deactivate() {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public Map<String, Object> getComponentConfiguration() {
+		return null;
+	}
 }

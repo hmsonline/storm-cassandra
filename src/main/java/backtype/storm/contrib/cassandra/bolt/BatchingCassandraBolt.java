@@ -34,7 +34,7 @@ public abstract class BatchingCassandraBolt extends AbstractBatchingBolt impleme
 	private Fields declaredFields;
 
 	private String cassandraHost;
-	private String cassandraPort;
+//	private String cassandraPort;
 	private String cassandraKeyspace;
 
 	protected Cluster cluster;
@@ -59,6 +59,7 @@ public abstract class BatchingCassandraBolt extends AbstractBatchingBolt impleme
 	/*
 	 * IRichBolt Implementation
 	 */
+	@SuppressWarnings("rawtypes")
 	@Override
 	public void prepare(Map stormConf, TopologyContext context,
 			OutputCollector collector) {
@@ -66,7 +67,7 @@ public abstract class BatchingCassandraBolt extends AbstractBatchingBolt impleme
 		LOG.debug("Preparing...");
 		this.cassandraHost = (String) stormConf.get(CASSANDRA_HOST);
 		this.cassandraKeyspace = (String) stormConf.get(CASSANDRA_KEYSPACE);
-		this.cassandraPort = String.valueOf(stormConf.get(CASSANDRA_PORT));
+//		this.cassandraPort = String.valueOf(stormConf.get(CASSANDRA_PORT));
 
 		this.collector = collector;
 
@@ -82,8 +83,7 @@ public abstract class BatchingCassandraBolt extends AbstractBatchingBolt impleme
 		// setup Cassandra connection
 		try {
 			this.cluster = HFactory.getOrCreateCluster("cassandra-bolt",
-					new CassandraHostConfigurator(this.cassandraHost + ":"
-							+ this.cassandraPort));
+					new CassandraHostConfigurator(this.cassandraHost));
 			this.keyspace = HFactory.createKeyspace(this.cassandraKeyspace,
 					this.cluster);
 		} catch (Throwable e) {

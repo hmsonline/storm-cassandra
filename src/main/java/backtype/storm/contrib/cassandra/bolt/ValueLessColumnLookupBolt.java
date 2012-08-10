@@ -66,7 +66,8 @@ import backtype.storm.tuple.Values;
 @SuppressWarnings("serial")
 public class ValueLessColumnLookupBolt extends BaseCassandraBolt {
 
-    private static final Logger LOG = LoggerFactory
+    @SuppressWarnings("unused")
+	private static final Logger LOG = LoggerFactory
                     .getLogger(ValueLessColumnLookupBolt.class);
     private String columnFamily;
     private String rowKeyField;
@@ -94,7 +95,8 @@ public class ValueLessColumnLookupBolt extends BaseCassandraBolt {
                         emitIdFieldName, emitValueFieldName, false);
     }
 
-    @Override
+    @SuppressWarnings("rawtypes")
+	@Override
     public void prepare(Map stormConf, TopologyContext context) {
         super.prepare(stormConf, context);
     }
@@ -135,5 +137,10 @@ public class ValueLessColumnLookupBolt extends BaseCassandraBolt {
         }
 
     }
+
+	@Override
+	public Map<String, Object> getComponentConfiguration() {
+		return null;
+	}
 
 }

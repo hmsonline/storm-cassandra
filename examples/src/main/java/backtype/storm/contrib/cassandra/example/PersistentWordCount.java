@@ -17,8 +17,7 @@ public class PersistentWordCount {
 	public static void main(String[] args) throws Exception{
 		Config config = new Config();
 		
-		config.put(CassandraBolt.CASSANDRA_HOST, "localhost");
-		config.put(CassandraBolt.CASSANDRA_PORT, 9160);
+		config.put(CassandraBolt.CASSANDRA_HOST, "localhost:9160");
 		config.put(CassandraBolt.CASSANDRA_KEYSPACE, "stormks");
 		
 		TestWordSpout wordSpout = new TestWordSpout();

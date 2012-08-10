@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.LinkedBlockingQueue;
 
+import backtype.storm.utils.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,6 +39,7 @@ import backtype.storm.tuple.Tuple;
 public abstract class AbstractBatchingBolt implements IRichBolt,
 		CassandraConstants {
 
+	@SuppressWarnings("unused")
 	private static final Logger LOG = LoggerFactory
 			.getLogger(AbstractBatchingBolt.class);
 	
@@ -49,12 +51,15 @@ public abstract class AbstractBatchingBolt implements IRichBolt,
 
 	private BatchThread batchThread;
 
+	@SuppressWarnings("rawtypes")
 	@Override
 	public void prepare(Map stormConf, TopologyContext context,
 			OutputCollector collector) {
+		int batchMaxSize = Utils.getInt(Utils.get(stormConf, CASSANDRA_BATCH_MAX_SIZE, 0));
+
 		this.collector = collector;
 		this.queue = new LinkedBlockingQueue<Tuple>();
-		this.batchThread = new BatchThread();
+		this.batchThread = new BatchThread(batchMaxSize);
 		this.batchThread.start();
 	}
 	
@@ -93,11 +98,17 @@ public abstract class AbstractBatchingBolt implements IRichBolt,
 
 	private class BatchThread extends Thread {
 
+		int batchMaxSize;
 		boolean stopRequested = false;
 
-		BatchThread() {
+        BatchThread() {
+			this(0);
+		}
+		
+		BatchThread(int batchMaxSize) {
 			super("batch-bolt-thread");
 			super.setDaemon(true);
+			this.batchMaxSize = batchMaxSize;
 		}
 
 		@Override
@@ -108,7 +119,12 @@ public abstract class AbstractBatchingBolt implements IRichBolt,
 			        // drainTo() does not block, take() does.
 			        Tuple t = queue.take();
 			        batch.add(t);
-	                queue.drainTo(batch);
+					if (batchMaxSize > 0) {
+						queue.drainTo(batch, batchMaxSize);
+					}
+					else {
+						queue.drainTo(batch);
+					}
 	                executeBatch(batch);
                     
                 }

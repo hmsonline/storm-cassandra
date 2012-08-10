@@ -5,23 +5,16 @@ import java.util.List;
 import java.util.Map;
 
 import me.prettyprint.cassandra.serializers.StringSerializer;
-import me.prettyprint.cassandra.service.CassandraHostConfigurator;
-import me.prettyprint.hector.api.Cluster;
-import me.prettyprint.hector.api.Keyspace;
 import me.prettyprint.hector.api.factory.HFactory;
 import me.prettyprint.hector.api.mutation.Mutator;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import backtype.storm.contrib.cassandra.bolt.BatchingCassandraBolt.AckStrategy;
 import backtype.storm.contrib.cassandra.bolt.determinable.ColumnFamilyDeterminable;
 import backtype.storm.contrib.cassandra.bolt.determinable.DefaultColumnFamilyDeterminable;
 import backtype.storm.contrib.cassandra.bolt.determinable.DefaultRowKeyDeterminable;
 import backtype.storm.contrib.cassandra.bolt.determinable.RowKeyDeterminable;
-import backtype.storm.task.OutputCollector;
-import backtype.storm.task.TopologyContext;
-import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Tuple;
 
@@ -63,18 +56,27 @@ public class DefaultBatchingCassandraBolt extends BatchingCassandraBolt implemen
                 tuplesToAck.add(input);
             }
             mutator.execute();
-
-        } catch (Throwable e) {
-            LOG.warn("Unable to write batch.", e);
-        } finally {
             if (this.ackStrategy == AckStrategy.ACK_ON_WRITE) {
                 for (Tuple tupleToAck : tuplesToAck) {
                     this.collector.ack(tupleToAck);
                 }
             }
+
+        } catch (Throwable e) {
+            LOG.warn("Unable to write batch.", e);
+            if (this.ackStrategy == AckStrategy.ACK_ON_WRITE) {
+                for (Tuple tupleToAck : tuplesToAck) {
+                    this.collector.fail(tupleToAck);
+                }
+            }
         }
 
     }
+
+	@Override
+	public Map<String, Object> getComponentConfiguration() {
+		return null;
+	}
 
 
 }

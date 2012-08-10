@@ -2,7 +2,6 @@
 
 package backtype.storm.contrib.cassandra.example;
 
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -12,16 +11,14 @@ import backtype.storm.LocalCluster;
 import backtype.storm.LocalDRPC;
 import backtype.storm.StormSubmitter;
 import backtype.storm.contrib.cassandra.bolt.CassandraConstants;
-import backtype.storm.contrib.cassandra.bolt.DelimitedColumnLookupBolt;
 import backtype.storm.contrib.cassandra.bolt.ValueLessColumnLookupBolt;
-import backtype.storm.drpc.CoordinatedBolt.FinishedCallback;
+import backtype.storm.coordination.BatchOutputCollector;
 import backtype.storm.drpc.LinearDRPCTopologyBuilder;
-import backtype.storm.task.OutputCollector;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.BasicOutputCollector;
 import backtype.storm.topology.IBasicBolt;
-import backtype.storm.topology.IRichBolt;
 import backtype.storm.topology.OutputFieldsDeclarer;
+import backtype.storm.topology.base.BaseBatchBolt;
 import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Tuple;
 import backtype.storm.tuple.Values;
@@ -51,14 +48,16 @@ public class CassandraReachTopology implements CassandraConstants{
         
         
         Config config = new Config();
-        config.put(CASSANDRA_HOST, "localhost");
-        config.put(CASSANDRA_PORT, 9160);
+        config.put(CASSANDRA_HOST, "localhost:9160");
         config.put(CASSANDRA_KEYSPACE, "stormks");
         
         if(args==null || args.length==0) {
             config.setMaxTaskParallelism(3);
             LocalDRPC drpc = new LocalDRPC();
             LocalCluster cluster = new LocalCluster();
+            if("true".equals(System.getProperty("debug"))){
+            	config.setDebug(true);
+            }
             cluster.submitTopology("reach-drpc", config, builder.createLocalTopology(drpc));
             
             String[] urlsToTry = new String[] {"http://github.com/hmsonline","http://github.com/nathanmarz", "http://github.com/ptgoetz", "http://github.com/boneill"};
@@ -94,87 +93,71 @@ public class CassandraReachTopology implements CassandraConstants{
         public void cleanup() {
 
         }
+
+		@Override
+		public Map<String, Object> getComponentConfiguration() {
+			// TODO Auto-generated method stub
+			return null;
+		}
         
     }
     
-    public static class PartialUniquer implements IRichBolt, FinishedCallback {
-        OutputCollector collector;
-        Map<Object, Set<String>> sets = new HashMap<Object, Set<String>>();
+    @SuppressWarnings("serial")
+	public static class PartialUniquer extends BaseBatchBolt {
+        BatchOutputCollector collector;
+        private Object id;
+        Set<String> set = new HashSet<String>();
         
         @Override
-        public void prepare(Map conf, TopologyContext context, OutputCollector collector) {
+        public void prepare(Map conf, TopologyContext context, BatchOutputCollector collector, Object id) {
             this.collector = collector;
+            this.id = id;
         }
 
         @Override
         public void execute(Tuple tuple) {
-            Object id = tuple.getValue(0);
-            Set<String> curr = this.sets.get(id);
-            if(curr==null) {
-                curr = new HashSet<String>();
-                this.sets.put(id, curr);
-            }
-            curr.add(tuple.getString(2));
-            collector.ack(tuple);
+            this.set.add(tuple.getString(1));
         }
 
-        @Override
-        public void cleanup() {
-        }
 
         @Override
-        public void finishedId(Object id) {
-            Set<String> curr = this.sets.remove(id);
-            int count;
-            if(curr!=null) {
-                count = curr.size();
-            } else {
-                count = 0;
-            }
-            collector.emit(new Values(id, count));
+        public void finishBatch() {
+        	collector.emit(new Values(this.id, this.set.size()));
         }
 
         @Override
         public void declareOutputFields(OutputFieldsDeclarer declarer) {
             declarer.declare(new Fields("id", "partial-count"));
         }
+
     }
     
-    public static class CountAggregator implements IRichBolt, FinishedCallback {
-        Map<Object, Integer> counts = new HashMap<Object, Integer>();
-        OutputCollector collector;
+    public static class CountAggregator extends BaseBatchBolt {
+        Object id;
+        BatchOutputCollector collector;
+        int count = 0;
         
         @Override
-        public void prepare(Map conf, TopologyContext context, OutputCollector collector) {
+        public void prepare(Map conf, TopologyContext context, BatchOutputCollector collector, Object id) {
             this.collector = collector;
+            this.id = id;
         }
 
         @Override
         public void execute(Tuple tuple) {
-            Object id = tuple.getValue(0);
-            int partial = tuple.getInteger(1);
-            
-            Integer curr = counts.get(id);
-            if(curr==null) curr = 0;
-            this.counts.put(id, curr + partial);
-            this.collector.ack(tuple);
+        	this.count += tuple.getInteger(1);
         }
 
         @Override
-        public void cleanup() {
-        }
-
-        @Override
-        public void finishedId(Object id) {
-            Integer reach = counts.get(id);
-            if(reach==null) reach = 0;
-            collector.emit(new Values(id, reach));
+        public void finishBatch() {
+            this.collector.emit(new Values(this.id, this.count));
         }
 
         @Override
         public void declareOutputFields(OutputFieldsDeclarer declarer) {
             declarer.declare(new Fields("id", "reach"));
         }
+
         
     }
     
