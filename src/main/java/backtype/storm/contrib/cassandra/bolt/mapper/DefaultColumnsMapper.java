@@ -19,7 +19,9 @@ public class DefaultColumnsMapper implements ColumnsMapper {
         Fields fields = tuple.getFields();
         Map<String,String> columns = new HashMap<String,String>();
         for (int i=0; i < fields.size(); i++){
-            columns.put(fields.get(i), "");
+            String name = fields.get(i);
+            Object value = tuple.getValueByField(name);
+            columns.put(name, (value != null ? value.toString() : ""));
         }
         return columns;
     }

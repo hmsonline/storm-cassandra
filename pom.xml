@@ -48,7 +48,7 @@
 
 	<properties>
 		<spring.version>2.5.6</spring.version>
-		<storm.version>0.8.0</storm.version>
+		<storm.version>0.8.1-wip2-SNAPSHOT</storm.version>
 		<cassandra.version>1.1.2</cassandra.version>
 	</properties>
 
