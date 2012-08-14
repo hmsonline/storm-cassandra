@@ -3,8 +3,7 @@ package backtype.storm.contrib.cassandra.example;
 import backtype.storm.Config;
 import backtype.storm.LocalCluster;
 import backtype.storm.StormSubmitter;
-import backtype.storm.contrib.cassandra.bolt.BatchingCassandraBolt;
-import backtype.storm.contrib.cassandra.bolt.CassandraBolt;
+import backtype.storm.contrib.cassandra.bolt.CassandraConstants;
 import backtype.storm.contrib.cassandra.bolt.DefaultBatchingCassandraBolt;
 import backtype.storm.topology.TopologyBuilder;
 import backtype.storm.tuple.Fields;
@@ -17,8 +16,8 @@ public class PersistentWordCount {
 	public static void main(String[] args) throws Exception{
 		Config config = new Config();
 		
-		config.put(CassandraBolt.CASSANDRA_HOST, "localhost:9160");
-		config.put(CassandraBolt.CASSANDRA_KEYSPACE, "stormks");
+		config.put(CassandraConstants.CASSANDRA_HOST, "localhost:9160");
+		config.put(CassandraConstants.CASSANDRA_KEYSPACE, "stormks");
 		
 		TestWordSpout wordSpout = new TestWordSpout();
 		
@@ -26,8 +25,8 @@ public class PersistentWordCount {
 		
 		// create a CassandraBolt that writes to the "stormcf" column
 		// family and uses the Tuple field "word" as the row key
-		BatchingCassandraBolt cassandraBolt = new DefaultBatchingCassandraBolt("stormcf", "word");
-		cassandraBolt.setAckStrategy(BatchingCassandraBolt.AckStrategy.ACK_ON_WRITE);
+		DefaultBatchingCassandraBolt cassandraBolt = new DefaultBatchingCassandraBolt("stormcf", "word");
+		cassandraBolt.setAckStrategy(DefaultBatchingCassandraBolt.AckStrategy.ACK_ON_WRITE);
 
 		
 		// setup topology:
