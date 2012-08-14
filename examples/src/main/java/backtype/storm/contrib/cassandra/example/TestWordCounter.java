@@ -11,10 +11,12 @@ import java.util.HashMap;
 import static backtype.storm.utils.Utils.tuple;
 
 
+@SuppressWarnings("serial")
 public class TestWordCounter implements IBasicBolt {
 
     Map<String, Integer> _counts;
     
+    @SuppressWarnings("rawtypes")
     public void prepare(Map stormConf, TopologyContext context) {
         _counts = new HashMap<String, Integer>();
     }

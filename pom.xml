@@ -1,4 +1,5 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 
 	<parent>
 		<groupId>org.sonatype.oss</groupId>
@@ -6,12 +7,10 @@
 		<version>7</version>
 	</parent>
 
-
-
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.github.ptgoetz</groupId>
 	<artifactId>storm-cassandra</artifactId>
-	<version>0.2.1-SNAPSHOT</version>
+	<version>0.3.0-SNAPSHOT</version>
 	<name>Storm Cassandra Support</name>
 	<description>Storm Cassandra Support</description>
 
@@ -36,22 +35,60 @@
 		</developer>
 	</developers>
 
- 	<repositories>
+	<repositories>
 		<repository>
 			<id>clojars.org</id>
 			<url>http://clojars.org/repo</url>
 		</repository>
+		<repository>
+			<id>twitter4j</id>
+			<url>http://twitter4j.org/maven2</url>
+		</repository>
 	</repositories>
+
 	<properties>
 		<spring.version>2.5.6</spring.version>
-		<storm.version>0.7.4</storm.version>
+		<storm.version>0.8.0</storm.version>
 		<cassandra.version>1.1.2</cassandra.version>
 	</properties>
+
 	<dependencies>
 		<dependency>
-			<groupId>me.prettyprint</groupId>
-			<artifactId>hector-core</artifactId>
-			<version>1.0-1</version>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+			<version>4.10</version>
+		</dependency>
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-log4j12</artifactId>
+			<version>1.6.4</version>
+		</dependency>
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-api</artifactId>
+			<version>1.6.4</version>
+		</dependency>
+		<dependency>
+			<groupId>storm</groupId>
+			<artifactId>storm</artifactId>
+			<version>${storm.version}</version>
+			<!-- keep storm out of the jar-with-dependencies -->
+			<scope>provided</scope>
+			<exclusions>
+				<exclusion>
+					<artifactId>slf4j-api</artifactId>
+					<groupId>org.slf4j</groupId>
+				</exclusion>
+				<!-- <exclusion>
+					<artifactId>guava</artifactId>
+					<groupId>com.google.guava</groupId>
+				</exclusion> -->
+			</exclusions>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.cassandra</groupId>
+			<artifactId>cassandra-all</artifactId>
+			<version>1.1.2</version>
 			<exclusions>
 				<exclusion>
 					<groupId>org.slf4j</groupId>
@@ -62,17 +99,15 @@
 					<artifactId>slf4j-api</artifactId>
 				</exclusion>
 				<exclusion>
-					<groupId>com.google.guava</groupId>
 					<artifactId>guava</artifactId>
+					<groupId>com.google.guava</groupId>
 				</exclusion>
 			</exclusions>
 		</dependency>
 		<dependency>
-			<groupId>storm</groupId>
-			<artifactId>storm</artifactId>
-			<version>${storm.version}</version>
-			<!-- keep storm out of the jar-with-dependencies -->
-			<scope>provided</scope>
+			<groupId>com.netflix.astyanax</groupId>
+			<artifactId>astyanax</artifactId>
+			<version>1.0.1</version>
 		</dependency>
 	</dependencies>
 	<build>
@@ -81,6 +116,7 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
+				<version>2.5.1</version>
 				<configuration>
 					<source>1.6</source>
 					<target>1.6</target>
