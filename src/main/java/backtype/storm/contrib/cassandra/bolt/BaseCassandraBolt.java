@@ -8,9 +8,7 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import backtype.storm.contrib.cassandra.bolt.mapper.ColumnFamilyMapper;
-import backtype.storm.contrib.cassandra.bolt.mapper.ColumnsMapper;
-import backtype.storm.contrib.cassandra.bolt.mapper.RowKeyMapper;
+import backtype.storm.contrib.cassandra.bolt.mapper.TupleMapper;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.tuple.Tuple;
 
@@ -27,8 +25,8 @@ import com.netflix.astyanax.model.ColumnFamily;
 import com.netflix.astyanax.serializers.StringSerializer;
 import com.netflix.astyanax.thrift.ThriftFamilyFactory;
 
+@SuppressWarnings("serial")
 public abstract class BaseCassandraBolt implements CassandraConstants, Serializable {
-
     private static final Logger LOG = LoggerFactory.getLogger(BaseCassandraBolt.class);
 
     private String cassandraHost;
@@ -38,15 +36,10 @@ public abstract class BaseCassandraBolt implements CassandraConstants, Serializa
     protected Cluster cluster;
     protected Keyspace keyspace;
     
-    protected ColumnFamilyMapper cfMapper;
-    protected RowKeyMapper rkMapper;
-    protected ColumnsMapper colsMapper;
+    protected TupleMapper tupleMapper;
     
-    public BaseCassandraBolt(ColumnFamilyMapper cfMapper, RowKeyMapper rkMapper,
-            ColumnsMapper colsMapper) {
-        this.cfMapper = cfMapper;
-        this.rkMapper = rkMapper;
-        this.colsMapper = colsMapper;        
+    public BaseCassandraBolt(TupleMapper tupleMapper) {
+        this.tupleMapper = tupleMapper;
     }
     
     @SuppressWarnings("rawtypes")
@@ -79,8 +72,8 @@ public abstract class BaseCassandraBolt implements CassandraConstants, Serializa
     }
 
     public void writeTuple(Tuple input) throws ConnectionException {
-        String columnFamilyName = cfMapper.mapToColumnFamily(input);
-        String rowKey = (String) rkMapper.mapRowKey(input);
+        String columnFamilyName = tupleMapper.mapToColumnFamily(input);
+        String rowKey = (String) tupleMapper.mapToRowKey(input);
         MutationBatch mutation = keyspace.prepareMutationBatch();
         ColumnFamily<String, String> columnFamily = new ColumnFamily<String, String>(columnFamilyName,
                 StringSerializer.get(), StringSerializer.get());
@@ -91,8 +84,8 @@ public abstract class BaseCassandraBolt implements CassandraConstants, Serializa
     public void writeTuples(List<Tuple> inputs) throws ConnectionException {
         MutationBatch mutation = keyspace.prepareMutationBatch();
         for (Tuple input : inputs) {
-            String columnFamilyName = cfMapper.mapToColumnFamily(input);
-            String rowKey = (String) rkMapper.mapRowKey(input);
+            String columnFamilyName = tupleMapper.mapToColumnFamily(input);
+            String rowKey = (String) tupleMapper.mapToRowKey(input);
             ColumnFamily<String, String> columnFamily = new ColumnFamily<String, String>(columnFamilyName,
                     StringSerializer.get(), StringSerializer.get());
             this.addTupleToMutation(input, columnFamily, rowKey, mutation);
@@ -102,7 +95,7 @@ public abstract class BaseCassandraBolt implements CassandraConstants, Serializa
 
     private void addTupleToMutation(Tuple input, ColumnFamily<String, String> columnFamily, String rowKey,
             MutationBatch mutation) {
-        Map<String, String> columns = colsMapper.mapToColumns(input);
+        Map<String, String> columns = tupleMapper.mapToColumns(input);
         for (Map.Entry<String, String> entry : columns.entrySet()) {
             mutation.withRow(columnFamily, rowKey).putColumn(entry.getKey(), entry.getValue(), null);
         }
