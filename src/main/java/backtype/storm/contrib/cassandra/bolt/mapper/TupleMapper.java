@@ -9,14 +9,14 @@ import backtype.storm.tuple.Tuple;
 public interface TupleMapper extends Serializable {
 
     /**
-     * Given a <code>backtype.storm.tuple.Tuple</code> object, map the
-     * column family to write to.
+     * Given a <code>backtype.storm.tuple.Tuple</code> object, map the column
+     * family to write to.
      * 
      * @param tuple
      * @return
      */
     public String mapToColumnFamily(Tuple tuple);
-    
+
     /**
      * Given a <code>backtype.storm.tuple.Tuple</code> generate a Cassandra row
      * key.
@@ -25,9 +25,10 @@ public interface TupleMapper extends Serializable {
      * @return
      */
     public String mapToRowKey(Tuple tuple);
-    
+
     /**
-     * Given a <code>backtype.storm.tuple.Tuple</code> object, map the columns of data to write.
+     * Given a <code>backtype.storm.tuple.Tuple</code> object, map the columns
+     * of data to write.
      * 
      * @param tuple
      * @return

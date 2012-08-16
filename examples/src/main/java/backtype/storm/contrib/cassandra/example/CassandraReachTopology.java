@@ -25,6 +25,7 @@ import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Tuple;
 import backtype.storm.tuple.Values;
 
+@SuppressWarnings("deprecation")
 public class CassandraReachTopology implements CassandraConstants {
 
     public static void main(String[] args) throws Exception {
@@ -41,13 +42,13 @@ public class CassandraReachTopology implements CassandraConstants {
         // cf = "tweeters", rowkey = tuple["url"]
         DefaultTupleMapper tweetersTupleMapper = new DefaultTupleMapper("tweeters", "url");
         // cf (url -> tweeters) -> emit(url, follower)
-        ValuelessColumnsMapper tweetersColumnsMapper = new ValuelessColumnsMapper("url", "tweeter", true);      
+        ValuelessColumnsMapper tweetersColumnsMapper = new ValuelessColumnsMapper("url", "tweeter", true);
         DefaultLookupBolt tweetersBolt = new DefaultLookupBolt(tweetersTupleMapper, tweetersColumnsMapper);
 
         // cf = "followers", rowkey = tuple["tweeter"]
-        DefaultTupleMapper followersTupleMapper = new DefaultTupleMapper("followers", "tweeter"); 
+        DefaultTupleMapper followersTupleMapper = new DefaultTupleMapper("followers", "tweeter");
         // cf (tweeter -> followers) ==> emit(url, follower)
-        ValuelessColumnsMapper followersColumnsMapper = new ValuelessColumnsMapper("url", "follower", true); 
+        ValuelessColumnsMapper followersColumnsMapper = new ValuelessColumnsMapper("url", "follower", true);
         DefaultLookupBolt followersBolt = new DefaultLookupBolt(followersTupleMapper, followersColumnsMapper);
 
         builder.addBolt(new InitBolt());
@@ -83,6 +84,7 @@ public class CassandraReachTopology implements CassandraConstants {
         }
     }
 
+    @SuppressWarnings("serial")
     public static class InitBolt implements IBasicBolt {
 
         @Override
@@ -90,6 +92,7 @@ public class CassandraReachTopology implements CassandraConstants {
             declarer.declare(new Fields("id", "url"));
         }
 
+        @SuppressWarnings("rawtypes")
         @Override
         public void prepare(Map stormConf, TopologyContext context) {
         }
@@ -112,7 +115,7 @@ public class CassandraReachTopology implements CassandraConstants {
 
     }
 
-    @SuppressWarnings("serial")
+    @SuppressWarnings({ "serial", "rawtypes" })
     public static class PartialUniquer extends BaseBatchBolt {
         BatchOutputCollector collector;
         private Object id;
@@ -141,6 +144,7 @@ public class CassandraReachTopology implements CassandraConstants {
 
     }
 
+    @SuppressWarnings({ "serial", "rawtypes" })
     public static class CountAggregator extends BaseBatchBolt {
         Object id;
         BatchOutputCollector collector;

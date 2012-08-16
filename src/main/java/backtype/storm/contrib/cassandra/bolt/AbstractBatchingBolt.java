@@ -81,6 +81,7 @@ public abstract class AbstractBatchingBolt extends BaseCassandraBolt implements 
     @Override
     public void cleanup() {
         this.batchThread.stopRunning();
+        super.cleanup();
     }
 
     /**

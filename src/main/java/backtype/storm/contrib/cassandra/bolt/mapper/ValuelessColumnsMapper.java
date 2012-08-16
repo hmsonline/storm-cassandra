@@ -59,17 +59,20 @@ import com.netflix.astyanax.model.ColumnList;
  */
 @SuppressWarnings("serial")
 public class ValuelessColumnsMapper implements ColumnsMapper, Serializable {
-    private String rowKeyField;
     private String emitFieldForRowKey;
     private String emitFieldForColumnName;
     private boolean isDrpc;
 
     /**
      * Constructs a ValuelessColumnsMapper
-     * @param emitFieldForRowKey  This is the field name for the rowkey in the outbound tuple(s)
-     * @param emitFieldForColumnName This is the field name for column names in the outbound tuple(s)
+     * 
+     * @param emitFieldForRowKey
+     *            This is the field name for the rowkey in the outbound tuple(s)
+     * @param emitFieldForColumnName
+     *            This is the field name for column names in the outbound
+     *            tuple(s)
      * @param isDrpc
-     */            
+     */
     public ValuelessColumnsMapper(String emitFieldForRowKey, String emitFieldForColumnName, boolean isDrpc) {
         this.isDrpc = isDrpc;
         this.emitFieldForRowKey = emitFieldForRowKey;

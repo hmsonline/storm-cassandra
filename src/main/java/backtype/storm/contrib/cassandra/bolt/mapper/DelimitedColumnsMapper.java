@@ -58,7 +58,6 @@ import com.netflix.astyanax.model.ColumnList;
  */
 @SuppressWarnings("serial")
 public class DelimitedColumnsMapper implements ColumnsMapper, Serializable {
-    private String rowKeyField;
     private String columnKeyField;
     private String emitIdFieldName;
     private String emitValueFieldName;
@@ -69,7 +68,6 @@ public class DelimitedColumnsMapper implements ColumnsMapper, Serializable {
             String emitValueFieldName, boolean isDrpc) {
         this.columnKeyField = columnKeyField;
         this.delimiter = delimiter;
-        this.rowKeyField = rowKeyField;
         this.isDrpc = isDrpc;
         this.emitIdFieldName = emitIdFieldName;
         this.emitValueFieldName = emitValueFieldName;
@@ -77,6 +75,7 @@ public class DelimitedColumnsMapper implements ColumnsMapper, Serializable {
 
     /**
      * Declares the fields produced by this bolt.
+     * 
      * @param declarer
      */
     @Override

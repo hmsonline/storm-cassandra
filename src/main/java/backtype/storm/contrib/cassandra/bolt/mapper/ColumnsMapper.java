@@ -28,6 +28,5 @@ public interface ColumnsMapper {
      * @return
      */
     public List<Values> mapToValues(String rowKey, ColumnList<String> columns, Tuple input);
-    
 
 }

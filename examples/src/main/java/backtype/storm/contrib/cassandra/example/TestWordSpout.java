@@ -38,8 +38,6 @@ public class TestWordSpout implements IRichSpout {
     }
 
     public void nextTuple() {
-        // Utils.sleep(1);
-        Thread.yield();
         final String[] words = new String[] { "nathan", "mike", "jackson", "golda", "bertels" };
         final Random rand = new Random();
         final String word = words[rand.nextInt(words.length)];

@@ -33,89 +33,78 @@ import com.netflix.astyanax.serializers.StringSerializer;
 import com.netflix.astyanax.thrift.ThriftFamilyFactory;
 
 public class EmbeddedCassandra {
-	public static final String TEST_KS = "TestKeyspace";
-	public static final String TEST_CF = "users";
-	private static Logger logger = LoggerFactory
-			.getLogger(EmbeddedCassandra.class);
-	private static boolean started = false;
+    public static final String TEST_KS = "TestKeyspace";
+    public static final String TEST_CF = "users";
+    private static Logger logger = LoggerFactory.getLogger(EmbeddedCassandra.class);
+    private static boolean started = false;
 
-	public EmbeddedCassandra() throws Exception {
-		System.setProperty("log4j.defaultInitOverride","true");
-		System.setProperty("log4j.configuration", "log4j.properties");
-		if (!started) {
-			CassandraDaemon cassandraService = new CassandraDaemon();
-			cassandraService.activate();
-			try {
-				loadDataSchema(TEST_KS, Arrays.asList(TEST_CF));
-			} catch (Throwable t) {
-				logger.debug("Received error when bootstrapping data schema, most likely it exists already."
-						+ t.getMessage());
-			}
-			started = true;
-		}
-		
-	}
+    public EmbeddedCassandra() throws Exception {
+        System.setProperty("log4j.defaultInitOverride", "true");
+        System.setProperty("log4j.configuration", "log4j.properties");
+        if (!started) {
+            CassandraDaemon cassandraService = new CassandraDaemon();
+            cassandraService.activate();
+            try {
+                loadDataSchema(TEST_KS, Arrays.asList(TEST_CF));
+            } catch (Throwable t) {
+                logger.debug("Received error when bootstrapping data schema, most likely it exists already."
+                        + t.getMessage());
+            }
+            started = true;
+        }
 
-	private void loadDataSchema(String keyspaceName, List<String> colFamilyNames) {
-		List<KSMetaData> schema = new ArrayList<KSMetaData>();
-		Class<? extends AbstractReplicationStrategy> strategyClass = SimpleStrategy.class;
-		Map<String, String> strategyOptions = KSMetaData.optsWithRF(1);
+    }
 
-		CFMetaData[] cfDefs = new CFMetaData[colFamilyNames.size()];
-		for (int i = 0; i < colFamilyNames.size(); i++) {
-			CFMetaData cfDef = new CFMetaData(keyspaceName,
-					colFamilyNames.get(i), ColumnFamilyType.Standard,
-					UTF8Type.instance, null);
-			cfDefs[i] = cfDef;
-		}
+    private void loadDataSchema(String keyspaceName, List<String> colFamilyNames) {
+        List<KSMetaData> schema = new ArrayList<KSMetaData>();
+        Class<? extends AbstractReplicationStrategy> strategyClass = SimpleStrategy.class;
+        Map<String, String> strategyOptions = KSMetaData.optsWithRF(1);
 
-		KSMetaData validKsMetadata = KSMetaData.testMetadata(keyspaceName,
-				strategyClass, strategyOptions, cfDefs);
-		schema.add(validKsMetadata);
+        CFMetaData[] cfDefs = new CFMetaData[colFamilyNames.size()];
+        for (int i = 0; i < colFamilyNames.size(); i++) {
+            CFMetaData cfDef = new CFMetaData(keyspaceName, colFamilyNames.get(i), ColumnFamilyType.Standard,
+                    UTF8Type.instance, null);
+            cfDefs[i] = cfDef;
+        }
 
-		Schema.instance.load(schema);
-		logger.debug("======================= LOADED DATA SCHEMA FOR TESTS ==========================");
-	}
+        KSMetaData validKsMetadata = KSMetaData.testMetadata(keyspaceName, strategyClass, strategyOptions, cfDefs);
+        schema.add(validKsMetadata);
 
-	public Map<String, Map<String, String>> getRows() throws ConnectionException {
-		Map<String, Map<String, String>> rows = new HashMap<String, Map<String,String>>();
-		AstyanaxContext<Keyspace> context = new AstyanaxContext.Builder()
-				.forCluster("ClusterName")
-				.forKeyspace(TEST_KS)
-				.withAstyanaxConfiguration(
-						new AstyanaxConfigurationImpl()
-								.setDiscoveryType(NodeDiscoveryType.NONE))
-				.withConnectionPoolConfiguration(
-						new ConnectionPoolConfigurationImpl("MyConnectionPool")
-								.setPort(9160).setMaxConnsPerHost(1)
-								.setSeeds("localhost:9160"))
-				.withConnectionPoolMonitor(new CountingConnectionPoolMonitor())
-				.buildKeyspace(ThriftFamilyFactory.getInstance());
+        Schema.instance.load(schema);
+        logger.debug("======================= LOADED DATA SCHEMA FOR TESTS ==========================");
+    }
 
-		context.start();
-		Keyspace keyspace = context.getEntity();
-		
-		ColumnFamily<String, String> columnFamily =
-				  new ColumnFamily<String, String>(
-				    TEST_CF,             
-				    StringSerializer.get(),
-				    StringSerializer.get());
-		
-		OperationResult<Rows<String, String>> result = keyspace
-				.prepareQuery(columnFamily).getKeySlice()
-				.execute();
+    public Map<String, Map<String, String>> getRows() throws ConnectionException {
+        Map<String, Map<String, String>> rows = new HashMap<String, Map<String, String>>();
+        AstyanaxContext<Keyspace> context = new AstyanaxContext.Builder()
+                .forCluster("ClusterName")
+                .forKeyspace(TEST_KS)
+                .withAstyanaxConfiguration(new AstyanaxConfigurationImpl().setDiscoveryType(NodeDiscoveryType.NONE))
+                .withConnectionPoolConfiguration(
+                        new ConnectionPoolConfigurationImpl("MyConnectionPool").setPort(9160).setMaxConnsPerHost(1)
+                                .setSeeds("localhost:9160"))
+                .withConnectionPoolMonitor(new CountingConnectionPoolMonitor())
+                .buildKeyspace(ThriftFamilyFactory.getInstance());
 
-		// Iterate rows and their columns
-		for (Row<String, String> row : result.getResult()) {
-			System.out.println(row.getKey());
-			Map<String,String> cols = new HashMap<String,String>();
-			for (Column<String> column : row.getColumns()) {
-				System.out.println(column.getName());
-				cols.put(column.getName(), column.getStringValue());				
-			}
-			rows.put(row.getKey(), cols);
-		}
-		return rows;
-	}
+        context.start();
+        Keyspace keyspace = context.getEntity();
+
+        ColumnFamily<String, String> columnFamily = new ColumnFamily<String, String>(TEST_CF, StringSerializer.get(),
+                StringSerializer.get());
+
+        OperationResult<Rows<String, String>> result = keyspace.prepareQuery(columnFamily).getKeySlice().execute();
+
+        // Iterate rows and their columns
+        for (Row<String, String> row : result.getResult()) {
+            System.out.println(row.getKey());
+            Map<String, String> cols = new HashMap<String, String>();
+            for (Column<String> column : row.getColumns()) {
+                System.out.println(column.getName());
+                cols.put(column.getName(), column.getStringValue());
+            }
+            rows.put(row.getKey(), cols);
+        }
+        return rows;
+    }
 
 }

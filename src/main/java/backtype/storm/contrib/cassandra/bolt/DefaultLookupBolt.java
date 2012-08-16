@@ -86,14 +86,15 @@ public class DefaultLookupBolt extends BaseCassandraBolt implements IBasicBolt {
 
     @Override
     public void execute(Tuple input, BasicOutputCollector collector) {
-        this.columnFamily = new ColumnFamily<String, String>(tupleMapper.mapToColumnFamily(input), StringSerializer.get(),
-                StringSerializer.get());
+        this.columnFamily = new ColumnFamily<String, String>(tupleMapper.mapToColumnFamily(input),
+                StringSerializer.get(), StringSerializer.get());
         String rowKey = tupleMapper.mapToRowKey(input);
         try {
-            OperationResult<ColumnList<String>> result = this.keyspace.prepareQuery(this.columnFamily).getKey(rowKey).execute();
-            ColumnList<String> columns = result.getResult();            
+            OperationResult<ColumnList<String>> result = this.keyspace.prepareQuery(this.columnFamily).getKey(rowKey)
+                    .execute();
+            ColumnList<String> columns = result.getResult();
             List<Values> valuesToEmit = columnsMapper.mapToValues(rowKey, columns, input);
-            for (Values values : valuesToEmit){
+            for (Values values : valuesToEmit) {
                 collector.emit(values);
             }
         } catch (ConnectionException e) {
@@ -103,6 +104,7 @@ public class DefaultLookupBolt extends BaseCassandraBolt implements IBasicBolt {
 
     @Override
     public void cleanup() {
+        super.cleanup();
     }
 
     @Override

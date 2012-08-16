@@ -30,45 +30,45 @@ public abstract class BaseCassandraBolt implements CassandraConstants, Serializa
     private static final Logger LOG = LoggerFactory.getLogger(BaseCassandraBolt.class);
 
     private String cassandraHost;
-//    private String cassandraPort;
     private String cassandraKeyspace;
-
     protected Cluster cluster;
     protected Keyspace keyspace;
-    
     protected TupleMapper tupleMapper;
-    
+    protected AstyanaxContext<Keyspace> astyanaxContext;
+
     public BaseCassandraBolt(TupleMapper tupleMapper) {
         this.tupleMapper = tupleMapper;
     }
-    
+
     @SuppressWarnings("rawtypes")
     public void prepare(Map stormConf, TopologyContext context) {
         this.cassandraHost = (String) stormConf.get(CASSANDRA_HOST);
         this.cassandraKeyspace = (String) stormConf.get(CASSANDRA_KEYSPACE);
-//        this.cassandraPort = String.valueOf(stormConf.get(CASSANDRA_PORT));
         initCassandraConnection();
     }
 
     private void initCassandraConnection() {
         try {
-            AstyanaxContext<Keyspace> context = new AstyanaxContext.Builder()
+            this.astyanaxContext = new AstyanaxContext.Builder()
                     .forCluster("ClusterName")
                     .forKeyspace(this.cassandraKeyspace)
                     .withAstyanaxConfiguration(new AstyanaxConfigurationImpl().setDiscoveryType(NodeDiscoveryType.NONE))
                     .withConnectionPoolConfiguration(
-                            new ConnectionPoolConfigurationImpl("MyConnectionPool")
-                                    .setMaxConnsPerHost(1)
-                                    .setSeeds(this.cassandraHost))
-                    .withConnectionPoolMonitor(new CountingConnectionPoolMonitor())
+                            new ConnectionPoolConfigurationImpl("MyConnectionPool").setMaxConnsPerHost(1).setSeeds(
+                                    this.cassandraHost)).withConnectionPoolMonitor(new CountingConnectionPoolMonitor())
                     .buildKeyspace(ThriftFamilyFactory.getInstance());
 
-            context.start();
-            this.keyspace = context.getEntity();
+            this.astyanaxContext.start();
+            this.keyspace = this.astyanaxContext.getEntity();
         } catch (Throwable e) {
             LOG.warn("Preparation failed.", e);
             throw new IllegalStateException("Failed to prepare CassandraBolt", e);
         }
+    }
+    
+
+    public void cleanup(){
+        this.astyanaxContext.shutdown();
     }
 
     public void writeTuple(Tuple input) throws ConnectionException {
@@ -102,7 +102,6 @@ public abstract class BaseCassandraBolt implements CassandraConstants, Serializa
     }
 
     public Map<String, Object> getComponentConfiguration() {
-        // TODO Auto-generated method stub
-        return new HashMap<String, Object>();
+        return null;
     }
 }
