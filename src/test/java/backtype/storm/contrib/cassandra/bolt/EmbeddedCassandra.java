@@ -35,7 +35,7 @@ import com.netflix.astyanax.thrift.ThriftFamilyFactory;
 public class EmbeddedCassandra {
     public static final String TEST_KS = "TestKeyspace";
     public static final String TEST_CF = "users";
-    private static Logger logger = LoggerFactory.getLogger(EmbeddedCassandra.class);
+    private static Logger LOG = LoggerFactory.getLogger(EmbeddedCassandra.class);
     private static boolean started = false;
 
     public EmbeddedCassandra() throws Exception {
@@ -47,7 +47,7 @@ public class EmbeddedCassandra {
             try {
                 loadDataSchema(TEST_KS, Arrays.asList(TEST_CF));
             } catch (Throwable t) {
-                logger.debug("Received error when bootstrapping data schema, most likely it exists already."
+                LOG.debug("Received error when bootstrapping data schema, most likely it exists already."
                         + t.getMessage());
             }
             started = true;
@@ -71,7 +71,7 @@ public class EmbeddedCassandra {
         schema.add(validKsMetadata);
 
         Schema.instance.load(schema);
-        logger.debug("======================= LOADED DATA SCHEMA FOR TESTS ==========================");
+        LOG.debug("======================= LOADED DATA SCHEMA FOR TESTS ==========================");
     }
 
     public Map<String, Map<String, String>> getRows() throws ConnectionException {

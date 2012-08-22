@@ -15,7 +15,7 @@ import backtype.storm.tuple.Tuple;
 import backtype.storm.tuple.TupleImpl;
 
 public class CassandraBoltTest {
-    private static Logger logger = LoggerFactory.getLogger(CassandraBoltTest.class);
+    private static Logger LOG = LoggerFactory.getLogger(CassandraBoltTest.class);
 
     @Test
     public void testBolt() throws Exception {
@@ -40,9 +40,9 @@ public class CassandraBoltTest {
         bolt.execute(tuple);
 
         Map<String, Map<String, String>> rows = embeddedCassandra.getRows();
-        System.err.println("ROWS [" + rows.size() + "]");
+        LOG.error("ROWS [" + rows.size() + "]");
         for (String row : rows.keySet()) {
-            System.err.println("ROW [" + row + "]");
+            LOG.error("ROW [" + row + "]");
         }
     }
 

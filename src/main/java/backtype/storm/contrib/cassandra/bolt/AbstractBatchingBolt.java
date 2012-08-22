@@ -42,10 +42,6 @@ public abstract class AbstractBatchingBolt extends BaseCassandraBolt implements 
     @SuppressWarnings("unused")
     private static final Logger LOG = LoggerFactory.getLogger(AbstractBatchingBolt.class);
 
-    public static enum AckStrategy {
-        ACK_IGNORE, ACK_ON_RECEIVE, ACK_ON_WRITE;
-    }
-
     protected AckStrategy ackStrategy = AckStrategy.ACK_IGNORE;
 
     protected OutputCollector collector;
