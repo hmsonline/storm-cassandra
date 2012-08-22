@@ -28,8 +28,7 @@ Maven artifacts for releases will be available on maven central.
 `CassandraBolt` expects that a Cassandra hostname, port, and keyspace be set in the Storm topology configuration:
 
 		Config config = new Config();
-		config.put(CassandraBolt.CASSANDRA_HOST, "localhost");
-		config.put(CassandraBolt.CASSANDRA_PORT, 9160);
+		config.put(CassandraBolt.CASSANDRA_HOST, "localhost:9160");
 		config.put(CassandraBolt.CASSANDRA_KEYSPACE, "testKeyspace");
 		
 		
