@@ -59,12 +59,13 @@ public abstract class BaseCassandraBolt implements CassandraConstants, Serializa
 
             this.astyanaxContext.start();
             this.keyspace = this.astyanaxContext.getEntity();
+            // test the connection
+            this.keyspace.describeKeyspace();
         } catch (Throwable e) {
             LOG.warn("Preparation failed.", e);
             throw new IllegalStateException("Failed to prepare CassandraBolt", e);
         }
-    }
-    
+    }    
 
     public void cleanup(){
         this.astyanaxContext.shutdown();
