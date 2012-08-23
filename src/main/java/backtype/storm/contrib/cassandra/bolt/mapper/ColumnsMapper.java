@@ -1,5 +1,6 @@
 package backtype.storm.contrib.cassandra.bolt.mapper;
 
+import java.io.Serializable;
 import java.util.List;
 
 import backtype.storm.topology.OutputFieldsDeclarer;
@@ -13,7 +14,7 @@ import com.netflix.astyanax.model.ColumnList;
  * 
  * @author boneill42
  */
-public interface ColumnsMapper {
+public interface ColumnsMapper extends Serializable {
 
     /**
      * Declares the fields produced by the bolt using this mapper.
