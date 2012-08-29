@@ -68,12 +68,12 @@ import com.netflix.astyanax.serializers.StringSerializer;
  * @author tgoetz
  */
 @SuppressWarnings("serial")
-public class DefaultLookupBolt extends BaseCassandraBolt implements IBasicBolt {
-    private static final Logger LOG = LoggerFactory.getLogger(DefaultLookupBolt.class);
+public class CassandraLookupBolt extends CassandraBolt implements IBasicBolt {
+    private static final Logger LOG = LoggerFactory.getLogger(CassandraLookupBolt.class);
     private ColumnFamily<String, String> columnFamily;
     private ColumnsMapper columnsMapper;
 
-    public DefaultLookupBolt(TupleMapper tupleMapper, ColumnsMapper columnsMapper) {
+    public CassandraLookupBolt(TupleMapper tupleMapper, ColumnsMapper columnsMapper) {
         super(tupleMapper);
         this.columnsMapper = columnsMapper;
     }

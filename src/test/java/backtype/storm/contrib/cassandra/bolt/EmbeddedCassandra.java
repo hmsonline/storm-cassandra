@@ -33,7 +33,7 @@ import com.netflix.astyanax.serializers.StringSerializer;
 import com.netflix.astyanax.thrift.ThriftFamilyFactory;
 
 public class EmbeddedCassandra {
-    public static final String TEST_KS = "TestKeyspace";
+    public static final String TEST_KS = "test_ks";
     public static final String TEST_CF = "users";
     private static Logger LOG = LoggerFactory.getLogger(EmbeddedCassandra.class);
     private static boolean started = false;

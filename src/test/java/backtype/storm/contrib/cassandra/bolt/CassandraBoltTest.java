@@ -20,7 +20,7 @@ public class CassandraBoltTest {
     @Test
     public void testBolt() throws Exception {
         EmbeddedCassandra embeddedCassandra = new EmbeddedCassandra();
-        DefaultBatchingCassandraBolt bolt = new DefaultBatchingCassandraBolt(EmbeddedCassandra.TEST_KS,
+        CassandraBatchingBolt bolt = new CassandraBatchingBolt(EmbeddedCassandra.TEST_KS,
                 EmbeddedCassandra.TEST_CF);
         TopologyBuilder builder = new TopologyBuilder();
         builder.setBolt("TEST_BOLT", bolt);
@@ -28,8 +28,8 @@ public class CassandraBoltTest {
         TopologyContext context = new MockTopologyContext(builder.createTopology());
 
         Config config = new Config();
-        config.put(CassandraConstants.CASSANDRA_HOST, "localhost");
-        config.put(CassandraConstants.CASSANDRA_KEYSPACE, "hms_data");
+        config.put(CassandraBolt.CASSANDRA_HOST, "localhost:9160");
+        config.put(CassandraBolt.CASSANDRA_KEYSPACE, "test_ks");
         config.put(Config.TOPOLOGY_MAX_SPOUT_PENDING, 5000);
 
         bolt.prepare(config, context, null);
@@ -45,5 +45,4 @@ public class CassandraBoltTest {
             LOG.error("ROW [" + row + "]");
         }
     }
-
 }

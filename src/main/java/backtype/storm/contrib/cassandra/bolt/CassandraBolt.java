@@ -25,9 +25,12 @@ import com.netflix.astyanax.serializers.StringSerializer;
 import com.netflix.astyanax.thrift.ThriftFamilyFactory;
 
 @SuppressWarnings("serial")
-public abstract class BaseCassandraBolt implements CassandraConstants, Serializable {
-    private static final Logger LOG = LoggerFactory.getLogger(BaseCassandraBolt.class);
-
+public abstract class CassandraBolt implements Serializable {
+    private static final Logger LOG = LoggerFactory.getLogger(CassandraBolt.class);
+    public static String CASSANDRA_HOST = "cassandra.host";
+    public static final String CASSANDRA_KEYSPACE = "cassandra.keyspace";
+    public static final String CASSANDRA_BATCH_MAX_SIZE = "cassandra.batch.max_size";
+    
     private String cassandraHost;
     private String cassandraKeyspace;
     protected Cluster cluster;
@@ -35,7 +38,7 @@ public abstract class BaseCassandraBolt implements CassandraConstants, Serializa
     protected TupleMapper tupleMapper;
     protected AstyanaxContext<Keyspace> astyanaxContext;
 
-    public BaseCassandraBolt(TupleMapper tupleMapper) {
+    public CassandraBolt(TupleMapper tupleMapper) {
         this.tupleMapper = tupleMapper;
     }
 
