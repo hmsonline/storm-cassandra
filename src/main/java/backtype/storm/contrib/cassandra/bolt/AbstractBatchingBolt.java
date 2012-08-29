@@ -5,14 +5,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.LinkedBlockingQueue;
 
-import backtype.storm.utils.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import backtype.storm.contrib.cassandra.bolt.mapper.TupleMapper;
 import backtype.storm.task.OutputCollector;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.IRichBolt;
 import backtype.storm.tuple.Tuple;
+import backtype.storm.utils.Utils;
 
 /**
  * Abstract <code>IRichBolt</code> implementation that caches/batches
@@ -29,111 +30,108 @@ import backtype.storm.tuple.Tuple;
  * (i.e. <code>super.prepare()</code> and <code>super.cleanup()</code>) to
  * ensure proper initialization and termination.
  * 
- * 
- * 
- * 
  * @author ptgoetz
- * 
  */
 @SuppressWarnings("serial")
-public abstract class AbstractBatchingBolt implements IRichBolt,
-		CassandraConstants {
+public abstract class AbstractBatchingBolt extends CassandraBolt implements IRichBolt {
+    private static final Logger LOG = LoggerFactory.getLogger(AbstractBatchingBolt.class);
 
-	@SuppressWarnings("unused")
-	private static final Logger LOG = LoggerFactory
-			.getLogger(AbstractBatchingBolt.class);
-	
-	private boolean ackOnReceive = false;
-	
-	private OutputCollector collector;
+    protected AckStrategy ackStrategy = AckStrategy.ACK_IGNORE;
 
-	private LinkedBlockingQueue<Tuple> queue;
+    protected OutputCollector collector;
 
-	private BatchThread batchThread;
+    protected LinkedBlockingQueue<Tuple> queue;
 
-	@SuppressWarnings("rawtypes")
-	@Override
-	public void prepare(Map stormConf, TopologyContext context,
-			OutputCollector collector) {
-		int batchMaxSize = Utils.getInt(Utils.get(stormConf, CASSANDRA_BATCH_MAX_SIZE, 0));
+    private BatchThread batchThread;
 
-		this.collector = collector;
-		this.queue = new LinkedBlockingQueue<Tuple>();
-		this.batchThread = new BatchThread(batchMaxSize);
-		this.batchThread.start();
-	}
-	
-	public void setAckOnReceive(boolean ackOnReceive){
-		this.ackOnReceive = ackOnReceive;
-	}
+    public AbstractBatchingBolt(TupleMapper tupleMapper) {
+        super(tupleMapper);
+    }
 
-	@Override
-	public final void execute(Tuple input) {
-		if(this.ackOnReceive){
-			this.collector.ack(input);
-		}
-		this.queue.offer(input);
-	}
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+    @Override
+    public void prepare(Map stormConf, TopologyContext context, OutputCollector collector) {
+        super.prepare(stormConf, context);
+        int batchMaxSize = Utils.getInt(Utils.get(stormConf, CASSANDRA_BATCH_MAX_SIZE, 0));
 
-	@Override
-	public void cleanup() {
-		this.batchThread.stopRunning();
-	}
+        this.collector = collector;
+        this.queue = new LinkedBlockingQueue<Tuple>();
+        this.batchThread = new BatchThread(batchMaxSize);
+        this.batchThread.start();
+    }
 
-	/**
-	 * Process a <code>java.util.List</code> of
-	 * <code>backtype.storm.tuple.Tuple</code> objects that have been
-	 * cached/batched.
-	 * <p/>
-	 * This method is analagous to the <code>execute(Tuple input)</code> method
-	 * defined in the bolt interface. Subclasses are responsible for processing
-	 * and/or ack'ing tuples as necessary. The only difference is that tuples
-	 * are passed in as a list, as opposed to one at a time.
-	 * <p/>
-	 * 
-	 * 
-	 * @param inputs
-	 */
-	public abstract void executeBatch(List<Tuple> inputs);
+    @Override
+    public void execute(Tuple input) {
+        if (this.ackStrategy == AckStrategy.ACK_ON_RECEIVE) {
+            this.collector.ack(input);
+        }
+        this.queue.offer(input);
+    }
 
-	private class BatchThread extends Thread {
+    @Override
+    public void cleanup() {
+        this.batchThread.stopRunning();
+        super.cleanup();
+    }
 
-		int batchMaxSize;
-		boolean stopRequested = false;
+    /**
+     * Process a <code>java.util.List</code> of
+     * <code>backtype.storm.tuple.Tuple</code> objects that have been
+     * cached/batched.
+     * <p/>
+     * This method is analagous to the <code>execute(Tuple input)</code> method
+     * defined in the bolt interface. Subclasses are responsible for processing
+     * and/or ack'ing tuples as necessary. The only difference is that tuples
+     * are passed in as a list, as opposed to one at a time.
+     * <p/>
+     * 
+     * 
+     * @param inputs
+     */
+    public abstract void executeBatch(List<Tuple> inputs);
 
-        BatchThread() {
-			this(0);
-		}
-		
-		BatchThread(int batchMaxSize) {
-			super("batch-bolt-thread");
-			super.setDaemon(true);
-			this.batchMaxSize = batchMaxSize;
-		}
+    private class BatchThread extends Thread {
 
-		@Override
-		public void run() {
-			while (!stopRequested) {
-			    try {
-			        ArrayList<Tuple> batch = new ArrayList<Tuple>();
-			        // drainTo() does not block, take() does.
-			        Tuple t = queue.take();
-			        batch.add(t);
-					if (batchMaxSize > 0) {
-						queue.drainTo(batch, batchMaxSize);
-					}
-					else {
-						queue.drainTo(batch);
-					}
-	                executeBatch(batch);
-                    
+        int batchMaxSize;
+        boolean stopRequested = false;
+
+        BatchThread(int batchMaxSize) {
+            super("batch-bolt-thread");
+            super.setDaemon(true);
+            this.batchMaxSize = batchMaxSize;
+        }
+
+        @Override
+        public void run() {
+            while (!stopRequested) {
+                try {
+                    ArrayList<Tuple> batch = new ArrayList<Tuple>();
+                    // drainTo() does not block, take() does.
+                    Tuple t = queue.take();
+                    batch.add(t);
+                    if (batchMaxSize > 0) {
+                        queue.drainTo(batch, batchMaxSize);
+                    } else {
+                        queue.drainTo(batch);
+                    }
+                    executeBatch(batch);
+
+                } catch (InterruptedException e) {
+                    LOG.error("Interupted in batching bolt.", e);
                 }
-                catch (InterruptedException e) {}				
-			}
-		}
+            }
+        }
 
-		synchronized void stopRunning() {
-			this.stopRequested = true;
-		}
-	}
+        synchronized void stopRunning() {
+            this.stopRequested = true;
+        }
+    }
+
+    public AckStrategy getAckStrategy() {
+        return ackStrategy;
+    }
+
+    public void setAckStrategy(AckStrategy ackStrategy) {
+        this.ackStrategy = ackStrategy;
+    }
 }

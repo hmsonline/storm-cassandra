@@ -1,145 +1,110 @@
 package backtype.storm.contrib.cassandra.bolt;
 
+import java.io.Serializable;
+import java.util.List;
 import java.util.Map;
-
-import me.prettyprint.cassandra.serializers.StringSerializer;
-import me.prettyprint.cassandra.service.CassandraHostConfigurator;
-import me.prettyprint.hector.api.Cluster;
-import me.prettyprint.hector.api.Keyspace;
-import me.prettyprint.hector.api.factory.HFactory;
-import me.prettyprint.hector.api.mutation.Mutator;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import backtype.storm.contrib.cassandra.bolt.determinable.ColumnFamilyDeterminable;
-import backtype.storm.contrib.cassandra.bolt.determinable.DefaultColumnFamilyDeterminable;
-import backtype.storm.contrib.cassandra.bolt.determinable.DefaultRowKeyDeterminable;
-import backtype.storm.contrib.cassandra.bolt.determinable.RowKeyDeterminable;
-import backtype.storm.task.OutputCollector;
+import backtype.storm.contrib.cassandra.bolt.mapper.TupleMapper;
 import backtype.storm.task.TopologyContext;
-import backtype.storm.topology.IRichBolt;
-import backtype.storm.topology.OutputFieldsDeclarer;
-import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Tuple;
 
+import com.netflix.astyanax.AstyanaxContext;
+import com.netflix.astyanax.Cluster;
+import com.netflix.astyanax.Keyspace;
+import com.netflix.astyanax.MutationBatch;
+import com.netflix.astyanax.connectionpool.NodeDiscoveryType;
+import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
+import com.netflix.astyanax.connectionpool.impl.ConnectionPoolConfigurationImpl;
+import com.netflix.astyanax.connectionpool.impl.CountingConnectionPoolMonitor;
+import com.netflix.astyanax.impl.AstyanaxConfigurationImpl;
+import com.netflix.astyanax.model.ColumnFamily;
+import com.netflix.astyanax.serializers.StringSerializer;
+import com.netflix.astyanax.thrift.ThriftFamilyFactory;
+
 @SuppressWarnings("serial")
-public class CassandraBolt implements IRichBolt, CassandraConstants {
-	private static final Logger LOG = LoggerFactory
-			.getLogger(CassandraBolt.class);
+public abstract class CassandraBolt implements Serializable {
+    private static final Logger LOG = LoggerFactory.getLogger(CassandraBolt.class);
+    public static String CASSANDRA_HOST = "cassandra.host";
+    public static final String CASSANDRA_KEYSPACE = "cassandra.keyspace";
+    public static final String CASSANDRA_BATCH_MAX_SIZE = "cassandra.batch.max_size";
+    
+    private String cassandraHost;
+    private String cassandraKeyspace;
+    protected Cluster cluster;
+    protected Keyspace keyspace;
+    protected TupleMapper tupleMapper;
+    protected AstyanaxContext<Keyspace> astyanaxContext;
 
-	private OutputCollector collector;
-	private boolean autoAck = true;
+    public CassandraBolt(TupleMapper tupleMapper) {
+        this.tupleMapper = tupleMapper;
+    }
 
-	private Fields declaredFields;
+    @SuppressWarnings("rawtypes")
+    public void prepare(Map stormConf, TopologyContext context) {
+        this.cassandraHost = (String) stormConf.get(CASSANDRA_HOST);
+        this.cassandraKeyspace = (String) stormConf.get(CASSANDRA_KEYSPACE);
+        initCassandraConnection();
+    }
 
-	private String cassandraHost;
-//	private String cassandraPort;
-	private String cassandraKeyspace;
+    private void initCassandraConnection() {
+        try {
+            this.astyanaxContext = new AstyanaxContext.Builder()
+                    .forCluster("ClusterName")
+                    .forKeyspace(this.cassandraKeyspace)
+                    .withAstyanaxConfiguration(new AstyanaxConfigurationImpl().setDiscoveryType(NodeDiscoveryType.NONE))
+                    .withConnectionPoolConfiguration(
+                            new ConnectionPoolConfigurationImpl("MyConnectionPool").setMaxConnsPerHost(1).setSeeds(
+                                    this.cassandraHost)).withConnectionPoolMonitor(new CountingConnectionPoolMonitor())
+                    .buildKeyspace(ThriftFamilyFactory.getInstance());
 
-	private Cluster cluster;
-	private Keyspace keyspace;
+            this.astyanaxContext.start();
+            this.keyspace = this.astyanaxContext.getEntity();
+            // test the connection
+            this.keyspace.describeKeyspace();
+        } catch (Throwable e) {
+            LOG.warn("Preparation failed.", e);
+            throw new IllegalStateException("Failed to prepare CassandraBolt", e);
+        }
+    }    
 
-	private ColumnFamilyDeterminable cfDeterminable;
-	private RowKeyDeterminable rkDeterminable;
+    public void cleanup(){
+        this.astyanaxContext.shutdown();
+    }
 
-	public CassandraBolt(String columnFamily, String rowkeyField) {
+    public void writeTuple(Tuple input) throws ConnectionException {
+        String columnFamilyName = tupleMapper.mapToColumnFamily(input);
+        String rowKey = (String) tupleMapper.mapToRowKey(input);
+        MutationBatch mutation = keyspace.prepareMutationBatch();
+        ColumnFamily<String, String> columnFamily = new ColumnFamily<String, String>(columnFamilyName,
+                StringSerializer.get(), StringSerializer.get());
+        this.addTupleToMutation(input, columnFamily, rowKey, mutation);
+        mutation.execute();
+    }
 
-		this(new DefaultColumnFamilyDeterminable(columnFamily),
-				new DefaultRowKeyDeterminable(rowkeyField));
+    public void writeTuples(List<Tuple> inputs) throws ConnectionException {
+        MutationBatch mutation = keyspace.prepareMutationBatch();
+        for (Tuple input : inputs) {
+            String columnFamilyName = tupleMapper.mapToColumnFamily(input);
+            String rowKey = (String) tupleMapper.mapToRowKey(input);
+            ColumnFamily<String, String> columnFamily = new ColumnFamily<String, String>(columnFamilyName,
+                    StringSerializer.get(), StringSerializer.get());
+            this.addTupleToMutation(input, columnFamily, rowKey, mutation);
+        }
+        mutation.execute();
+    }
 
-	}
+    private void addTupleToMutation(Tuple input, ColumnFamily<String, String> columnFamily, String rowKey,
+            MutationBatch mutation) {
+        Map<String, String> columns = tupleMapper.mapToColumns(input);
+        for (Map.Entry<String, String> entry : columns.entrySet()) {
+            mutation.withRow(columnFamily, rowKey).putColumn(entry.getKey(), entry.getValue(), null);
+        }
+    }
 
-	public CassandraBolt(ColumnFamilyDeterminable cfDeterminable,
-			RowKeyDeterminable rkDeterminable) {
-		this.cfDeterminable = cfDeterminable;
-		this.rkDeterminable = rkDeterminable;
-	}
-
-	/*
-	 * IRichBolt Implementation
-	 */
-	@SuppressWarnings("rawtypes")
-	@Override
-	public void prepare(Map stormConf, TopologyContext context,
-			OutputCollector collector) {
-		LOG.debug("Preparing...");
-		this.cassandraHost = (String) stormConf.get(CASSANDRA_HOST);
-		this.cassandraKeyspace = (String) stormConf.get(CASSANDRA_KEYSPACE);
-//		this.cassandraPort = String.valueOf(stormConf.get(CASSANDRA_PORT));
-
-		this.collector = collector;
-
-		initCassandraConnection();
-
-	}
-
-	private void initCassandraConnection() {
-		// setup Cassandra connection
-		try {
-			this.cluster = HFactory.getOrCreateCluster("cassandra-bolt",
-					new CassandraHostConfigurator(this.cassandraHost));
-			this.keyspace = HFactory.createKeyspace(this.cassandraKeyspace,
-					this.cluster);
-		} catch (Throwable e) {
-			LOG.warn("Preparation failed.", e);
-			throw new IllegalStateException("Failed to prepare CassandraBolt",
-					e);
-		}
-	}
-
-	@Override
-	public void execute(Tuple input) {
-		LOG.debug("Tuple received: " + input);
-		try {
-			String columnFamily = this.cfDeterminable
-					.determineColumnFamily(input);
-			Object rowKey = this.rkDeterminable.determineRowKey(input);
-
-			Mutator<String> mutator = HFactory.createMutator(this.keyspace,
-					new StringSerializer());
-			Fields fields = input.getFields();
-
-			for (int i = 0; i < fields.size(); i++) {
-				// LOG.debug("Name: " + fields.get(i) + ", Value: "
-				// + input.getValue(i));
-				mutator.addInsertion(rowKey.toString(), columnFamily, HFactory
-						.createStringColumn(fields.get(i), input.getValue(i)
-								.toString()));
-			}
-			mutator.execute();
-
-			if (this.autoAck) {
-				this.collector.ack(input);
-			}
-		} catch (Throwable e) {
-			LOG.warn("Caught throwable.", e);
-		}
-	}
-
-	@Override
-	public void cleanup() {
-	}
-
-	@Override
-	public void declareOutputFields(OutputFieldsDeclarer declarer) {
-		if (this.declaredFields != null) {
-			declarer.declare(this.declaredFields);
-		}
-
-	}
-
-	public boolean isAutoAck() {
-		return autoAck;
-	}
-
-	public void setAutoAck(boolean autoAck) {
-		this.autoAck = autoAck;
-	}
-
-	@Override
-	public Map<String, Object> getComponentConfiguration() {
-		return null;
-	}
-
+    public Map<String, Object> getComponentConfiguration() {
+        return null;
+    }
 }
