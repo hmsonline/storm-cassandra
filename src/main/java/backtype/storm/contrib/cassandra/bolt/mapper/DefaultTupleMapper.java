@@ -26,12 +26,12 @@ public class DefaultTupleMapper implements TupleMapper {
 
     @Override
     public String mapToRowKey(Tuple tuple) {
-        return (String) tuple.getValueByField(this.rowKeyField);
+        return tuple.getValueByField(this.rowKeyField).toString();
     }
 
     /**
-     * Default behavior is to write each value in the tuple as a valueless
-     * column in Cassandra.
+     * Default behavior is to write each value in the tuple as a 
+     * key:value pair in the Cassandra row.
      * 
      * @param tuple
      * @return
