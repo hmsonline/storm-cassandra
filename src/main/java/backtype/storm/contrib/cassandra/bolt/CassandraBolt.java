@@ -1,7 +1,6 @@
 package backtype.storm.contrib.cassandra.bolt;
 
 import java.io.Serializable;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -26,9 +25,12 @@ import com.netflix.astyanax.serializers.StringSerializer;
 import com.netflix.astyanax.thrift.ThriftFamilyFactory;
 
 @SuppressWarnings("serial")
-public abstract class BaseCassandraBolt implements CassandraConstants, Serializable {
-    private static final Logger LOG = LoggerFactory.getLogger(BaseCassandraBolt.class);
-
+public abstract class CassandraBolt implements Serializable {
+    private static final Logger LOG = LoggerFactory.getLogger(CassandraBolt.class);
+    public static String CASSANDRA_HOST = "cassandra.host";
+    public static final String CASSANDRA_KEYSPACE = "cassandra.keyspace";
+    public static final String CASSANDRA_BATCH_MAX_SIZE = "cassandra.batch.max_size";
+    
     private String cassandraHost;
     private String cassandraKeyspace;
     protected Cluster cluster;
@@ -36,7 +38,7 @@ public abstract class BaseCassandraBolt implements CassandraConstants, Serializa
     protected TupleMapper tupleMapper;
     protected AstyanaxContext<Keyspace> astyanaxContext;
 
-    public BaseCassandraBolt(TupleMapper tupleMapper) {
+    public CassandraBolt(TupleMapper tupleMapper) {
         this.tupleMapper = tupleMapper;
     }
 
@@ -60,12 +62,13 @@ public abstract class BaseCassandraBolt implements CassandraConstants, Serializa
 
             this.astyanaxContext.start();
             this.keyspace = this.astyanaxContext.getEntity();
+            // test the connection
+            this.keyspace.describeKeyspace();
         } catch (Throwable e) {
             LOG.warn("Preparation failed.", e);
             throw new IllegalStateException("Failed to prepare CassandraBolt", e);
         }
-    }
-    
+    }    
 
     public void cleanup(){
         this.astyanaxContext.shutdown();

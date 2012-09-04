@@ -1,6 +1,5 @@
 package backtype.storm.contrib.cassandra.bolt;
 
-import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
 
@@ -12,17 +11,25 @@ import backtype.storm.contrib.cassandra.bolt.mapper.TupleMapper;
 import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.tuple.Tuple;
 
+/**
+ * This is a batching bolt that can be used outside of a transactional topology.
+ * It does *not* implement IBatchBolt for that reason. If you want to use the
+ * batching inside a transactional topology, use
+ * <code>TransactionBatchingCassandraBolt</code>.
+ * 
+ * @author boneill42
+ */
 @SuppressWarnings("serial")
-public class DefaultBatchingCassandraBolt extends AbstractBatchingBolt implements CassandraConstants, Serializable {
-    public DefaultBatchingCassandraBolt(TupleMapper tupleMapper) {
+public class CassandraBatchingBolt extends AbstractBatchingBolt {
+    private static final Logger LOG = LoggerFactory.getLogger(CassandraBatchingBolt.class);
+
+    public CassandraBatchingBolt(TupleMapper tupleMapper) {
         super(tupleMapper);
     }
 
-    public DefaultBatchingCassandraBolt(String columnFamily, String rowKeyField) {
+    public CassandraBatchingBolt(String columnFamily, String rowKeyField) {
         this(new DefaultTupleMapper(columnFamily, rowKeyField));
     }
-
-    private static final Logger LOG = LoggerFactory.getLogger(DefaultBatchingCassandraBolt.class);
 
     @Override
     public void executeBatch(List<Tuple> inputs) {
@@ -36,7 +43,7 @@ public class DefaultBatchingCassandraBolt extends AbstractBatchingBolt implement
                 }
             }
         } catch (Throwable e) {
-            LOG.warn("Unable to write batch.", e);
+            LOG.error("Unable to write batch.", e);
             for (Tuple tupleToAck : inputs) {
                 this.collector.fail(tupleToAck);
             }

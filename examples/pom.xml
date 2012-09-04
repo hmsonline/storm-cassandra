@@ -24,7 +24,7 @@
 	</properties>
 	<dependencies>
 		<dependency>
-			<groupId>com.github.ptgoetz</groupId>
+			<groupId>com.hmsonline</groupId>
 			<artifactId>storm-cassandra</artifactId>
 			<version>0.3.0-SNAPSHOT</version>
 		</dependency>

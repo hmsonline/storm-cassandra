@@ -10,8 +10,8 @@ import backtype.storm.Config;
 import backtype.storm.LocalCluster;
 import backtype.storm.LocalDRPC;
 import backtype.storm.StormSubmitter;
-import backtype.storm.contrib.cassandra.bolt.CassandraConstants;
-import backtype.storm.contrib.cassandra.bolt.DefaultLookupBolt;
+import backtype.storm.contrib.cassandra.bolt.CassandraBolt;
+import backtype.storm.contrib.cassandra.bolt.CassandraLookupBolt;
 import backtype.storm.contrib.cassandra.bolt.mapper.DefaultTupleMapper;
 import backtype.storm.contrib.cassandra.bolt.mapper.ValuelessColumnsMapper;
 import backtype.storm.coordination.BatchOutputCollector;
@@ -26,7 +26,7 @@ import backtype.storm.tuple.Tuple;
 import backtype.storm.tuple.Values;
 
 @SuppressWarnings("deprecation")
-public class CassandraReachTopology implements CassandraConstants {
+public class CassandraReachTopology {
 
     public static void main(String[] args) throws Exception {
         LinearDRPCTopologyBuilder builder = new LinearDRPCTopologyBuilder("reach");
@@ -43,13 +43,13 @@ public class CassandraReachTopology implements CassandraConstants {
         DefaultTupleMapper tweetersTupleMapper = new DefaultTupleMapper("tweeters", "url");
         // cf (url -> tweeters) -> emit(url, follower)
         ValuelessColumnsMapper tweetersColumnsMapper = new ValuelessColumnsMapper("url", "tweeter", true);
-        DefaultLookupBolt tweetersBolt = new DefaultLookupBolt(tweetersTupleMapper, tweetersColumnsMapper);
+        CassandraLookupBolt tweetersBolt = new CassandraLookupBolt(tweetersTupleMapper, tweetersColumnsMapper);
 
         // cf = "followers", rowkey = tuple["tweeter"]
         DefaultTupleMapper followersTupleMapper = new DefaultTupleMapper("followers", "tweeter");
         // cf (tweeter -> followers) ==> emit(url, follower)
         ValuelessColumnsMapper followersColumnsMapper = new ValuelessColumnsMapper("url", "follower", true);
-        DefaultLookupBolt followersBolt = new DefaultLookupBolt(followersTupleMapper, followersColumnsMapper);
+        CassandraLookupBolt followersBolt = new CassandraLookupBolt(followersTupleMapper, followersColumnsMapper);
 
         builder.addBolt(new InitBolt());
         builder.addBolt(tweetersBolt).shuffleGrouping();
@@ -58,8 +58,8 @@ public class CassandraReachTopology implements CassandraConstants {
         builder.addBolt(new CountAggregator()).fieldsGrouping(new Fields("id"));
 
         Config config = new Config();
-        config.put(CASSANDRA_HOST, "localhost:9160");
-        config.put(CASSANDRA_KEYSPACE, "stormks");
+        config.put(CassandraBolt.CASSANDRA_HOST, "localhost:9160");
+        config.put(CassandraBolt.CASSANDRA_KEYSPACE, "stormks");
 
         if (args == null || args.length == 0) {
             config.setMaxTaskParallelism(3);

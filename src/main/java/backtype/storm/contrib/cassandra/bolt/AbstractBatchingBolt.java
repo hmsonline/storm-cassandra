@@ -30,27 +30,17 @@ import backtype.storm.utils.Utils;
  * (i.e. <code>super.prepare()</code> and <code>super.cleanup()</code>) to
  * ensure proper initialization and termination.
  * 
- * 
- * 
- * 
  * @author ptgoetz
- * 
  */
 @SuppressWarnings("serial")
-public abstract class AbstractBatchingBolt extends BaseCassandraBolt implements IRichBolt, CassandraConstants {
-
-    @SuppressWarnings("unused")
+public abstract class AbstractBatchingBolt extends CassandraBolt implements IRichBolt {
     private static final Logger LOG = LoggerFactory.getLogger(AbstractBatchingBolt.class);
-
-    public static enum AckStrategy {
-        ACK_IGNORE, ACK_ON_RECEIVE, ACK_ON_WRITE;
-    }
 
     protected AckStrategy ackStrategy = AckStrategy.ACK_IGNORE;
 
     protected OutputCollector collector;
 
-    private LinkedBlockingQueue<Tuple> queue;
+    protected LinkedBlockingQueue<Tuple> queue;
 
     private BatchThread batchThread;
 
@@ -71,7 +61,7 @@ public abstract class AbstractBatchingBolt extends BaseCassandraBolt implements 
     }
 
     @Override
-    public final void execute(Tuple input) {
+    public void execute(Tuple input) {
         if (this.ackStrategy == AckStrategy.ACK_ON_RECEIVE) {
             this.collector.ack(input);
         }
@@ -127,7 +117,7 @@ public abstract class AbstractBatchingBolt extends BaseCassandraBolt implements 
                     executeBatch(batch);
 
                 } catch (InterruptedException e) {
-
+                    LOG.error("Interupted in batching bolt.", e);
                 }
             }
         }

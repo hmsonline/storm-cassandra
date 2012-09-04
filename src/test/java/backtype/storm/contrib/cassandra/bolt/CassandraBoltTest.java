@@ -25,7 +25,7 @@ import backtype.storm.tuple.TupleImpl;
 import backtype.storm.tuple.Values;
 
 public class CassandraBoltTest {
-    private static Logger logger = LoggerFactory.getLogger(CassandraBoltTest.class);
+    private static Logger LOG = LoggerFactory.getLogger(CassandraBoltTest.class);
 
     @BeforeClass
     public static void setupCassandra() throws TTransportException, IOException, InterruptedException,
@@ -35,7 +35,7 @@ public class CassandraBoltTest {
             DataLoader dataLoader = new DataLoader("TestCluster", "localhost:9171");
             dataLoader.load(new ClassPathYamlDataSet("CassandraBoltTest.yaml"));
         } catch (Exception e) {
-            logger.warn("Couldn't setup cassandra.", e);
+            LOG.warn("Couldn't setup cassandra.", e);
             throw e;
         }
     }
@@ -48,7 +48,7 @@ public class CassandraBoltTest {
 
     @Test
     public void testBolt() throws Exception {
-        DefaultBatchingCassandraBolt bolt = new DefaultBatchingCassandraBolt("users",
+        CassandraBatchingBolt bolt = new CassandraBatchingBolt("users",
                 "VALUE");
         TopologyBuilder builder = new TopologyBuilder();
         builder.setBolt("TEST_BOLT", bolt);
@@ -57,8 +57,8 @@ public class CassandraBoltTest {
         TopologyContext context = new MockTopologyContext(builder.createTopology(), fields);
 
         Config config = new Config();
-        config.put(CassandraConstants.CASSANDRA_HOST, "localhost:9171");
-        config.put(CassandraConstants.CASSANDRA_KEYSPACE, "TestKeyspace");
+        config.put(CassandraBolt.CASSANDRA_HOST, "localhost:9171");
+        config.put(CassandraBolt.CASSANDRA_KEYSPACE, "TestKeyspace");
         config.put(Config.TOPOLOGY_MAX_SPOUT_PENDING, 5000);
 
         bolt.prepare(config, context, null);
@@ -70,9 +70,5 @@ public class CassandraBoltTest {
         
         // wait very briefly for the batch to complete
         Thread.sleep(250);
-        
-        // TODO: verify the persistence
-
     }
-
 }
