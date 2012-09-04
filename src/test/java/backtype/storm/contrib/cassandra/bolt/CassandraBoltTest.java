@@ -35,7 +35,7 @@ public class CassandraBoltTest {
             DataLoader dataLoader = new DataLoader("TestCluster", "localhost:9171");
             dataLoader.load(new ClassPathYamlDataSet("CassandraBoltTest.yaml"));
         } catch (Exception e) {
-            logger.warn("Couldn't setup cassandra.", e);
+            LOG.warn("Couldn't setup cassandra.", e);
             throw e;
         }
     }
@@ -48,14 +48,8 @@ public class CassandraBoltTest {
 
     @Test
     public void testBolt() throws Exception {
-<<<<<<< HEAD
-        EmbeddedCassandra embeddedCassandra = new EmbeddedCassandra();
-        CassandraBatchingBolt bolt = new CassandraBatchingBolt(EmbeddedCassandra.TEST_KS,
-                EmbeddedCassandra.TEST_CF);
-=======
-        DefaultBatchingCassandraBolt bolt = new DefaultBatchingCassandraBolt("users",
+        CassandraBatchingBolt bolt = new CassandraBatchingBolt("users",
                 "VALUE");
->>>>>>> 206218588025f0eae7401e0f7e32b2fe926371a3
         TopologyBuilder builder = new TopologyBuilder();
         builder.setBolt("TEST_BOLT", bolt);
 
@@ -63,13 +57,8 @@ public class CassandraBoltTest {
         TopologyContext context = new MockTopologyContext(builder.createTopology(), fields);
 
         Config config = new Config();
-<<<<<<< HEAD
-        config.put(CassandraBolt.CASSANDRA_HOST, "localhost:9160");
-        config.put(CassandraBolt.CASSANDRA_KEYSPACE, "test_ks");
-=======
-        config.put(CassandraConstants.CASSANDRA_HOST, "localhost:9171");
-        config.put(CassandraConstants.CASSANDRA_KEYSPACE, "TestKeyspace");
->>>>>>> 206218588025f0eae7401e0f7e32b2fe926371a3
+        config.put(CassandraBolt.CASSANDRA_HOST, "localhost:9171");
+        config.put(CassandraBolt.CASSANDRA_KEYSPACE, "TestKeyspace");
         config.put(Config.TOPOLOGY_MAX_SPOUT_PENDING, 5000);
 
         bolt.prepare(config, context, null);
@@ -81,16 +70,5 @@ public class CassandraBoltTest {
         
         // wait very briefly for the batch to complete
         Thread.sleep(250);
-        
-        // TODO: verify the persistence
-
-<<<<<<< HEAD
-        Map<String, Map<String, String>> rows = embeddedCassandra.getRows();
-        LOG.error("ROWS [" + rows.size() + "]");
-        for (String row : rows.keySet()) {
-            LOG.error("ROW [" + row + "]");
-        }
-=======
->>>>>>> 206218588025f0eae7401e0f7e32b2fe926371a3
     }
 }
