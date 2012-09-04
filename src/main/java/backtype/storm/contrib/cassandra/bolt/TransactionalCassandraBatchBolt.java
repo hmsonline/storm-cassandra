@@ -20,6 +20,7 @@ import backtype.storm.tuple.Tuple;
 @SuppressWarnings({ "serial", "rawtypes" })
 public class TransactionalCassandraBatchBolt extends CassandraBatchingBolt implements IBatchBolt {
     private static final Logger LOG = LoggerFactory.getLogger(TransactionalCassandraBatchBolt.class);
+    private Object transactionId = null;
 
     public TransactionalCassandraBatchBolt(TupleMapper tupleMapper) {
         super(tupleMapper);
@@ -27,7 +28,10 @@ public class TransactionalCassandraBatchBolt extends CassandraBatchingBolt imple
 
     @Override
     public void prepare(Map conf, TopologyContext context, BatchOutputCollector collector, Object id) {
-        this.queue = new LinkedBlockingQueue<Tuple>();        
+        super.prepare(conf, context);
+        this.queue = new LinkedBlockingQueue<Tuple>();  
+        this.transactionId = id;
+        LOG.debug("Preparing cassandra batch [" + transactionId + "]");
     }
 
     @Override
@@ -36,9 +40,17 @@ public class TransactionalCassandraBatchBolt extends CassandraBatchingBolt imple
     }
 
     @Override
+    public void execute(Tuple tuple) {
+        // LOG.debug("Executing tuple for [" + transactionId + "]");
+        queue.add(tuple);        
+    }
+    
+    @Override
     public void finishBatch() {
+        
         List<Tuple> batch = new ArrayList<Tuple>();
-        queue.drainTo(batch);
+        int size = queue.drainTo(batch);
+        LOG.debug("Finishing batch for [" + transactionId + "], writing [" + size + "] tuples.");
         try {
             this.writeTuples(batch);
         } catch (ConnectionException e) {
@@ -46,8 +58,4 @@ public class TransactionalCassandraBatchBolt extends CassandraBatchingBolt imple
         }
     }
 
-    @Override
-    public void execute(Tuple tuple) {
-        queue.add(tuple);        
-    }
 }
