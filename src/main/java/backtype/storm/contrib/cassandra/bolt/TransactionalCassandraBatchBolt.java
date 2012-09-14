@@ -8,8 +8,6 @@ import java.util.concurrent.LinkedBlockingQueue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
-
 import backtype.storm.contrib.cassandra.bolt.mapper.TupleMapper;
 import backtype.storm.coordination.BatchOutputCollector;
 import backtype.storm.coordination.IBatchBolt;
@@ -53,7 +51,7 @@ public class TransactionalCassandraBatchBolt extends CassandraBatchingBolt imple
         LOG.debug("Finishing batch for [" + transactionId + "], writing [" + size + "] tuples.");
         try {
             this.writeTuples(batch);
-        } catch (ConnectionException e) {
+        } catch (Exception e) {
             LOG.error("Could not write batch to cassandra.", e);
         }
     }

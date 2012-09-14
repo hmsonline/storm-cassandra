@@ -43,6 +43,7 @@ public class PersistentWordCount {
             Thread.sleep(10000);
             cluster.killTopology("test");
             cluster.shutdown();
+            System.exit(0);
         } else {
             config.setNumWorkers(3);
             StormSubmitter.submitTopology(args[0], config, builder.createTopology());

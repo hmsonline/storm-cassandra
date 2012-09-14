@@ -3,13 +3,12 @@ package backtype.storm.contrib.cassandra.bolt.mapper;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Tuple;
 import backtype.storm.tuple.Values;
-
-import com.netflix.astyanax.model.ColumnList;
 
 /**
  * A mapper implementation that emits tuples based on a combination of cassandra
@@ -94,9 +93,9 @@ public class DelimitedColumnsMapper implements ColumnsMapper, Serializable {
      * @return
      */
     @Override
-    public List<Values> mapToValues(String rowKey, ColumnList<String> columns, Tuple input) {
+    public List<Values> mapToValues(String rowKey, Map<String, String> columns, Tuple input) {
         List<Values> values = new ArrayList<Values>();
-        String delimVal = columns.getStringValue(this.columnKeyField, "");
+        String delimVal = columns.get(this.columnKeyField);
         if (delimVal != null) {
             String[] vals = delimVal.split(this.delimiter);
             for (String val : vals) {

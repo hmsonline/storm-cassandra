@@ -8,21 +8,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import backtype.storm.contrib.cassandra.bolt.mapper.TupleMapper;
+import backtype.storm.contrib.cassandra.client.CassandraClient;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.tuple.Tuple;
-
-import com.netflix.astyanax.AstyanaxContext;
-import com.netflix.astyanax.Cluster;
-import com.netflix.astyanax.Keyspace;
-import com.netflix.astyanax.MutationBatch;
-import com.netflix.astyanax.connectionpool.NodeDiscoveryType;
-import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
-import com.netflix.astyanax.connectionpool.impl.ConnectionPoolConfigurationImpl;
-import com.netflix.astyanax.connectionpool.impl.CountingConnectionPoolMonitor;
-import com.netflix.astyanax.impl.AstyanaxConfigurationImpl;
-import com.netflix.astyanax.model.ColumnFamily;
-import com.netflix.astyanax.serializers.StringSerializer;
-import com.netflix.astyanax.thrift.ThriftFamilyFactory;
 
 @SuppressWarnings("serial")
 public abstract class CassandraBolt implements Serializable {
@@ -30,13 +18,13 @@ public abstract class CassandraBolt implements Serializable {
     public static String CASSANDRA_HOST = "cassandra.host";
     public static final String CASSANDRA_KEYSPACE = "cassandra.keyspace";
     public static final String CASSANDRA_BATCH_MAX_SIZE = "cassandra.batch.max_size";
+    public static String CASSANDRA_CLIENT_CLASS = "cassandra.client.class";
     
     private String cassandraHost;
     private String cassandraKeyspace;
-    protected Cluster cluster;
-    protected Keyspace keyspace;
     protected TupleMapper tupleMapper;
-    protected AstyanaxContext<Keyspace> astyanaxContext;
+    protected CassandraClient cassandraClient;
+//    protected AstyanaxContext<Keyspace> astyanaxContext;
 
     public CassandraBolt(TupleMapper tupleMapper) {
         this.tupleMapper = tupleMapper;
@@ -46,24 +34,19 @@ public abstract class CassandraBolt implements Serializable {
     public void prepare(Map stormConf, TopologyContext context) {
         this.cassandraHost = (String) stormConf.get(CASSANDRA_HOST);
         this.cassandraKeyspace = (String) stormConf.get(CASSANDRA_KEYSPACE);
-        initCassandraConnection();
+        initCassandraConnection(stormConf);
     }
 
-    private void initCassandraConnection() {
+    @SuppressWarnings("rawtypes")
+    private void initCassandraConnection(Map conf) {
         try {
-            this.astyanaxContext = new AstyanaxContext.Builder()
-                    .forCluster("ClusterName")
-                    .forKeyspace(this.cassandraKeyspace)
-                    .withAstyanaxConfiguration(new AstyanaxConfigurationImpl().setDiscoveryType(NodeDiscoveryType.NONE))
-                    .withConnectionPoolConfiguration(
-                            new ConnectionPoolConfigurationImpl("MyConnectionPool").setMaxConnsPerHost(1).setSeeds(
-                                    this.cassandraHost)).withConnectionPoolMonitor(new CountingConnectionPoolMonitor())
-                    .buildKeyspace(ThriftFamilyFactory.getInstance());
-
-            this.astyanaxContext.start();
-            this.keyspace = this.astyanaxContext.getEntity();
-            // test the connection
-            this.keyspace.describeKeyspace();
+            String clazz = (String)conf.get(CASSANDRA_CLIENT_CLASS);
+            if(clazz == null){
+                clazz = "backtype.storm.contrib.cassandra.client.HectorClient";
+            }
+            Class cl = Class.forName(clazz);
+            this.cassandraClient = (CassandraClient)cl.newInstance();
+            this.cassandraClient.start(this.cassandraHost, this.cassandraKeyspace);
         } catch (Throwable e) {
             LOG.warn("Preparation failed.", e);
             throw new IllegalStateException("Failed to prepare CassandraBolt", e);
@@ -71,37 +54,15 @@ public abstract class CassandraBolt implements Serializable {
     }    
 
     public void cleanup(){
-        this.astyanaxContext.shutdown();
+        this.cassandraClient.stop();
     }
 
-    public void writeTuple(Tuple input) throws ConnectionException {
-        String columnFamilyName = tupleMapper.mapToColumnFamily(input);
-        String rowKey = (String) tupleMapper.mapToRowKey(input);
-        MutationBatch mutation = keyspace.prepareMutationBatch();
-        ColumnFamily<String, String> columnFamily = new ColumnFamily<String, String>(columnFamilyName,
-                StringSerializer.get(), StringSerializer.get());
-        this.addTupleToMutation(input, columnFamily, rowKey, mutation);
-        mutation.execute();
+    public void writeTuple(Tuple input) throws Exception {
+        this.cassandraClient.writeTuple(input, this.tupleMapper);
     }
 
-    public void writeTuples(List<Tuple> inputs) throws ConnectionException {
-        MutationBatch mutation = keyspace.prepareMutationBatch();
-        for (Tuple input : inputs) {
-            String columnFamilyName = tupleMapper.mapToColumnFamily(input);
-            String rowKey = (String) tupleMapper.mapToRowKey(input);
-            ColumnFamily<String, String> columnFamily = new ColumnFamily<String, String>(columnFamilyName,
-                    StringSerializer.get(), StringSerializer.get());
-            this.addTupleToMutation(input, columnFamily, rowKey, mutation);
-        }
-        mutation.execute();
-    }
-
-    private void addTupleToMutation(Tuple input, ColumnFamily<String, String> columnFamily, String rowKey,
-            MutationBatch mutation) {
-        Map<String, String> columns = tupleMapper.mapToColumns(input);
-        for (Map.Entry<String, String> entry : columns.entrySet()) {
-            mutation.withRow(columnFamily, rowKey).putColumn(entry.getKey(), entry.getValue(), null);
-        }
+    public void writeTuples(List<Tuple> inputs) throws Exception {
+        this.cassandraClient.writeTuples(inputs, this.tupleMapper);
     }
 
     public Map<String, Object> getComponentConfiguration() {

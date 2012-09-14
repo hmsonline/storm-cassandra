@@ -3,14 +3,12 @@ package backtype.storm.contrib.cassandra.bolt.mapper;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Tuple;
 import backtype.storm.tuple.Values;
-
-import com.netflix.astyanax.model.Column;
-import com.netflix.astyanax.model.ColumnList;
 
 /**
  * A mapper implementation that emits tuples based on a combination of cassandra
@@ -101,13 +99,13 @@ public class ValuelessColumnsMapper implements ColumnsMapper, Serializable {
      * @return
      */
     @Override
-    public List<Values> mapToValues(String rowKey, ColumnList<String> columns, Tuple input) {
+    public List<Values> mapToValues(String rowKey, Map<String, String> columns, Tuple input) {
         List<Values> values = new ArrayList<Values>();
-        for (Column<String> col : columns) {
+        for (String col : columns.keySet()) {
             if (this.isDrpc) {
-                values.add(new Values(input.getValue(0), rowKey, col.getName()));
+                values.add(new Values(input.getValue(0), rowKey, col));
             } else {
-                values.add(new Values(rowKey, col.getName()));
+                values.add(new Values(rowKey, col));
             }
         }
         return values;
