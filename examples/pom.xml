@@ -3,7 +3,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>backtype.storm.contrib</groupId>
 	<artifactId>storm-cassandra-examples</artifactId>
-	<version>0.3.1-SNAPSHOT</version>
+	<version>0.3.0-SNAPSHOT</version>
 	<name>Storm Cassandra Examples</name>
 	<description>Storm Cassandra Examples</description>
 	<repositories>
@@ -19,14 +19,13 @@
 		</pluginRepository>
 	</pluginRepositories>
 	<properties>
-		<spring.version>2.5.6</spring.version>
-		<storm.version>0.8.0</storm.version>
+		<storm.version>0.8.1</storm.version>
 	</properties>
 	<dependencies>
 		<dependency>
 			<groupId>com.github.ptgoetz</groupId>
 			<artifactId>storm-cassandra</artifactId>
-			<version>0.3.1-SNAPSHOT</version>
+			<version>0.3.0-SNAPSHOT</version>
 		</dependency>
 		<dependency>
 			<groupId>storm</groupId>

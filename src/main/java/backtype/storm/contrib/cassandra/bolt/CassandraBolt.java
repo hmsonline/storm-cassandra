@@ -42,7 +42,7 @@ public abstract class CassandraBolt implements Serializable {
         try {
             String clazz = (String)conf.get(CASSANDRA_CLIENT_CLASS);
             if(clazz == null){
-                clazz = "backtype.storm.contrib.cassandra.client.HectorClient";
+                clazz = "backtype.storm.contrib.cassandra.client.AstyanaxClient";
             }
             Class cl = Class.forName(clazz);
             this.cassandraClient = (CassandraClient)cl.newInstance();

@@ -10,7 +10,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.github.ptgoetz</groupId>
 	<artifactId>storm-cassandra</artifactId>
-	<version>0.3.1-SNAPSHOT</version>
+	<version>0.3.0-SNAPSHOT</version>
 	<name>Storm Cassandra Support</name>
 	<description>Storm Cassandra Support</description>
 
@@ -47,8 +47,7 @@
 	</repositories>
 
 	<properties>
-		<spring.version>2.5.6</spring.version>
-		<storm.version>0.8.0</storm.version>
+		<storm.version>0.8.1</storm.version>
 		<cassandra.version>1.1.2</cassandra.version>
 	</properties>
 
@@ -84,8 +83,7 @@
 		<dependency>
 			<groupId>com.netflix.astyanax</groupId>
 			<artifactId>astyanax</artifactId>
-			<version>1.0.3</version>
-			<scope>provided</scope>
+			<version>1.0.6</version>
 			<exclusions>
 				<exclusion>
 					<artifactId>commons-lang</artifactId>
@@ -93,23 +91,7 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		<dependency>
-			<groupId>me.prettyprint</groupId>
-			<artifactId>hector-core</artifactId>
-			<version>1.0-5</version>
-			<exclusions>
-				<exclusion>
-					<groupId>org.slf4j</groupId>
-					<artifactId>slf4j-log4j12</artifactId>
-				</exclusion>
-			</exclusions>
-		</dependency>
-		<!-- <dependency>
-			<groupId>org.cassandraunit</groupId>
-			<artifactId>cassandra-unit</artifactId>
-			<version>1.0.3.1</version>
-			<scope>test</scope>
-		</dependency> -->
+
 
 	</dependencies>
 	<build>
