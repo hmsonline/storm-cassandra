@@ -9,7 +9,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.github.ptgoetz</groupId>
 	<artifactId>storm-cassandra</artifactId>
-	<version>0.3.0</version>
+	<version>0.3.1-SNAPSHOT</version>
 	<name>Storm Cassandra Support</name>
 	<description>Storm Cassandra Support</description>
 
