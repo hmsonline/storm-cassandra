@@ -3,6 +3,7 @@ package backtype.storm.contrib.cassandra.client;
 import java.util.List;
 import java.util.Map;
 
+import backtype.storm.contrib.cassandra.bolt.mapper.TupleCounterMapper;
 import backtype.storm.contrib.cassandra.bolt.mapper.TupleMapper;
 import backtype.storm.tuple.Tuple;
 
@@ -17,5 +18,11 @@ public interface CassandraClient {
     public abstract void writeTuple(Tuple input, TupleMapper tupleMapper) throws Exception;
 
     public abstract void writeTuples(List<Tuple> inputs, TupleMapper tupleMapper) throws Exception;
+
+	public abstract void incrementCountColumn(Tuple input,
+			TupleCounterMapper tupleMapper) throws Exception;
+
+	public abstract void incrementCountColumns(List<Tuple> inputs,
+			TupleCounterMapper tupleMapper) throws Exception;
 
 }

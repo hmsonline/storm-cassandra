@@ -7,6 +7,7 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import backtype.storm.contrib.cassandra.bolt.mapper.TupleCounterMapper;
 import backtype.storm.contrib.cassandra.bolt.mapper.TupleMapper;
 import backtype.storm.contrib.cassandra.client.CassandraClient;
 import backtype.storm.task.TopologyContext;
@@ -22,13 +23,7 @@ public abstract class CassandraBolt implements Serializable {
     
     private String cassandraHost;
     private String cassandraKeyspace;
-    protected TupleMapper tupleMapper;
     protected CassandraClient cassandraClient;
-//    protected AstyanaxContext<Keyspace> astyanaxContext;
-
-    public CassandraBolt(TupleMapper tupleMapper) {
-        this.tupleMapper = tupleMapper;
-    }
 
     @SuppressWarnings("rawtypes")
     public void prepare(Map stormConf, TopologyContext context) {
@@ -57,15 +52,23 @@ public abstract class CassandraBolt implements Serializable {
         this.cassandraClient.stop();
     }
 
-    public void writeTuple(Tuple input) throws Exception {
-        this.cassandraClient.writeTuple(input, this.tupleMapper);
+    public void writeTuple(Tuple input, TupleMapper tupleMapper) throws Exception {
+        this.cassandraClient.writeTuple(input, tupleMapper);
     }
 
-    public void writeTuples(List<Tuple> inputs) throws Exception {
-        this.cassandraClient.writeTuples(inputs, this.tupleMapper);
+    public void writeTuples(List<Tuple> inputs, TupleMapper tupleMapper) throws Exception {
+        this.cassandraClient.writeTuples(inputs, tupleMapper);
     }
 
     public Map<String, Object> getComponentConfiguration() {
         return null;
+    }
+    
+    public void incrementCounter(Tuple input, TupleCounterMapper tupleMapper) throws Exception{
+    	this.cassandraClient.incrementCountColumn(input, tupleMapper);
+    }
+    
+    public void incrementCounters(List<Tuple> inputs, TupleCounterMapper tupleMapper) throws Exception{
+    	this.cassandraClient.incrementCountColumns(inputs, tupleMapper);
     }
 }
