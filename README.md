@@ -1,4 +1,4 @@
-Storm Cassandra Integration
+Storm Cassandra Integration - Fork that includes counter column support
 ===========================
 
 Integrates Storm and Cassandra by providing a generic and configurable `backtype.storm.Bolt` 
@@ -50,8 +50,24 @@ Would yield the following Cassandra row (as seen from `cassandra-cli`):
 		RowKey: 12345
 		=> (column=field1, value=foo, timestamp=1321938505071001)
 		=> (column=field2, value=bar, timestamp=1321938505072000)
+		
+**Cassandra Counter Columns**
 
+As part of this fork I have added the persistence of counter columns. The usage concept is similar as above,
+however you must specify the rowKey and a value to specify the increment amount. All other fields will be 
+assumed to specify columns to be incremented by said amount. 
 
+		CassandraCounterBatchingBolt logPersistenceBolt = new CassandraCounterBatchingBolt(
+				"columnFamily", "RowKeyField", "IncrementAmountField" );
+				
+The above constructor will create a bolt that writes to the "`columnFamily`" column family, and will use a field named "`RowKeyField`"
+in the tuples that it receives. All remaining fields in the Tuple will be assumed to contain the names of the columns to be incremented.
+
+Given the following Tuple:
+
+		{rowKey: 12345, IncrementAmount: 1L, IncrementColumn: 'SomeCounter'}
+		
+Would increment the "`SomeCounter`" counter column by 1L.
 
 
 # Examples
