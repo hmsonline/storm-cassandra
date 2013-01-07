@@ -1,16 +1,15 @@
 package backtype.storm.contrib.cassandra.bolt;
 
-import java.io.Serializable;
-import java.util.List;
-import java.util.Map;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import backtype.storm.contrib.cassandra.bolt.mapper.TupleMapper;
 import backtype.storm.contrib.cassandra.client.CassandraClient;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.tuple.Tuple;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.Serializable;
+import java.util.List;
+import java.util.Map;
 
 @SuppressWarnings("serial")
 public abstract class CassandraBolt implements Serializable {
@@ -46,7 +45,7 @@ public abstract class CassandraBolt implements Serializable {
             }
             Class cl = Class.forName(clazz);
             this.cassandraClient = (CassandraClient)cl.newInstance();
-            this.cassandraClient.start(this.cassandraHost, this.cassandraKeyspace);
+            this.cassandraClient.start(this.cassandraHost, this.cassandraKeyspace, conf);
         } catch (Throwable e) {
             LOG.warn("Preparation failed.", e);
             throw new IllegalStateException("Failed to prepare CassandraBolt", e);

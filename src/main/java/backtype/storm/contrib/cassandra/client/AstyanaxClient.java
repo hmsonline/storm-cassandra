@@ -1,19 +1,12 @@
 package backtype.storm.contrib.cassandra.client;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import backtype.storm.contrib.cassandra.bolt.mapper.TupleMapper;
 import backtype.storm.tuple.Tuple;
-
-import com.netflix.astyanax.AstyanaxContext;
-import com.netflix.astyanax.Cluster;
-import com.netflix.astyanax.Keyspace;
-import com.netflix.astyanax.MutationBatch;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Maps;
+import com.netflix.astyanax.*;
+import com.netflix.astyanax.connectionpool.ConnectionPoolConfiguration;
+import com.netflix.astyanax.connectionpool.ConnectionPoolMonitor;
 import com.netflix.astyanax.connectionpool.NodeDiscoveryType;
 import com.netflix.astyanax.connectionpool.OperationResult;
 import com.netflix.astyanax.connectionpool.impl.ConnectionPoolConfigurationImpl;
@@ -24,6 +17,12 @@ import com.netflix.astyanax.model.ColumnFamily;
 import com.netflix.astyanax.model.ColumnList;
 import com.netflix.astyanax.serializers.StringSerializer;
 import com.netflix.astyanax.thrift.ThriftFamilyFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * 
@@ -32,24 +31,55 @@ import com.netflix.astyanax.thrift.ThriftFamilyFactory;
  */
 public class AstyanaxClient implements CassandraClient {
     private static final Logger LOG = LoggerFactory.getLogger(AstyanaxClient.class);
+    public static final String CASSANDRA_CLUSTER_NAME = "cassandra.clusterName";
+    public static final String CASSANDRA_ASTYANAX_CONFIGURATION = "cassandra.astyanaxConfiguration";
+    public static final String CASSANDRA_CONNECTION_POOL_CONFIGURATION = "cassandra.connectionPoolConfiguration";
+    public static final String CASSANDRA_CONNECTION_POOL_MONITOR = "cassandra.connectioPoolMonitor";
     private AstyanaxContext<Keyspace> astyanaxContext;
     protected Cluster cluster;
     protected Keyspace keyspace;
+    // not static since we're carting instances around and do not want to share them
+    // between bolts
+    private final Map<String,Object> DEFAULTS = new ImmutableMap.Builder<String, Object>()
+            .put(CASSANDRA_CLUSTER_NAME, "ClusterName")
+            .put(CASSANDRA_ASTYANAX_CONFIGURATION, new AstyanaxConfigurationImpl().setDiscoveryType(NodeDiscoveryType.NONE))
+            .put(CASSANDRA_CONNECTION_POOL_CONFIGURATION, new ConnectionPoolConfigurationImpl("MyConnectionPool").setMaxConnsPerHost(1))
+            .put(CASSANDRA_CONNECTION_POOL_MONITOR, new CountingConnectionPoolMonitor())
+            .build();
+
+    protected AstyanaxContext<Keyspace> createContext(String cassandraHost, String cassandraKeyspace,
+                                                      Map<String, Object> stormConfig) {
+        Map<String, Object> settings = Maps.newHashMap();
+        for (Map.Entry<String, Object> defaultEntry: DEFAULTS.entrySet()) {
+            if (stormConfig.containsKey(defaultEntry.getKey())) {
+                settings.put(defaultEntry.getKey(), stormConfig.get(defaultEntry.getKey()));
+            } else {
+                settings.put(defaultEntry.getKey(), defaultEntry.getValue());
+            }
+        }
+        // in the defaults case, we don't know the seed hosts until context creation time
+        if (settings.get(CASSANDRA_CONNECTION_POOL_CONFIGURATION) instanceof ConnectionPoolConfigurationImpl) {
+            ConnectionPoolConfigurationImpl cpConfig = (ConnectionPoolConfigurationImpl) settings.get(CASSANDRA_CONNECTION_POOL_CONFIGURATION);
+            cpConfig.setSeeds(cassandraHost);
+        }
+
+        return new AstyanaxContext.Builder()
+                .forCluster((String) settings.get(CASSANDRA_CLUSTER_NAME))
+                .forKeyspace(cassandraKeyspace)
+                .withAstyanaxConfiguration((AstyanaxConfiguration)settings.get(CASSANDRA_ASTYANAX_CONFIGURATION))
+                .withConnectionPoolConfiguration((ConnectionPoolConfiguration)settings.get(CASSANDRA_CONNECTION_POOL_CONFIGURATION))
+                .withConnectionPoolMonitor((ConnectionPoolMonitor)settings.get(CASSANDRA_CONNECTION_POOL_MONITOR))
+                .buildKeyspace(ThriftFamilyFactory.getInstance());
+    }
 
     /* (non-Javadoc)
      * @see backtype.storm.contrib.cassandra.client.CassandraClient#start(java.lang.String, java.lang.String)
      */
     @Override
-    public void start(String cassandraHost, String cassandraKeyspace) {
+    public void start(String cassandraHost, String cassandraKeyspace,
+                      Map<String,Object> stormConfig) {
         try {
-            this.astyanaxContext = new AstyanaxContext.Builder()
-                    .forCluster("ClusterName")
-                    .forKeyspace(cassandraKeyspace)
-                    .withAstyanaxConfiguration(new AstyanaxConfigurationImpl().setDiscoveryType(NodeDiscoveryType.NONE))
-                    .withConnectionPoolConfiguration(
-                            new ConnectionPoolConfigurationImpl("MyConnectionPool").setMaxConnsPerHost(1).setSeeds(
-                                    cassandraHost)).withConnectionPoolMonitor(new CountingConnectionPoolMonitor())
-                    .buildKeyspace(ThriftFamilyFactory.getInstance());
+            this.astyanaxContext = createContext(cassandraHost, cassandraKeyspace, stormConfig);
 
             this.astyanaxContext.start();
             this.keyspace = this.astyanaxContext.getEntity();
