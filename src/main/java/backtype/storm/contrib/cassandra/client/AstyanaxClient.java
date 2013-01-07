@@ -32,9 +32,9 @@ import java.util.Map;
 public class AstyanaxClient implements CassandraClient {
     private static final Logger LOG = LoggerFactory.getLogger(AstyanaxClient.class);
     public static final String CASSANDRA_CLUSTER_NAME = "cassandra.clusterName";
-    public static final String CASSANDRA_ASTYANAX_CONFIGURATION = "cassandra.astyanaxConfiguration";
-    public static final String CASSANDRA_CONNECTION_POOL_CONFIGURATION = "cassandra.connectionPoolConfiguration";
-    public static final String CASSANDRA_CONNECTION_POOL_MONITOR = "cassandra.connectioPoolMonitor";
+    public static final String ASTYANAX_CONFIGURATION = "astyanax.configuration";
+    public static final String ASTYANAX_CONNECTION_POOL_CONFIGURATION = "astyanax.connectionPoolConfiguration";
+    public static final String ASTYANAX_CONNECTION_POOL_MONITOR = "astyanax.connectioPoolMonitor";
     private AstyanaxContext<Keyspace> astyanaxContext;
     protected Cluster cluster;
     protected Keyspace keyspace;
@@ -42,9 +42,9 @@ public class AstyanaxClient implements CassandraClient {
     // between bolts
     private final Map<String,Object> DEFAULTS = new ImmutableMap.Builder<String, Object>()
             .put(CASSANDRA_CLUSTER_NAME, "ClusterName")
-            .put(CASSANDRA_ASTYANAX_CONFIGURATION, new AstyanaxConfigurationImpl().setDiscoveryType(NodeDiscoveryType.NONE))
-            .put(CASSANDRA_CONNECTION_POOL_CONFIGURATION, new ConnectionPoolConfigurationImpl("MyConnectionPool").setMaxConnsPerHost(1))
-            .put(CASSANDRA_CONNECTION_POOL_MONITOR, new CountingConnectionPoolMonitor())
+            .put(ASTYANAX_CONFIGURATION, new AstyanaxConfigurationImpl().setDiscoveryType(NodeDiscoveryType.NONE))
+            .put(ASTYANAX_CONNECTION_POOL_CONFIGURATION, new ConnectionPoolConfigurationImpl("MyConnectionPool").setMaxConnsPerHost(1))
+            .put(ASTYANAX_CONNECTION_POOL_MONITOR, new CountingConnectionPoolMonitor())
             .build();
 
     protected AstyanaxContext<Keyspace> createContext(String cassandraHost, String cassandraKeyspace,
@@ -58,17 +58,17 @@ public class AstyanaxClient implements CassandraClient {
             }
         }
         // in the defaults case, we don't know the seed hosts until context creation time
-        if (settings.get(CASSANDRA_CONNECTION_POOL_CONFIGURATION) instanceof ConnectionPoolConfigurationImpl) {
-            ConnectionPoolConfigurationImpl cpConfig = (ConnectionPoolConfigurationImpl) settings.get(CASSANDRA_CONNECTION_POOL_CONFIGURATION);
+        if (settings.get(ASTYANAX_CONNECTION_POOL_CONFIGURATION) instanceof ConnectionPoolConfigurationImpl) {
+            ConnectionPoolConfigurationImpl cpConfig = (ConnectionPoolConfigurationImpl) settings.get(ASTYANAX_CONNECTION_POOL_CONFIGURATION);
             cpConfig.setSeeds(cassandraHost);
         }
 
         return new AstyanaxContext.Builder()
                 .forCluster((String) settings.get(CASSANDRA_CLUSTER_NAME))
                 .forKeyspace(cassandraKeyspace)
-                .withAstyanaxConfiguration((AstyanaxConfiguration)settings.get(CASSANDRA_ASTYANAX_CONFIGURATION))
-                .withConnectionPoolConfiguration((ConnectionPoolConfiguration)settings.get(CASSANDRA_CONNECTION_POOL_CONFIGURATION))
-                .withConnectionPoolMonitor((ConnectionPoolMonitor)settings.get(CASSANDRA_CONNECTION_POOL_MONITOR))
+                .withAstyanaxConfiguration((AstyanaxConfiguration)settings.get(ASTYANAX_CONFIGURATION))
+                .withConnectionPoolConfiguration((ConnectionPoolConfiguration)settings.get(ASTYANAX_CONNECTION_POOL_CONFIGURATION))
+                .withConnectionPoolMonitor((ConnectionPoolMonitor)settings.get(ASTYANAX_CONNECTIO_POOL_MONITOR))
                 .buildKeyspace(ThriftFamilyFactory.getInstance());
     }
 
