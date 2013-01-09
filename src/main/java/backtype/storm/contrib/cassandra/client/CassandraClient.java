@@ -7,9 +7,12 @@ import backtype.storm.contrib.cassandra.bolt.mapper.TupleCounterMapper;
 import backtype.storm.contrib.cassandra.bolt.mapper.TupleMapper;
 import backtype.storm.tuple.Tuple;
 
+import java.util.List;
+import java.util.Map;
+
 public interface CassandraClient {
 
-    public abstract void start(String cassandraHost, String cassandraKeyspace);
+    public abstract void start(String cassandraHost, String cassandraKeyspace, Map<String, Object> stormConfig);
 
     public abstract void stop();
 

@@ -12,6 +12,12 @@ import backtype.storm.contrib.cassandra.bolt.mapper.TupleMapper;
 import backtype.storm.contrib.cassandra.client.CassandraClient;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.tuple.Tuple;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.Serializable;
+import java.util.List;
+import java.util.Map;
 
 @SuppressWarnings("serial")
 public abstract class CassandraBolt implements Serializable {
@@ -20,7 +26,7 @@ public abstract class CassandraBolt implements Serializable {
     public static final String CASSANDRA_KEYSPACE = "cassandra.keyspace";
     public static final String CASSANDRA_BATCH_MAX_SIZE = "cassandra.batch.max_size";
     public static String CASSANDRA_CLIENT_CLASS = "cassandra.client.class";
-    
+
     private String cassandraHost;
     private String cassandraKeyspace;
     protected CassandraClient cassandraClient;
@@ -41,12 +47,12 @@ public abstract class CassandraBolt implements Serializable {
             }
             Class cl = Class.forName(clazz);
             this.cassandraClient = (CassandraClient)cl.newInstance();
-            this.cassandraClient.start(this.cassandraHost, this.cassandraKeyspace);
+            this.cassandraClient.start(this.cassandraHost, this.cassandraKeyspace, conf);
         } catch (Throwable e) {
             LOG.warn("Preparation failed.", e);
             throw new IllegalStateException("Failed to prepare CassandraBolt", e);
         }
-    }    
+    }
 
     public void cleanup(){
         this.cassandraClient.stop();
@@ -63,12 +69,12 @@ public abstract class CassandraBolt implements Serializable {
     public Map<String, Object> getComponentConfiguration() {
         return null;
     }
-    
+
     public void incrementCounter(Tuple input, TupleCounterMapper tupleMapper) throws Exception{
-    	this.cassandraClient.incrementCountColumn(input, tupleMapper);
+	this.cassandraClient.incrementCountColumn(input, tupleMapper);
     }
-    
+
     public void incrementCounters(List<Tuple> inputs, TupleCounterMapper tupleMapper) throws Exception{
-    	this.cassandraClient.incrementCountColumns(inputs, tupleMapper);
+	this.cassandraClient.incrementCountColumns(inputs, tupleMapper);
     }
 }
