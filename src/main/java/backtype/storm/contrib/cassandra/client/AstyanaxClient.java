@@ -1,5 +1,14 @@
 package backtype.storm.contrib.cassandra.client;
 
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import backtype.storm.contrib.cassandra.bolt.mapper.TupleCounterMapper;
 import backtype.storm.contrib.cassandra.bolt.mapper.TupleMapper;
 import backtype.storm.tuple.Tuple;
 import com.google.common.collect.ImmutableMap;
@@ -15,6 +24,7 @@ import com.netflix.astyanax.impl.AstyanaxConfigurationImpl;
 import com.netflix.astyanax.model.Column;
 import com.netflix.astyanax.model.ColumnFamily;
 import com.netflix.astyanax.model.ColumnList;
+import com.netflix.astyanax.serializers.LongSerializer;
 import com.netflix.astyanax.serializers.StringSerializer;
 import com.netflix.astyanax.thrift.ThriftFamilyFactory;
 import org.slf4j.Logger;
@@ -25,9 +35,9 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 
+ *
  * @author tgoetz
- * 
+ *
  */
 public class AstyanaxClient implements CassandraClient {
     private static final Logger LOG = LoggerFactory.getLogger(AstyanaxClient.class);
@@ -68,7 +78,7 @@ public class AstyanaxClient implements CassandraClient {
                 .forKeyspace(cassandraKeyspace)
                 .withAstyanaxConfiguration((AstyanaxConfiguration)settings.get(ASTYANAX_CONFIGURATION))
                 .withConnectionPoolConfiguration((ConnectionPoolConfiguration)settings.get(ASTYANAX_CONNECTION_POOL_CONFIGURATION))
-                .withConnectionPoolMonitor((ConnectionPoolMonitor)settings.get(ASTYANAX_CONNECTIO_POOL_MONITOR))
+                .withConnectionPoolMonitor((ConnectionPoolMonitor)settings.get(ASTYANAX_CONNECTION_POOL_MONITOR))
                 .buildKeyspace(ThriftFamilyFactory.getInstance());
     }
 
@@ -155,5 +165,37 @@ public class AstyanaxClient implements CassandraClient {
             mutation.withRow(columnFamily, rowKey).putColumn(entry.getKey(), entry.getValue(), null);
         }
     }
+
+	@Override
+	public void incrementCountColumn(Tuple input, TupleCounterMapper tupleMapper) throws Exception {
+		String columnFamilyName = tupleMapper.mapToColumnFamily(input);
+        String rowKey = (String) tupleMapper.mapToRowKey(input);
+        long incrementAmount = tupleMapper.mapToIncrementAmount(input);
+        MutationBatch mutation = keyspace.prepareMutationBatch();
+        ColumnFamily<String, String> columnFamily = new ColumnFamily<String, String>(columnFamilyName,
+		StringSerializer.get(), StringSerializer.get());
+        for(String columnName : tupleMapper.mapToColumnList(input)){
+	mutation.withRow(columnFamily, rowKey).incrementCounterColumn(columnName, incrementAmount);
+        }
+        mutation.execute();
+	}
+
+	@Override
+	public void incrementCountColumns(List<Tuple> inputs,
+			TupleCounterMapper tupleMapper) throws Exception {
+		MutationBatch mutation = keyspace.prepareMutationBatch();
+		for (Tuple input : inputs) {
+			String columnFamilyName = tupleMapper.mapToColumnFamily(input);
+	        String rowKey = (String) tupleMapper.mapToRowKey(input);
+	        long incrementAmount = tupleMapper.mapToIncrementAmount(input);
+	        ColumnFamily<String, String> columnFamily = new ColumnFamily<String, String>(columnFamilyName,
+	                StringSerializer.get(), StringSerializer.get());
+	        for(String columnName : tupleMapper.mapToColumnList(input)){
+		mutation.withRow(columnFamily, rowKey).incrementCounterColumn(columnName, incrementAmount);
+	        }
+		}
+		mutation.execute();
+
+	}
 
 }

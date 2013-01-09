@@ -23,8 +23,10 @@ import backtype.storm.tuple.Tuple;
 public class CassandraBatchingBolt extends AbstractBatchingBolt {
     private static final Logger LOG = LoggerFactory.getLogger(CassandraBatchingBolt.class);
 
+    protected TupleMapper tupleMapper; 
+    
     public CassandraBatchingBolt(TupleMapper tupleMapper) {
-        super(tupleMapper);
+        this.tupleMapper = tupleMapper;
     }
 
     public CassandraBatchingBolt(String columnFamily, String rowKeyField) {
@@ -34,7 +36,7 @@ public class CassandraBatchingBolt extends AbstractBatchingBolt {
     @Override
     public void executeBatch(List<Tuple> inputs) {
         try {
-            this.writeTuples(inputs);
+            this.writeTuples(inputs, tupleMapper);
             // NOTE: Changed this to ack on all or none since that is how the
             // mutation executes.
             if (this.ackStrategy == AckStrategy.ACK_ON_WRITE) {

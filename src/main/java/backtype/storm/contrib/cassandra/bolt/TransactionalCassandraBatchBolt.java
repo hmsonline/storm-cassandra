@@ -50,7 +50,7 @@ public class TransactionalCassandraBatchBolt extends CassandraBatchingBolt imple
         int size = queue.drainTo(batch);
         LOG.debug("Finishing batch for [" + transactionId + "], writing [" + size + "] tuples.");
         try {
-            this.writeTuples(batch);
+            this.writeTuples(batch, tupleMapper);
         } catch (Exception e) {
             LOG.error("Could not write batch to cassandra.", e);
         }
