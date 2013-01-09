@@ -44,10 +44,6 @@ public abstract class AbstractBatchingBolt extends CassandraBolt implements IRic
 
     private BatchThread batchThread;
 
-    public AbstractBatchingBolt(TupleMapper tupleMapper) {
-        super(tupleMapper);
-    }
-
     @SuppressWarnings({ "rawtypes", "unchecked" })
     @Override
     public void prepare(Map stormConf, TopologyContext context, OutputCollector collector) {

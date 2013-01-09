@@ -17,13 +17,6 @@ import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.tuple.Tuple;
 import backtype.storm.tuple.Values;
 
-//import com.netflix.astyanax.connectionpool.OperationResult;
-//import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
-//import com.netflix.astyanax.model.Column;
-//import com.netflix.astyanax.model.ColumnFamily;
-//import com.netflix.astyanax.model.ColumnList;
-//import com.netflix.astyanax.serializers.StringSerializer;
-
 /**
  * A bolt implementation that emits tuples based on a combination of cassandra
  * rowkey, columnkey, and delimiter.
@@ -35,9 +28,10 @@ import backtype.storm.tuple.Values;
 public class CassandraLookupBolt extends CassandraBolt implements IBasicBolt {
     private static final Logger LOG = LoggerFactory.getLogger(CassandraLookupBolt.class);
     private ColumnsMapper columnsMapper;
+    private TupleMapper tupleMapper;
 
     public CassandraLookupBolt(TupleMapper tupleMapper, ColumnsMapper columnsMapper) {
-        super(tupleMapper);
+        this.tupleMapper = tupleMapper;
         this.columnsMapper = columnsMapper;
     }
 
