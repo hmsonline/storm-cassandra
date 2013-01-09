@@ -1,4 +1,4 @@
-Storm Cassandra Integration - Fork that includes counter column support
+Storm Cassandra Integration
 ===========================
 
 Integrates Storm and Cassandra by providing a generic and configurable `backtype.storm.Bolt` 
@@ -53,9 +53,8 @@ Would yield the following Cassandra row (as seen from `cassandra-cli`):
 		
 **Cassandra Counter Columns**
 
-As part of this fork I have added the persistence of counter columns. The usage concept is similar as above,
-however you must specify the rowKey and a value to specify the increment amount. All other fields will be 
-assumed to specify columns to be incremented by said amount. 
+The Counter Column concept is similar to the above,
+however you must specify the rowKey and a value to specify the increment amount. All other fields will be assumed to specify columns to be incremented by said amount. 
 
 		CassandraCounterBatchingBolt logPersistenceBolt = new CassandraCounterBatchingBolt(
 				"columnFamily", "RowKeyField", "IncrementAmountField" );
