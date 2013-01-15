@@ -57,7 +57,6 @@ public abstract class AbstractBatchingBolt<T> extends CassandraBolt<T> implement
     public void prepare(Map stormConf, TopologyContext context, OutputCollector collector) {
         super.prepare(stormConf, context);
         int batchMaxSize = Utils.getInt(Utils.get(stormConf, CASSANDRA_BATCH_MAX_SIZE, 0));
-
         this.collector = collector;
         this.queue = new LinkedBlockingQueue<Tuple>();
         this.batchThread = new BatchThread(batchMaxSize);

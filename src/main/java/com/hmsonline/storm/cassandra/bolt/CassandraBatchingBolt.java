@@ -6,6 +6,8 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import backtype.storm.task.OutputCollector;
+import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.tuple.Tuple;
 
@@ -25,11 +27,9 @@ public class CassandraBatchingBolt<T> extends AbstractBatchingBolt<T> {
 
     private static final Logger LOG = LoggerFactory.getLogger(CassandraBatchingBolt.class);
 
-    protected TupleMapper tupleMapper; 
     
     public CassandraBatchingBolt(TupleMapper<T> tupleMapper) {
         super(tupleMapper);
-        this.tupleMapper = tupleMapper;
     }
     
 
@@ -65,4 +65,5 @@ public class CassandraBatchingBolt<T> extends AbstractBatchingBolt<T> {
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
         // By default we don't emit anything.
     }
+
 }

@@ -33,52 +33,54 @@ public abstract class CassandraBolt<T> implements Serializable {
 //    protected AstyanaxContext<Keyspace> astyanaxContext;
 
     public CassandraBolt(TupleMapper<T> tupleMapper, Class columnNameClass) {        
-        this.tupleMapper = tupleMapper;
         this.columnNameClass = columnNameClass;
+        this.tupleMapper = tupleMapper;
         LOG.debug("Creating Cassandra Bolt (" + this + ")");
     }
-    
+
+    public CassandraBolt(TupleMapper<T> tupleMapper, Class columnNameClass, Map stormConf) {
+        this.columnNameClass = columnNameClass;
+        this.tupleMapper = tupleMapper;
+        this.cassandraHost = (String) stormConf.get(CASSANDRA_HOST);
+        this.cassandraKeyspace = (String) stormConf.get(CASSANDRA_KEYSPACE);
+        this.clientClass = (String) stormConf.get(CASSANDRA_CLIENT_CLASS);
+        LOG.debug("Creating Cassandra Bolt (" + this + ")");
+    }
+
     public CassandraBolt(TupleMapper<T> tupleMapper) {
         this(tupleMapper, String.class);
     }
 
     @SuppressWarnings("rawtypes")
     public void prepare(Map stormConf, TopologyContext context) {
-        this.cassandraHost = (String) stormConf.get(CASSANDRA_HOST);
-        this.cassandraKeyspace = (String) stormConf.get(CASSANDRA_KEYSPACE);
-        initCassandraConnection(stormConf);
+        if(this.cassandraHost == null){
+            this.cassandraHost = (String) stormConf.get(CASSANDRA_HOST);
+        }
+        if (this.cassandraKeyspace == null){
+            this.cassandraKeyspace = (String) stormConf.get(CASSANDRA_KEYSPACE);
+        }
+
+        if (this.clientClass == null){
+            this.clientClass = (String) stormConf.get(CASSANDRA_CLIENT_CLASS);
+        }
     }
 
     public CassandraClient<T> getClient(){
         return ClientPool.getClient(this.cassandraHost, this.cassandraKeyspace, this.columnNameClass, this.clientClass);
     }
-    @SuppressWarnings({ "rawtypes", "unchecked" })
-    private void initCassandraConnection(Map conf) {
-        try {
-            String clazz = (String)conf.get(CASSANDRA_CLIENT_CLASS);
-            if(clazz == null){
-                clazz = "com.hmsonline.storm.cassandra.client.AstyanaxClient";
-            }
-            Class cl = Class.forName(clazz);
-            this.cassandraClient = (CassandraClient<T>) cl.newInstance();
-            cassandraClient.setColumnNameClass(this.columnNameClass);
-            this.cassandraClient.start(this.cassandraHost, this.cassandraKeyspace);
-        } catch (Throwable e) {
-            LOG.warn("Preparation failed.", e);
-            throw new IllegalStateException("Failed to prepare CassandraBolt", e);
-        }
-    }    
 
-    public void cleanup(){
-        this.cassandraClient.stop();
+    public void cleanup() {
+        // No longer stop the client since it might be shared.
+        // TODO: Come back and fix this.
+        // getClient().stop();
     }
 
-    public void writeTuple(Tuple input, TupleMapper tupleMapper) throws Exception {
-        this.cassandraClient.writeTuple(input, tupleMapper);
+    public void writeTuple(Tuple input, TupleMapper<T> tupleMapper) throws Exception {
+        getClient().writeTuple(input, tupleMapper);
     }
 
-    public void writeTuples(List<Tuple> inputs, TupleMapper tupleMapper) throws Exception {
-        this.cassandraClient.writeTuples(inputs, tupleMapper);
+    public void writeTuples(List<Tuple> inputs, TupleMapper<T> tupleMapper) throws Exception {
+        getClient().writeTuples(inputs, tupleMapper);
     }
 
     public Map<String, Object> getComponentConfiguration() {
@@ -86,10 +88,10 @@ public abstract class CassandraBolt<T> implements Serializable {
     }
     
     public void incrementCounter(Tuple input, TupleCounterMapper tupleMapper) throws Exception{
-    	this.cassandraClient.incrementCountColumn(input, tupleMapper);
+        getClient().incrementCountColumn(input, tupleMapper);
     }
     
     public void incrementCounters(List<Tuple> inputs, TupleCounterMapper tupleMapper) throws Exception{
-    	this.cassandraClient.incrementCountColumns(inputs, tupleMapper);
+        getClient().incrementCountColumns(inputs, tupleMapper);
     }
 }

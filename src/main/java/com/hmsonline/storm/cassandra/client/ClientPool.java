@@ -33,7 +33,7 @@ public class ClientPool {
         CassandraClient cassandraClient = null;
         try {
             if (clientClass == null) {
-                clientClass = "com.hmsonline.storm.cassandra.client.astyanax.AstyanaxClient";
+                clientClass = "com.hmsonline.storm.cassandra.client.AstyanaxClient";
             }
             Class cl = Class.forName(clientClass);
             cassandraClient = (CassandraClient)cl.newInstance();
