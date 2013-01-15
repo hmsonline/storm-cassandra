@@ -33,7 +33,10 @@ public class CassandraBatchingBolt<T> extends AbstractBatchingBolt<T> {
     }
     
 
-
+    public CassandraBatchingBolt(TupleMapper<T> tupleMapper, Class columnNameClass) {
+        super(tupleMapper, columnNameClass);
+    }
+    
     @Override
     public void executeBatch(List<Tuple> inputs) {
         try {

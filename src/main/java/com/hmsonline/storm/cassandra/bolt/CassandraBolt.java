@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
 import com.hmsonline.storm.cassandra.bolt.mapper.TupleCounterMapper;
 import com.hmsonline.storm.cassandra.bolt.mapper.TupleMapper;
 import com.hmsonline.storm.cassandra.client.CassandraClient;
+import com.hmsonline.storm.cassandra.client.ClientPool;
 
 import backtype.storm.task.TopologyContext;
 import backtype.storm.tuple.Tuple;
@@ -25,6 +26,7 @@ public abstract class CassandraBolt<T> implements Serializable {
     private String cassandraHost;
     private String cassandraKeyspace;
     private Class columnNameClass;
+    private String clientClass;
     protected TupleMapper<T> tupleMapper;
     protected CassandraClient<T> cassandraClient;
    
@@ -33,6 +35,7 @@ public abstract class CassandraBolt<T> implements Serializable {
     public CassandraBolt(TupleMapper<T> tupleMapper, Class columnNameClass) {        
         this.tupleMapper = tupleMapper;
         this.columnNameClass = columnNameClass;
+        LOG.debug("Creating Cassandra Bolt (" + this + ")");
     }
     
     public CassandraBolt(TupleMapper<T> tupleMapper) {
@@ -46,6 +49,9 @@ public abstract class CassandraBolt<T> implements Serializable {
         initCassandraConnection(stormConf);
     }
 
+    public CassandraClient<T> getClient(){
+        return ClientPool.getClient(this.cassandraHost, this.cassandraKeyspace, this.columnNameClass, this.clientClass);
+    }
     @SuppressWarnings({ "rawtypes", "unchecked" })
     private void initCassandraConnection(Map conf) {
         try {

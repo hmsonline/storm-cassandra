@@ -48,6 +48,10 @@ public abstract class AbstractBatchingBolt<T> extends CassandraBolt<T> implement
         super(tupleMapper);
     }
 
+    public AbstractBatchingBolt(TupleMapper<T> tupleMapper, Class columnNameClass) {
+        super(tupleMapper, columnNameClass);
+    }
+    
     @SuppressWarnings({ "rawtypes", "unchecked" })
     @Override
     public void prepare(Map stormConf, TopologyContext context, OutputCollector collector) {
