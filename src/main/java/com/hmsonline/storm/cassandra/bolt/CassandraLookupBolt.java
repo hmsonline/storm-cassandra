@@ -8,15 +8,16 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.hmsonline.storm.cassandra.bolt.mapper.ColumnsMapper;
-import com.hmsonline.storm.cassandra.bolt.mapper.TupleMapper;
-
 import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.BasicOutputCollector;
 import backtype.storm.topology.IBasicBolt;
 import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.tuple.Tuple;
 import backtype.storm.tuple.Values;
+
+import com.hmsonline.storm.cassandra.bolt.mapper.Columns;
+import com.hmsonline.storm.cassandra.bolt.mapper.ColumnsMapper;
+import com.hmsonline.storm.cassandra.bolt.mapper.TupleMapper;
 
 /**
  * A bolt implementation that emits tuples based on a combination of cassandra
@@ -26,13 +27,13 @@ import backtype.storm.tuple.Values;
  * @author tgoetz
  */
 @SuppressWarnings("serial")
-public class CassandraLookupBolt extends CassandraBolt implements IBasicBolt {
+public class CassandraLookupBolt<T> extends CassandraBolt<T> implements IBasicBolt {
     private static final Logger LOG = LoggerFactory.getLogger(CassandraLookupBolt.class);
-    private ColumnsMapper columnsMapper;
+    private ColumnsMapper<T> columnsMapper;
     private TupleMapper tupleMapper;
 
-    public CassandraLookupBolt(TupleMapper tupleMapper, ColumnsMapper columnsMapper) {
-        this.tupleMapper = tupleMapper;
+    public CassandraLookupBolt(TupleMapper<T> tupleMapper, ColumnsMapper<T> columnsMapper) {
+        super(tupleMapper);
         this.columnsMapper = columnsMapper;
     }
 
@@ -47,7 +48,7 @@ public class CassandraLookupBolt extends CassandraBolt implements IBasicBolt {
         String columnFamily = tupleMapper.mapToColumnFamily(input);
         String rowKey = tupleMapper.mapToRowKey(input);
         try {
-            Map<String, String> colMap = this.cassandraClient.lookup(columnFamily, rowKey);
+            Columns<T> colMap = this.cassandraClient.lookup(columnFamily, rowKey);
             List<Values> valuesToEmit = columnsMapper.mapToValues(rowKey, colMap, input);
             for (Values values : valuesToEmit) {
                 collector.emit(values);

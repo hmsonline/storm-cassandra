@@ -1,5 +1,7 @@
 package com.hmsonline.storm.cassandra.bolt;
 
+import static org.junit.Assert.assertEquals;
+
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
@@ -9,13 +11,19 @@ import org.apache.thrift.transport.TTransportException;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import static org.junit.Assert.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.hmsonline.storm.cassandra.bolt.CassandraBatchingBolt;
-import com.hmsonline.storm.cassandra.bolt.CassandraBolt;
-import com.hmsonline.storm.cassandra.bolt.CassandraCounterBatchingBolt;
+import backtype.storm.Config;
+import backtype.storm.task.TopologyContext;
+import backtype.storm.topology.TopologyBuilder;
+import backtype.storm.tuple.Fields;
+import backtype.storm.tuple.Tuple;
+import backtype.storm.tuple.TupleImpl;
+import backtype.storm.tuple.Values;
+
+import com.hmsonline.storm.cassandra.bolt.mapper.DefaultTupleMapper;
+import com.hmsonline.storm.cassandra.bolt.mapper.TupleMapper;
 import com.netflix.astyanax.AstyanaxContext;
 import com.netflix.astyanax.Cluster;
 import com.netflix.astyanax.Keyspace;
@@ -28,14 +36,6 @@ import com.netflix.astyanax.model.Column;
 import com.netflix.astyanax.model.ColumnFamily;
 import com.netflix.astyanax.serializers.StringSerializer;
 import com.netflix.astyanax.thrift.ThriftFamilyFactory;
-
-import backtype.storm.Config;
-import backtype.storm.task.TopologyContext;
-import backtype.storm.topology.TopologyBuilder;
-import backtype.storm.tuple.Fields;
-import backtype.storm.tuple.Tuple;
-import backtype.storm.tuple.TupleImpl;
-import backtype.storm.tuple.Values;
 
 public class CassandraBoltTest {
     private static Logger LOG = LoggerFactory.getLogger(CassandraBoltTest.class);
@@ -69,9 +69,7 @@ public class CassandraBoltTest {
                     .setStrategyOptions(stratOptions)
                     .addColumnFamily(
                             cluster.makeColumnFamilyDefinition().setName("users").setComparatorType("UTF8Type")
-                                    .setKeyValidationClass("UTF8Type").setDefaultValidationClass("UTF8Type"))
-                    .addColumnFamily(cluster.makeColumnFamilyDefinition().setName("Counts").setComparatorType("UTF8Type")
-                                    .setKeyValidationClass("UTF8Type").setDefaultValidationClass("CounterColumnType"));
+                                    .setKeyValidationClass("UTF8Type").setDefaultValidationClass("UTF8Type"));
 
             cluster.addKeyspace(ksDef);
             Thread.sleep(2000);
@@ -89,7 +87,8 @@ public class CassandraBoltTest {
 
     @Test
     public void testBolt() throws Exception {
-        CassandraBatchingBolt bolt = new CassandraBatchingBolt("users", "VALUE");
+        TupleMapper<String> tupleMapper = new DefaultTupleMapper("users", "VALUE");
+        CassandraBatchingBolt<String> bolt = new CassandraBatchingBolt<String>(tupleMapper);
         TopologyBuilder builder = new TopologyBuilder();
         builder.setBolt("TEST_BOLT", bolt);
 
@@ -129,45 +128,5 @@ public class CassandraBoltTest {
 
     }
     
-    @Test
-    public void testCounterBolt() throws Exception {
-    	CassandraCounterBatchingBolt bolt = new CassandraCounterBatchingBolt("Counts", "Timestamp", "IncrementAmount");
-        TopologyBuilder builder = new TopologyBuilder();
-        builder.setBolt("TEST__COUNTER_BOLT", bolt);
 
-        Fields fields = new Fields("Timestamp","IncrementAmount","CounterColumn");
-        TopologyContext context = new MockTopologyContext(builder.createTopology(), fields);
-
-        Config config = new Config();
-        config.put(CassandraBolt.CASSANDRA_HOST, "localhost:9171");
-        config.put(CassandraBolt.CASSANDRA_KEYSPACE, "TestKeyspace");
-        config.put(Config.TOPOLOGY_MAX_SPOUT_PENDING, 5000);
-
-        bolt.prepare(config, context, null);
-        System.out.println("Bolt Preparation Complete.");
-
-        Values values = new Values(1L,1L,"MyCountColumn");
-        Tuple tuple = new TupleImpl(context, values, 5, "test");
-        bolt.execute(tuple);
-
-        // wait very briefly for the batch to complete
-        Thread.sleep(250);
-
-        AstyanaxContext<Keyspace> astyContext = new AstyanaxContext.Builder()
-                .forCluster("ClusterName")
-                .forKeyspace("TestKeyspace")
-                .withAstyanaxConfiguration(new AstyanaxConfigurationImpl().setDiscoveryType(NodeDiscoveryType.NONE))
-                .withConnectionPoolConfiguration(
-                        new ConnectionPoolConfigurationImpl("MyConnectionPool").setMaxConnsPerHost(1).setSeeds(
-                                "localhost:9171")).withConnectionPoolMonitor(new CountingConnectionPoolMonitor())
-                .buildKeyspace(ThriftFamilyFactory.getInstance());
-        astyContext.start();
-        Keyspace ks = astyContext.getEntity();
-        
-        Column<String> result = ks
-                .prepareQuery(new ColumnFamily<String, String>("Counts", StringSerializer.get(), StringSerializer.get()))
-                .getKey("1").getColumn("MyCountColumn").execute().getResult();
-        assertEquals(1L, result.getLongValue());
-
-    }
 }

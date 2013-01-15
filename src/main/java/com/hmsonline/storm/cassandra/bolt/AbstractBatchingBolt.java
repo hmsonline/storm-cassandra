@@ -1,5 +1,4 @@
 package com.hmsonline.storm.cassandra.bolt;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -34,7 +33,7 @@ import backtype.storm.utils.Utils;
  * @author ptgoetz
  */
 @SuppressWarnings("serial")
-public abstract class AbstractBatchingBolt extends CassandraBolt implements IRichBolt {
+public abstract class AbstractBatchingBolt<T> extends CassandraBolt<T> implements IRichBolt {
     private static final Logger LOG = LoggerFactory.getLogger(AbstractBatchingBolt.class);
 
     protected AckStrategy ackStrategy = AckStrategy.ACK_IGNORE;
@@ -44,6 +43,10 @@ public abstract class AbstractBatchingBolt extends CassandraBolt implements IRic
     protected LinkedBlockingQueue<Tuple> queue;
 
     private BatchThread batchThread;
+
+    public AbstractBatchingBolt(TupleMapper<T> tupleMapper) {
+        super(tupleMapper);
+    }
 
     @SuppressWarnings({ "rawtypes", "unchecked" })
     @Override

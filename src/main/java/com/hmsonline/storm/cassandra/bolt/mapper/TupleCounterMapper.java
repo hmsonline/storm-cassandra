@@ -26,9 +26,9 @@ public interface TupleCounterMapper extends Serializable {
      * @return
      */
     public String mapToRowKey(Tuple tuple);
-    
+
     /**
-     * Given a <code>backtype.storm.tuple.Tuple</code> returns the amount that 
+     * Given a <code>backtype.storm.tuple.Tuple</code> returns the amount that
      * must be incremented by.
      * 
      * @param tuple

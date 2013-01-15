@@ -2,7 +2,6 @@ package com.hmsonline.storm.cassandra.bolt.mapper;
 
 import java.io.Serializable;
 import java.util.List;
-import java.util.Map;
 
 import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.tuple.Tuple;
@@ -13,7 +12,7 @@ import backtype.storm.tuple.Values;
  * 
  * @author boneill42
  */
-public interface ColumnsMapper extends Serializable {
+public interface ColumnsMapper<T> extends Serializable {
 
     /**
      * Declares the fields produced by the bolt using this mapper.
@@ -27,6 +26,5 @@ public interface ColumnsMapper extends Serializable {
      * @param columns
      * @return
      */
-    public List<Values> mapToValues(String rowKey, Map<String, String> columns, Tuple input);
-
+    public List<Values> mapToValues(String rowKey, Columns<T> columns, Tuple input);
 }

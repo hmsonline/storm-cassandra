@@ -13,22 +13,21 @@ import com.hmsonline.storm.cassandra.bolt.mapper.TupleMapper;
 import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.tuple.Tuple;
 
-public class CassandraCounterBatchingBolt extends AbstractBatchingBolt {
+public class CassandraCounterBatchingBolt<T> extends AbstractBatchingBolt<T> {
 
-	private static final long serialVersionUID = 1L;
+
+
+    private static final long serialVersionUID = 1L;
 	private static final Logger LOG = LoggerFactory
 			.getLogger(CassandraCounterBatchingBolt.class);
 
 	private TupleCounterMapper tupleMapper;
 	
-	public CassandraCounterBatchingBolt(TupleCounterMapper tupleMapper) {
-		this.tupleMapper = tupleMapper;
-	}
 
-	public CassandraCounterBatchingBolt(String columnFamily,
-			String rowKeyField, String incrementAmountField) {
-		this(new DefaultTupleCounterMapper(columnFamily, rowKeyField, incrementAmountField));
-	}
+	    public CassandraCounterBatchingBolt(TupleMapper<T> tupleMapper) {
+	        super(tupleMapper);
+	        // TODO Auto-generated constructor stub
+	    }
 
 	@Override
 	public void declareOutputFields(OutputFieldsDeclarer declarer) {

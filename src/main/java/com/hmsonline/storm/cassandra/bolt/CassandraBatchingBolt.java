@@ -6,11 +6,10 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.hmsonline.storm.cassandra.bolt.mapper.DefaultTupleMapper;
-import com.hmsonline.storm.cassandra.bolt.mapper.TupleMapper;
-
 import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.tuple.Tuple;
+
+import com.hmsonline.storm.cassandra.bolt.mapper.TupleMapper;
 
 /**
  * This is a batching bolt that can be used outside of a transactional topology.
@@ -21,18 +20,19 @@ import backtype.storm.tuple.Tuple;
  * @author boneill42
  */
 @SuppressWarnings("serial")
-public class CassandraBatchingBolt extends AbstractBatchingBolt {
+public class CassandraBatchingBolt<T> extends AbstractBatchingBolt<T> {
+
+
     private static final Logger LOG = LoggerFactory.getLogger(CassandraBatchingBolt.class);
 
     protected TupleMapper tupleMapper; 
     
-    public CassandraBatchingBolt(TupleMapper tupleMapper) {
+    public CassandraBatchingBolt(TupleMapper<T> tupleMapper) {
+        super(tupleMapper);
         this.tupleMapper = tupleMapper;
     }
+    
 
-    public CassandraBatchingBolt(String columnFamily, String rowKeyField) {
-        this(new DefaultTupleMapper(columnFamily, rowKeyField));
-    }
 
     @Override
     public void executeBatch(List<Tuple> inputs) {

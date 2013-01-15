@@ -17,11 +17,11 @@ import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.tuple.Tuple;
 
 @SuppressWarnings({ "serial", "rawtypes" })
-public class TransactionalCassandraBatchBolt extends CassandraBatchingBolt implements IBatchBolt {
+public class TransactionalCassandraBatchBolt<T> extends CassandraBatchingBolt<T> implements IBatchBolt {
     private static final Logger LOG = LoggerFactory.getLogger(TransactionalCassandraBatchBolt.class);
     private Object transactionId = null;
 
-    public TransactionalCassandraBatchBolt(TupleMapper tupleMapper) {
+    public TransactionalCassandraBatchBolt(TupleMapper<T> tupleMapper) {
         super(tupleMapper);
     }
 

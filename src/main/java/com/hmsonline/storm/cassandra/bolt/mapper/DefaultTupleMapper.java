@@ -6,7 +6,7 @@ import java.util.Map;
 import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Tuple;
 
-public class DefaultTupleMapper implements TupleMapper {
+public class DefaultTupleMapper implements TupleMapper<String> {
     private static final long serialVersionUID = 1L;
     private String rowKeyField;
     private String columnFamily;

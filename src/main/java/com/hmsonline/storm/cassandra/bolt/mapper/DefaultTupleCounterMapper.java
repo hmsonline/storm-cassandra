@@ -11,53 +11,48 @@ import backtype.storm.tuple.Tuple;
 
 /**
  * For counter columns, an increment amount is required, the following fields
- * must be specified: rowKey, and incrementAmount, all remaining fields 
- * are assumed to be column names to be incremented by the specified amount.
+ * must be specified: rowKey, and incrementAmount, all remaining fields are
+ * assumed to be column names to be incremented by the specified amount.
  */
 public class DefaultTupleCounterMapper implements TupleCounterMapper {
 
-	private static final long serialVersionUID = 1L;
+    private static final long serialVersionUID = 1L;
     private String rowKeyField;
     private String columnFamily;
-	private String incrementAmountField;
-	
-	public DefaultTupleCounterMapper(String columnFamily, String rowKeyField, String incrementAmountField) {
-		this.columnFamily = columnFamily;
-		this.rowKeyField = rowKeyField;
-		this.incrementAmountField = incrementAmountField;
-	}
+    private String incrementAmountField;
 
-	@Override
-	public String mapToColumnFamily(Tuple tuple) {
-		return this.columnFamily;
-	}
+    public DefaultTupleCounterMapper(String columnFamily, String rowKeyField, String incrementAmountField) {
+        this.columnFamily = columnFamily;
+        this.rowKeyField = rowKeyField;
+        this.incrementAmountField = incrementAmountField;
+    }
 
+    @Override
+    public String mapToColumnFamily(Tuple tuple) {
+        return this.columnFamily;
+    }
 
-	@Override
-	public String mapToRowKey(Tuple tuple) {
-		return tuple.getValueByField(this.rowKeyField).toString();
-	}
+    @Override
+    public String mapToRowKey(Tuple tuple) {
+        return tuple.getValueByField(this.rowKeyField).toString();
+    }
 
+    @Override
+    public long mapToIncrementAmount(Tuple tuple) {
+        return tuple.getLongByField(incrementAmountField);
+    }
 
-	@Override
-	public long mapToIncrementAmount(Tuple tuple) {
-		return tuple.getLongByField(incrementAmountField);
-	}
-
-
-	@Override
-	public List<String> mapToColumnList(Tuple tuple) {
-		Fields fields = tuple.getFields();
-		List<String> result = new ArrayList<String>();
-		Iterator<String> it = fields.iterator();
-		while(it.hasNext()){
-			String fieldName = it.next();
-			if(!fieldName.equals(rowKeyField) && !fieldName.equals(incrementAmountField))
-				result.add(tuple.getValueByField(fieldName).toString());
-		}
-		return result;
-	}
-
-	
+    @Override
+    public List<String> mapToColumnList(Tuple tuple) {
+        Fields fields = tuple.getFields();
+        List<String> result = new ArrayList<String>();
+        Iterator<String> it = fields.iterator();
+        while (it.hasNext()) {
+            String fieldName = it.next();
+            if (!fieldName.equals(rowKeyField) && !fieldName.equals(incrementAmountField))
+                result.add(tuple.getValueByField(fieldName).toString());
+        }
+        return result;
+    }
 
 }

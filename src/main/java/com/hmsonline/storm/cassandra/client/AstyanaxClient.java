@@ -10,12 +10,14 @@ import org.slf4j.LoggerFactory;
 
 import backtype.storm.tuple.Tuple;
 
+import com.hmsonline.storm.cassandra.bolt.mapper.Columns;
 import com.hmsonline.storm.cassandra.bolt.mapper.TupleCounterMapper;
 import com.hmsonline.storm.cassandra.bolt.mapper.TupleMapper;
 import com.netflix.astyanax.AstyanaxContext;
 import com.netflix.astyanax.Cluster;
 import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.MutationBatch;
+import com.netflix.astyanax.Serializer;
 import com.netflix.astyanax.connectionpool.NodeDiscoveryType;
 import com.netflix.astyanax.connectionpool.OperationResult;
 import com.netflix.astyanax.connectionpool.impl.ConnectionPoolConfigurationImpl;
@@ -24,6 +26,7 @@ import com.netflix.astyanax.impl.AstyanaxConfigurationImpl;
 import com.netflix.astyanax.model.Column;
 import com.netflix.astyanax.model.ColumnFamily;
 import com.netflix.astyanax.model.ColumnList;
+import com.netflix.astyanax.serializers.AnnotatedCompositeSerializer;
 import com.netflix.astyanax.serializers.LongSerializer;
 import com.netflix.astyanax.serializers.StringSerializer;
 import com.netflix.astyanax.thrift.ThriftFamilyFactory;
@@ -33,14 +36,18 @@ import com.netflix.astyanax.thrift.ThriftFamilyFactory;
  * @author tgoetz
  * 
  */
-public class AstyanaxClient implements CassandraClient {
+public class AstyanaxClient<T> extends CassandraClient<T> {
     private static final Logger LOG = LoggerFactory.getLogger(AstyanaxClient.class);
     private AstyanaxContext<Keyspace> astyanaxContext;
     protected Cluster cluster;
     protected Keyspace keyspace;
 
-    /* (non-Javadoc)
-     * @see backtype.storm.contrib.cassandra.client.CassandraClient#start(java.lang.String, java.lang.String)
+    /*
+     * (non-Javadoc)
+     * 
+     * @see
+     * backtype.storm.contrib.cassandra.client.CassandraClient#start(java.lang
+     * .String, java.lang.String)
      */
     @Override
     public void start(String cassandraHost, String cassandraKeyspace) {
@@ -64,7 +71,9 @@ public class AstyanaxClient implements CassandraClient {
         }
     }
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see backtype.storm.contrib.cassandra.client.CassandraClient#stop()
      */
     @Override
@@ -72,93 +81,110 @@ public class AstyanaxClient implements CassandraClient {
         this.astyanaxContext.shutdown();
     }
 
-    /* (non-Javadoc)
-     * @see backtype.storm.contrib.cassandra.client.CassandraClient#lookup(java.lang.String, java.lang.String)
+    /*
+     * (non-Javadoc)
+     * 
+     * @see
+     * backtype.storm.contrib.cassandra.client.CassandraClient#lookup(java.lang
+     * .String, java.lang.String)
      */
+    @SuppressWarnings("unchecked")
     @Override
-    public Map<String, String> lookup(String columnFamilyName, String rowKey) throws Exception {
-        HashMap<String, String> colMap = new HashMap<String, String>();
+    public Columns<T> lookup(String columnFamilyName, String rowKey) throws Exception {
         ColumnFamily<String, String> columnFamily = new ColumnFamily<String, String>(columnFamilyName,
                 StringSerializer.get(), StringSerializer.get());
         OperationResult<ColumnList<String>> result;
         result = this.keyspace.prepareQuery(columnFamily).getKey(rowKey).execute();
-
-        ColumnList<String> columns = result.getResult();
-
-        for (Column<String> column : columns) {
-            colMap.put(column.getName(), column.getStringValue());
-        }
-        return colMap;
+        ColumnList<T> columns = (ColumnList<T>) result.getResult();
+        return new AstyanaxColumns<T>(columns);
     }
 
-    /* (non-Javadoc)
-     * @see backtype.storm.contrib.cassandra.client.CassandraClient#writeTuple(backtype.storm.tuple.Tuple, backtype.storm.contrib.cassandra.bolt.mapper.TupleMapper)
+    /*
+     * (non-Javadoc)
+     * 
+     * @see
+     * backtype.storm.contrib.cassandra.client.CassandraClient#writeTuple(backtype
+     * .storm.tuple.Tuple,
+     * backtype.storm.contrib.cassandra.bolt.mapper.TupleMapper)
      */
     @Override
-    public void writeTuple(Tuple input, TupleMapper tupleMapper) throws Exception {
+    public void writeTuple(Tuple input, TupleMapper<T> tupleMapper) throws Exception {
         String columnFamilyName = tupleMapper.mapToColumnFamily(input);
         String rowKey = (String) tupleMapper.mapToRowKey(input);
         MutationBatch mutation = keyspace.prepareMutationBatch();
-        ColumnFamily<String, String> columnFamily = new ColumnFamily<String, String>(columnFamilyName,
-                StringSerializer.get(), StringSerializer.get());
+        ColumnFamily<String, T> columnFamily = new ColumnFamily<String, T>(columnFamilyName, StringSerializer.get(),
+                this.getColumnNameSerializer(tupleMapper));
         this.addTupleToMutation(input, columnFamily, rowKey, mutation, tupleMapper);
         mutation.execute();
     }
 
-    /* (non-Javadoc)
-     * @see backtype.storm.contrib.cassandra.client.CassandraClient#writeTuples(java.util.List, backtype.storm.contrib.cassandra.bolt.mapper.TupleMapper)
+    /*
+     * (non-Javadoc)
+     * 
+     * @see
+     * backtype.storm.contrib.cassandra.client.CassandraClient#writeTuples(java
+     * .util.List, backtype.storm.contrib.cassandra.bolt.mapper.TupleMapper)
      */
     @Override
-    public void writeTuples(List<Tuple> inputs, TupleMapper tupleMapper) throws Exception {
+    public void writeTuples(List<Tuple> inputs, TupleMapper<T> tupleMapper) throws Exception {
         MutationBatch mutation = keyspace.prepareMutationBatch();
         for (Tuple input : inputs) {
             String columnFamilyName = tupleMapper.mapToColumnFamily(input);
             String rowKey = (String) tupleMapper.mapToRowKey(input);
-            ColumnFamily<String, String> columnFamily = new ColumnFamily<String, String>(columnFamilyName,
-                    StringSerializer.get(), StringSerializer.get());
+            ColumnFamily<String, T> columnFamily = new ColumnFamily<String, T>(columnFamilyName,
+                    StringSerializer.get(), this.getColumnNameSerializer(tupleMapper));
             this.addTupleToMutation(input, columnFamily, rowKey, mutation, tupleMapper);
         }
         mutation.execute();
     }
 
-    private void addTupleToMutation(Tuple input, ColumnFamily<String, String> columnFamily, String rowKey,
-            MutationBatch mutation, TupleMapper tupleMapper) {
-        Map<String, String> columns = tupleMapper.mapToColumns(input);
-        for (Map.Entry<String, String> entry : columns.entrySet()) {
+    private void addTupleToMutation(Tuple input, ColumnFamily<String, T> columnFamily, String rowKey,
+            MutationBatch mutation, TupleMapper<T> tupleMapper) {
+        Map<T, String> columns = tupleMapper.mapToColumns(input);
+        for (Map.Entry<T, String> entry : columns.entrySet()) {
             mutation.withRow(columnFamily, rowKey).putColumn(entry.getKey(), entry.getValue(), null);
         }
     }
 
-	@Override
-	public void incrementCountColumn(Tuple input, TupleCounterMapper tupleMapper) throws Exception {
-		String columnFamilyName = tupleMapper.mapToColumnFamily(input);
-        String rowKey = (String) tupleMapper.mapToRowKey(input);
-        long incrementAmount = tupleMapper.mapToIncrementAmount(input);
-        MutationBatch mutation = keyspace.prepareMutationBatch();
-        ColumnFamily<String, String> columnFamily = new ColumnFamily<String, String>(columnFamilyName,
-        		StringSerializer.get(), StringSerializer.get());
-        for(String columnName : tupleMapper.mapToColumnList(input)){
-        	mutation.withRow(columnFamily, rowKey).incrementCounterColumn(columnName, incrementAmount);
+    @SuppressWarnings("unchecked")
+    private Serializer<T> getColumnNameSerializer(TupleMapper<T> tupleMapper) {
+        if (this.getColumnNameClass().equals(String.class)) {
+            return (Serializer<T>) StringSerializer.get();
+        } else {
+            // TODO: Cache this instance.
+            return new AnnotatedCompositeSerializer<T>(this.getColumnNameClass());
         }
-        mutation.execute();
-	}
+    }
 
-	@Override
-	public void incrementCountColumns(List<Tuple> inputs,
-			TupleCounterMapper tupleMapper) throws Exception {
-		MutationBatch mutation = keyspace.prepareMutationBatch();
-		for (Tuple input : inputs) {
-			String columnFamilyName = tupleMapper.mapToColumnFamily(input);
-	        String rowKey = (String) tupleMapper.mapToRowKey(input);
-	        long incrementAmount = tupleMapper.mapToIncrementAmount(input);
-	        ColumnFamily<String, String> columnFamily = new ColumnFamily<String, String>(columnFamilyName,
-	                StringSerializer.get(), StringSerializer.get());
-	        for(String columnName : tupleMapper.mapToColumnList(input)){
-	        	mutation.withRow(columnFamily, rowKey).incrementCounterColumn(columnName, incrementAmount);
-	        }
-		}
-		mutation.execute();
-		
-	}
+    @Override
+    public void incrementCountColumn(Tuple input, TupleCounterMapper tupleMapper) throws Exception {
+            String columnFamilyName = tupleMapper.mapToColumnFamily(input);
+    String rowKey = (String) tupleMapper.mapToRowKey(input);
+    long incrementAmount = tupleMapper.mapToIncrementAmount(input);
+    MutationBatch mutation = keyspace.prepareMutationBatch();
+    ColumnFamily<String, String> columnFamily = new ColumnFamily<String, String>(columnFamilyName,
+                    StringSerializer.get(), StringSerializer.get());
+    for(String columnName : tupleMapper.mapToColumnList(input)){
+            mutation.withRow(columnFamily, rowKey).incrementCounterColumn(columnName, incrementAmount);
+    }
+    mutation.execute();
+    }
 
+    @Override
+    public void incrementCountColumns(List<Tuple> inputs,
+                    TupleCounterMapper tupleMapper) throws Exception {
+            MutationBatch mutation = keyspace.prepareMutationBatch();
+            for (Tuple input : inputs) {
+                    String columnFamilyName = tupleMapper.mapToColumnFamily(input);
+            String rowKey = (String) tupleMapper.mapToRowKey(input);
+            long incrementAmount = tupleMapper.mapToIncrementAmount(input);
+            ColumnFamily<String, String> columnFamily = new ColumnFamily<String, String>(columnFamilyName,
+                    StringSerializer.get(), StringSerializer.get());
+            for(String columnName : tupleMapper.mapToColumnList(input)){
+                    mutation.withRow(columnFamily, rowKey).incrementCounterColumn(columnName, incrementAmount);
+            }
+            }
+            mutation.execute();
+
+    }
 }

@@ -6,7 +6,7 @@ import java.util.Map;
 import backtype.storm.tuple.Tuple;
 
 // TODO: Need to add generics everywhere instead of Strings
-public interface TupleMapper extends Serializable {
+public interface TupleMapper<T> extends Serializable {
 
     /**
      * Given a <code>backtype.storm.tuple.Tuple</code> object, map the column
@@ -33,6 +33,5 @@ public interface TupleMapper extends Serializable {
      * @param tuple
      * @return
      */
-    public Map<String, String> mapToColumns(Tuple tuple);
-
+    public Map<T, String> mapToColumns(Tuple tuple);
 }
