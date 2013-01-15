@@ -19,7 +19,7 @@ public class ClientPool {
         }
         
         CassandraClient client = hostPool.get(columnNameClass);
-        if (client == null){
+        if (client == null || (!client.getClientKeySpace().equals(keyspace))) {
             client = createClient(host, keyspace, columnNameClass, clientClass);
             hostPool.put(columnNameClass, client);
         }
