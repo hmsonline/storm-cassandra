@@ -24,10 +24,14 @@ public class CassandraCounterBatchingBolt<T> extends AbstractBatchingBolt<T> {
 	private TupleCounterMapper tupleMapper;
 	
 
-	    public CassandraCounterBatchingBolt(TupleMapper<T> tupleMapper) {
-	        super(tupleMapper);
-	        // TODO Auto-generated constructor stub
+	    public CassandraCounterBatchingBolt(TupleCounterMapper tupleMapper) {
+	        super(null);
+	        this.tupleMapper = tupleMapper;
 	    }
+	    
+	public CassandraCounterBatchingBolt(String columnFamily, String rowKeyField, String incrementAmountField){
+	    this(new DefaultTupleCounterMapper(columnFamily, rowKeyField, incrementAmountField));
+	}
 
 	@Override
 	public void declareOutputFields(OutputFieldsDeclarer declarer) {
