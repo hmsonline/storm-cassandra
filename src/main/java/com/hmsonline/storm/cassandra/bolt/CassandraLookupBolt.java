@@ -38,10 +38,10 @@ public class CassandraLookupBolt<T> extends CassandraBolt<T> implements IBasicBo
         this.columnsMapper = columnsMapper;
     }
 
-    public CassandraLookupBolt(TupleMapper<T> tupleMapper, ColumnsMapper<T> columnsMapper,  Class columnNameClass, Map stormConf) {
-        super(tupleMapper, columnNameClass, stormConf);
-        this.columnsMapper = columnsMapper;
-    }
+//    public CassandraLookupBolt(TupleMapper<T> tupleMapper, ColumnsMapper<T> columnsMapper,  Class columnNameClass, Map stormConf) {
+//        super(tupleMapper, columnNameClass, stormConf);
+//        this.columnsMapper = columnsMapper;
+//    }
 
     public CassandraLookupBolt(RangeQueryTupleMapper<T> queryMapper, ColumnsMapper<T> columnsMapper,  Class columnNameClass) {
         super(queryMapper, columnNameClass);
@@ -49,11 +49,11 @@ public class CassandraLookupBolt<T> extends CassandraBolt<T> implements IBasicBo
         this.columnsMapper = columnsMapper;
     }
 
-    public CassandraLookupBolt(RangeQueryTupleMapper<T> queryMapper, ColumnsMapper<T> columnsMapper,  Class columnNameClass, Map stormConf) {
-        super(queryMapper, columnNameClass, stormConf);
-        this.queryTupleMapper = queryMapper;
-        this.columnsMapper = columnsMapper;
-    }
+//    public CassandraLookupBolt(RangeQueryTupleMapper<T> queryMapper, ColumnsMapper<T> columnsMapper,  Class columnNameClass, Map stormConf) {
+//        super(queryMapper, columnNameClass, stormConf);
+//        this.queryTupleMapper = queryMapper;
+//        this.columnsMapper = columnsMapper;
+//    }
 
     @SuppressWarnings("rawtypes")
     @Override

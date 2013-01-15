@@ -11,7 +11,7 @@ public class ClientPool {
 
     private static Map<String, Map<Class, CassandraClient>> clientPool = new HashMap<String, Map<Class, CassandraClient>>();
     
-    public static CassandraClient getClient(String host, String keyspace, Class columnNameClass, String clientClass){
+    public static CassandraClient getClient(String host, String keyspace, Class columnNameClass, String clientClass, Map<String, Object> stormConfig){
         Map<Class, CassandraClient> hostPool = clientPool.get(host);
         if (hostPool == null){
             hostPool = new HashMap<Class, CassandraClient>();
@@ -20,14 +20,14 @@ public class ClientPool {
         
         CassandraClient client = hostPool.get(columnNameClass);
         if (client == null || (!client.getClientKeySpace().equals(keyspace))) {
-            client = createClient(host, keyspace, columnNameClass, clientClass);
+            client = createClient(host, keyspace, columnNameClass, clientClass, stormConfig);
             hostPool.put(columnNameClass, client);
         }
         return client;
     }
     
     @SuppressWarnings({ "rawtypes", "unchecked" })
-    private static CassandraClient createClient(String host, String keyspace, Class columnClass, String clientClass) {
+    private static CassandraClient createClient(String host, String keyspace, Class columnClass, String clientClass, Map<String, Object> stormConfig) {
         LOG.debug("Creating Cassandra Client @ (" + host + ") for [" + columnClass.getSimpleName() + "]");
 
         CassandraClient cassandraClient = null;
@@ -38,7 +38,7 @@ public class ClientPool {
             Class cl = Class.forName(clientClass);
             cassandraClient = (CassandraClient)cl.newInstance();
             cassandraClient.setColumnNameClass(columnClass);
-            cassandraClient.start(host, keyspace);
+            cassandraClient.start(host, keyspace, stormConfig);
         } catch (Throwable e) {
             LOG.warn("Preparation failed.", e);
             throw new IllegalStateException("Failed to prepare CassandraBolt", e);

@@ -13,15 +13,20 @@ import storm.trident.tuple.TridentTuple;
 
 import backtype.storm.tuple.Tuple;
 
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Maps;
 import com.hmsonline.storm.cassandra.bolt.mapper.Columns;
 import com.hmsonline.storm.cassandra.bolt.mapper.TridentTupleMapper;
 import com.hmsonline.storm.cassandra.bolt.mapper.TupleCounterMapper;
 import com.hmsonline.storm.cassandra.bolt.mapper.TupleMapper;
+import com.netflix.astyanax.AstyanaxConfiguration;
 import com.netflix.astyanax.AstyanaxContext;
 import com.netflix.astyanax.Cluster;
 import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.MutationBatch;
 import com.netflix.astyanax.Serializer;
+import com.netflix.astyanax.connectionpool.ConnectionPoolConfiguration;
+import com.netflix.astyanax.connectionpool.ConnectionPoolMonitor;
 import com.netflix.astyanax.connectionpool.NodeDiscoveryType;
 import com.netflix.astyanax.connectionpool.OperationResult;
 import com.netflix.astyanax.connectionpool.impl.ConnectionPoolConfigurationImpl;
@@ -44,9 +49,47 @@ import com.netflix.astyanax.util.RangeBuilder;
  */
 public class AstyanaxClient<T> extends CassandraClient<T> {
     private static final Logger LOG = LoggerFactory.getLogger(AstyanaxClient.class);
+    public static final String CASSANDRA_CLUSTER_NAME = "cassandra.clusterName";
+    public static final String ASTYANAX_CONFIGURATION = "astyanax.configuration";
+    public static final String ASTYANAX_CONNECTION_POOL_CONFIGURATION = "astyanax.connectionPoolConfiguration";
+    public static final String ASTYANAX_CONNECTION_POOL_MONITOR = "astyanax.connectioPoolMonitor";
     private AstyanaxContext<Keyspace> astyanaxContext;
     protected Cluster cluster;
     protected Keyspace keyspace;
+
+    // not static since we're carting instances around and do not want to share them
+    // between bolts
+    private final Map<String,Object> DEFAULTS = new ImmutableMap.Builder<String, Object>()
+            .put(CASSANDRA_CLUSTER_NAME, "ClusterName")
+            .put(ASTYANAX_CONFIGURATION, new AstyanaxConfigurationImpl().setDiscoveryType(NodeDiscoveryType.NONE))
+            .put(ASTYANAX_CONNECTION_POOL_CONFIGURATION, new ConnectionPoolConfigurationImpl("MyConnectionPool").setMaxConnsPerHost(1))
+            .put(ASTYANAX_CONNECTION_POOL_MONITOR, new CountingConnectionPoolMonitor())
+            .build();
+
+    protected AstyanaxContext<Keyspace> createContext(String cassandraHost, String cassandraKeyspace,
+                                                      Map<String, Object> stormConfig) {
+        Map<String, Object> settings = Maps.newHashMap();
+        for (Map.Entry<String, Object> defaultEntry: DEFAULTS.entrySet()) {
+            if (stormConfig.containsKey(defaultEntry.getKey())) {
+                settings.put(defaultEntry.getKey(), stormConfig.get(defaultEntry.getKey()));
+            } else {
+                settings.put(defaultEntry.getKey(), defaultEntry.getValue());
+            }
+        }
+        // in the defaults case, we don't know the seed hosts until context creation time
+        if (settings.get(ASTYANAX_CONNECTION_POOL_CONFIGURATION) instanceof ConnectionPoolConfigurationImpl) {
+            ConnectionPoolConfigurationImpl cpConfig = (ConnectionPoolConfigurationImpl) settings.get(ASTYANAX_CONNECTION_POOL_CONFIGURATION);
+            cpConfig.setSeeds(cassandraHost);
+        }
+
+        return new AstyanaxContext.Builder()
+                .forCluster((String) settings.get(CASSANDRA_CLUSTER_NAME))
+                .forKeyspace(cassandraKeyspace)
+                .withAstyanaxConfiguration((AstyanaxConfiguration)settings.get(ASTYANAX_CONFIGURATION))
+                .withConnectionPoolConfiguration((ConnectionPoolConfiguration)settings.get(ASTYANAX_CONNECTION_POOL_CONFIGURATION))
+                .withConnectionPoolMonitor((ConnectionPoolMonitor)settings.get(ASTYANAX_CONNECTION_POOL_MONITOR))
+                .buildKeyspace(ThriftFamilyFactory.getInstance());
+    }
 
     /*
      * (non-Javadoc)
@@ -56,16 +99,9 @@ public class AstyanaxClient<T> extends CassandraClient<T> {
      * .String, java.lang.String)
      */
     @Override
-    public void start(String cassandraHost, String cassandraKeyspace) {
+    public void start(String cassandraHost, String cassandraKeyspace, Map<String,Object> stormConfig) {
         try {
-            this.astyanaxContext = new AstyanaxContext.Builder()
-                    .forCluster("ClusterName")
-                    .forKeyspace(cassandraKeyspace)
-                    .withAstyanaxConfiguration(new AstyanaxConfigurationImpl().setDiscoveryType(NodeDiscoveryType.NONE))
-                    .withConnectionPoolConfiguration(
-                            new ConnectionPoolConfigurationImpl("MyConnectionPool").setMaxConnsPerHost(1).setSeeds(
-                                    cassandraHost)).withConnectionPoolMonitor(new CountingConnectionPoolMonitor())
-                    .buildKeyspace(ThriftFamilyFactory.getInstance());
+            this.astyanaxContext = createContext(cassandraHost, cassandraKeyspace, stormConfig);
 
             this.astyanaxContext.start();
             this.keyspace = this.astyanaxContext.getEntity();

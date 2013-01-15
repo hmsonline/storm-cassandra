@@ -38,6 +38,7 @@ public class TridentCassandraLookupFunction<T> implements Function{
     public static final String CASSANDRA_KEYSPACE = "cassandra.keyspace";
     public static final String CASSANDRA_BATCH_MAX_SIZE = "cassandra.batch.max_size";
     public static String CASSANDRA_CLIENT_CLASS = "cassandra.client.class";
+    protected Map<String, Object> stormConfig;
 
     public TridentCassandraLookupFunction(TridentTupleMapper<T> tupleMapper, TridentColumnMapper<T> columnMapper, Class columnNameClass ){
         this.columnNameClass = columnNameClass;
@@ -47,6 +48,7 @@ public class TridentCassandraLookupFunction<T> implements Function{
 
     @Override
     public void prepare(Map stormConf, TridentOperationContext context) {
+        this.stormConfig = stormConf;
         if(this.cassandraHost == null){
             this.cassandraHost = (String) stormConf.get(CASSANDRA_HOST);
         }
@@ -93,7 +95,7 @@ public class TridentCassandraLookupFunction<T> implements Function{
     }
 
     public CassandraClient<T> getClient(){
-        return ClientPool.getClient(this.cassandraHost, this.cassandraKeyspace, this.columnNameClass, this.clientClass);
+        return ClientPool.getClient(this.cassandraHost, this.cassandraKeyspace, this.columnNameClass, this.clientClass, this.stormConfig);
     }
 
 

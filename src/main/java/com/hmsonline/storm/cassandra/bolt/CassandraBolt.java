@@ -29,21 +29,12 @@ public abstract class CassandraBolt<T> implements Serializable {
     private String clientClass;
     protected TupleMapper<T> tupleMapper;
     protected CassandraClient<T> cassandraClient;
+    protected Map<String, Object> stormConfig;
    
-//    protected AstyanaxContext<Keyspace> astyanaxContext;
 
     public CassandraBolt(TupleMapper<T> tupleMapper, Class columnNameClass) {        
         this.columnNameClass = columnNameClass;
         this.tupleMapper = tupleMapper;
-        LOG.debug("Creating Cassandra Bolt (" + this + ")");
-    }
-
-    public CassandraBolt(TupleMapper<T> tupleMapper, Class columnNameClass, Map stormConf) {
-        this.columnNameClass = columnNameClass;
-        this.tupleMapper = tupleMapper;
-        this.cassandraHost = (String) stormConf.get(CASSANDRA_HOST);
-        this.cassandraKeyspace = (String) stormConf.get(CASSANDRA_KEYSPACE);
-        this.clientClass = (String) stormConf.get(CASSANDRA_CLIENT_CLASS);
         LOG.debug("Creating Cassandra Bolt (" + this + ")");
     }
 
@@ -52,7 +43,8 @@ public abstract class CassandraBolt<T> implements Serializable {
     }
 
     @SuppressWarnings("rawtypes")
-    public void prepare(Map stormConf, TopologyContext context) {
+    public void prepare(Map<String, Object> stormConf, TopologyContext context) {
+        this.stormConfig = stormConf;
         if(this.cassandraHost == null){
             this.cassandraHost = (String) stormConf.get(CASSANDRA_HOST);
         }
@@ -66,7 +58,7 @@ public abstract class CassandraBolt<T> implements Serializable {
     }
 
     public CassandraClient<T> getClient(){
-        return ClientPool.getClient(this.cassandraHost, this.cassandraKeyspace, this.columnNameClass, this.clientClass);
+        return ClientPool.getClient(this.cassandraHost, this.cassandraKeyspace, this.columnNameClass, this.clientClass, this.stormConfig);
     }
 
     public void cleanup() {

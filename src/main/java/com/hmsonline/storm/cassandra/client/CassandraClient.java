@@ -25,7 +25,7 @@ public abstract class CassandraClient<T> implements Serializable {
         return this.columnNameClass;
     }
 
-    public abstract void start(String cassandraHost, String cassandraKeyspace);
+    public abstract void start(String cassandraHost, String cassandraKeyspace, Map<String, Object> stormConfig);
 
     public abstract void stop();
 

@@ -28,6 +28,7 @@ public class TridentCassandraWriteFunction<T> implements Function{
 
     private String cassandraHost;
     private String cassandraKeyspace;
+    protected Map<String, Object> stormConfig;
 
     public TridentCassandraWriteFunction(TridentTupleMapper<T> tupleMapper, Class columnNameClass) {
         this.tupleMapper = tupleMapper;
@@ -36,6 +37,7 @@ public class TridentCassandraWriteFunction<T> implements Function{
 
     @Override
     public void prepare(Map stormConf, TridentOperationContext context) {
+        this.stormConfig = stormConfig;
         if(this.cassandraHost == null){
             this.cassandraHost = (String) stormConf.get(CASSANDRA_HOST);
         }
@@ -68,6 +70,6 @@ public class TridentCassandraWriteFunction<T> implements Function{
     }
 
     public CassandraClient<T> getClient(){
-        return ClientPool.getClient(this.cassandraHost, this.cassandraKeyspace, this.columnNameClass, this.clientClass);
+        return ClientPool.getClient(this.cassandraHost, this.cassandraKeyspace, this.columnNameClass, this.clientClass, this.stormConfig);
     }
 }
