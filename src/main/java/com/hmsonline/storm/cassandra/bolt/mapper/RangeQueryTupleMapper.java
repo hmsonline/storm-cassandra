@@ -2,7 +2,7 @@ package com.hmsonline.storm.cassandra.bolt.mapper;
 
 import backtype.storm.tuple.Tuple;
 
-public interface RangeQueryTupleMapper<T> extends TupleMapper<T> {
+public interface RangeQueryTupleMapper<K,V> extends TupleMapper<K,V> {
 
     /**
      *

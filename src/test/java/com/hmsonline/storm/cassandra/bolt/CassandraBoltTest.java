@@ -92,8 +92,8 @@ public class CassandraBoltTest {
 
     @Test
     public void testBolt() throws Exception {
-        TupleMapper<String> tupleMapper = new DefaultTupleMapper("users", "VALUE");
-        CassandraBatchingBolt<String> bolt = new CassandraBatchingBolt<String>(tupleMapper);
+        TupleMapper<String, String> tupleMapper = new DefaultTupleMapper("users", "VALUE");
+        CassandraBatchingBolt<String, String> bolt = new CassandraBatchingBolt<String, String>(tupleMapper, String.class, String.class);
         TopologyBuilder builder = new TopologyBuilder();
         builder.setBolt("TEST_BOLT", bolt);
 
@@ -135,7 +135,7 @@ public class CassandraBoltTest {
     
     @Test
     public void testCounterBolt() throws Exception {
-    	CassandraCounterBatchingBolt bolt = new CassandraCounterBatchingBolt("Counts", "Timestamp", "IncrementAmount");
+    	CassandraCounterBatchingBolt bolt = new CassandraCounterBatchingBolt("Counts", "Timestamp", "IncrementAmount", String.class, String.class);
         TopologyBuilder builder = new TopologyBuilder();
         builder.setBolt("TEST__COUNTER_BOLT", bolt);
 

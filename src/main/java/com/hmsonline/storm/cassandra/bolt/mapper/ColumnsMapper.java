@@ -12,7 +12,7 @@ import backtype.storm.tuple.Values;
  * 
  * @author boneill42
  */
-public interface ColumnsMapper<T> extends Serializable {
+public interface ColumnsMapper<K,V> extends Serializable {
 
     /**
      * Declares the fields produced by the bolt using this mapper.
@@ -26,5 +26,5 @@ public interface ColumnsMapper<T> extends Serializable {
      * @param columns
      * @return
      */
-    public List<Values> mapToValues(String rowKey, Columns<T> columns, Tuple input);
+    public List<Values> mapToValues(String rowKey, Columns<K,V> columns, Tuple input);
 }

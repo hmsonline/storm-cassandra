@@ -33,7 +33,7 @@ import backtype.storm.utils.Utils;
  * @author ptgoetz
  */
 @SuppressWarnings("serial")
-public abstract class AbstractBatchingBolt<T> extends CassandraBolt<T> implements IRichBolt {
+public abstract class AbstractBatchingBolt<K,V> extends CassandraBolt<K,V> implements IRichBolt {
     private static final Logger LOG = LoggerFactory.getLogger(AbstractBatchingBolt.class);
 
     protected AckStrategy ackStrategy = AckStrategy.ACK_IGNORE;
@@ -44,12 +44,8 @@ public abstract class AbstractBatchingBolt<T> extends CassandraBolt<T> implement
 
     private BatchThread batchThread;
 
-    public AbstractBatchingBolt(TupleMapper<T> tupleMapper) {
-        super(tupleMapper);
-    }
-
-    public AbstractBatchingBolt(TupleMapper<T> tupleMapper, Class columnNameClass) {
-        super(tupleMapper, columnNameClass);
+    public AbstractBatchingBolt(TupleMapper<K,V> tupleMapper, Class<K> columnNameClass, Class<V> columnValueClass) {
+        super(tupleMapper, columnNameClass, columnValueClass);
     }
     
     @SuppressWarnings({ "rawtypes", "unchecked" })

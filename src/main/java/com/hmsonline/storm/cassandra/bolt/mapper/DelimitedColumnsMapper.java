@@ -56,7 +56,7 @@ import backtype.storm.tuple.Values;
  * @author boneill42
  */
 @SuppressWarnings("serial")
-public class DelimitedColumnsMapper implements ColumnsMapper<String>, Serializable {
+public class DelimitedColumnsMapper implements ColumnsMapper<String, String>, Serializable {
     private String columnKeyField;
     private String emitIdFieldName;
     private String emitValueFieldName;
@@ -93,9 +93,9 @@ public class DelimitedColumnsMapper implements ColumnsMapper<String>, Serializab
      * @return
      */
     @Override
-    public List<Values> mapToValues(String rowKey, Columns<String> columns, Tuple input) {
+    public List<Values> mapToValues(String rowKey, Columns<String, String> columns, Tuple input) {
         List<Values> values = new ArrayList<Values>();
-        String delimVal = columns.getColumnValue(this.columnKeyField);
+        String delimVal = columns.getColumnByName(this.columnKeyField);
         if (delimVal != null) {
             String[] vals = delimVal.split(this.delimiter);
             for (String val : vals) {
