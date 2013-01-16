@@ -1,8 +1,6 @@
 package com.hmsonline.storm.cassandra.client;
 
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -10,7 +8,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import storm.trident.tuple.TridentTuple;
-
 import backtype.storm.tuple.Tuple;
 
 import com.google.common.collect.ImmutableMap;
@@ -33,11 +30,9 @@ import com.netflix.astyanax.connectionpool.impl.ConnectionPoolConfigurationImpl;
 import com.netflix.astyanax.connectionpool.impl.CountingConnectionPoolMonitor;
 import com.netflix.astyanax.impl.AstyanaxConfigurationImpl;
 import com.netflix.astyanax.model.ByteBufferRange;
-import com.netflix.astyanax.model.Column;
 import com.netflix.astyanax.model.ColumnFamily;
 import com.netflix.astyanax.model.ColumnList;
 import com.netflix.astyanax.serializers.AnnotatedCompositeSerializer;
-import com.netflix.astyanax.serializers.LongSerializer;
 import com.netflix.astyanax.serializers.StringSerializer;
 import com.netflix.astyanax.thrift.ThriftFamilyFactory;
 import com.netflix.astyanax.util.RangeBuilder;
@@ -48,8 +43,8 @@ import com.netflix.astyanax.util.RangeBuilder;
  * 
  */
 public class AstyanaxClient<K, V> extends CassandraClient<K, V> {
-	private static final long serialVersionUID = 1L;
-	private static final Logger LOG = LoggerFactory.getLogger(AstyanaxClient.class);
+    private static final long serialVersionUID = 1L;
+    private static final Logger LOG = LoggerFactory.getLogger(AstyanaxClient.class);
     public static final String CASSANDRA_CLUSTER_NAME = "cassandra.clusterName";
     public static final String ASTYANAX_CONFIGURATION = "astyanax.configuration";
     public static final String ASTYANAX_CONNECTION_POOL_CONFIGURATION = "astyanax.connectionPoolConfiguration";
@@ -58,54 +53,51 @@ public class AstyanaxClient<K, V> extends CassandraClient<K, V> {
     protected Cluster cluster;
     protected Keyspace keyspace;
 
-    // not static since we're carting instances around and do not want to share them
+    // not static since we're carting instances around and do not want to share
+    // them
     // between bolts
-    private final Map<String,Object> DEFAULTS = new ImmutableMap.Builder<String, Object>()
+    private final Map<String, Object> DEFAULTS = new ImmutableMap.Builder<String, Object>()
             .put(CASSANDRA_CLUSTER_NAME, "ClusterName")
             .put(ASTYANAX_CONFIGURATION, new AstyanaxConfigurationImpl().setDiscoveryType(NodeDiscoveryType.NONE))
-            .put(ASTYANAX_CONNECTION_POOL_CONFIGURATION, new ConnectionPoolConfigurationImpl("MyConnectionPool").setMaxConnsPerHost(1))
-            .put(ASTYANAX_CONNECTION_POOL_MONITOR, new CountingConnectionPoolMonitor())
-            .build();
+            .put(ASTYANAX_CONNECTION_POOL_CONFIGURATION,
+                    new ConnectionPoolConfigurationImpl("MyConnectionPool").setMaxConnsPerHost(1))
+            .put(ASTYANAX_CONNECTION_POOL_MONITOR, new CountingConnectionPoolMonitor()).build();
 
-	public AstyanaxClient(Class<K> columnNameClass, Class<V> columnValueClass) {
-		super(columnNameClass, columnValueClass);
-	}
+    public AstyanaxClient(Class<K> columnNameClass, Class<V> columnValueClass) {
+        super(columnNameClass, columnValueClass);
+    }
 
-    
     protected AstyanaxContext<Keyspace> createContext(String cassandraHost, String cassandraKeyspace,
-                                                      Map<String, Object> stormConfig) {
+            Map<String, Object> stormConfig) {
         Map<String, Object> settings = Maps.newHashMap();
-        for (Map.Entry<String, Object> defaultEntry: DEFAULTS.entrySet()) {
+        for (Map.Entry<String, Object> defaultEntry : DEFAULTS.entrySet()) {
             if (stormConfig.containsKey(defaultEntry.getKey())) {
                 settings.put(defaultEntry.getKey(), stormConfig.get(defaultEntry.getKey()));
             } else {
                 settings.put(defaultEntry.getKey(), defaultEntry.getValue());
             }
         }
-        // in the defaults case, we don't know the seed hosts until context creation time
+        // in the defaults case, we don't know the seed hosts until context
+        // creation time
         if (settings.get(ASTYANAX_CONNECTION_POOL_CONFIGURATION) instanceof ConnectionPoolConfigurationImpl) {
-            ConnectionPoolConfigurationImpl cpConfig = (ConnectionPoolConfigurationImpl) settings.get(ASTYANAX_CONNECTION_POOL_CONFIGURATION);
+            ConnectionPoolConfigurationImpl cpConfig = (ConnectionPoolConfigurationImpl) settings
+                    .get(ASTYANAX_CONNECTION_POOL_CONFIGURATION);
             cpConfig.setSeeds(cassandraHost);
         }
 
         return new AstyanaxContext.Builder()
                 .forCluster((String) settings.get(CASSANDRA_CLUSTER_NAME))
                 .forKeyspace(cassandraKeyspace)
-                .withAstyanaxConfiguration((AstyanaxConfiguration)settings.get(ASTYANAX_CONFIGURATION))
-                .withConnectionPoolConfiguration((ConnectionPoolConfiguration)settings.get(ASTYANAX_CONNECTION_POOL_CONFIGURATION))
-                .withConnectionPoolMonitor((ConnectionPoolMonitor)settings.get(ASTYANAX_CONNECTION_POOL_MONITOR))
+                .withAstyanaxConfiguration((AstyanaxConfiguration) settings.get(ASTYANAX_CONFIGURATION))
+                .withConnectionPoolConfiguration(
+                        (ConnectionPoolConfiguration) settings.get(ASTYANAX_CONNECTION_POOL_CONFIGURATION))
+                .withConnectionPoolMonitor((ConnectionPoolMonitor) settings.get(ASTYANAX_CONNECTION_POOL_MONITOR))
                 .buildKeyspace(ThriftFamilyFactory.getInstance());
     }
 
-    /*
-     * (non-Javadoc)
-     * 
-     * @see
-     * backtype.storm.contrib.cassandra.client.CassandraClient#start(java.lang
-     * .String, java.lang.String)
-     */
+
     @Override
-    public void start(String cassandraHost, String cassandraKeyspace, Map<String,Object> stormConfig) {
+    public void start(String cassandraHost, String cassandraKeyspace, Map<String, Object> stormConfig) {
         try {
             this.astyanaxContext = createContext(cassandraHost, cassandraKeyspace, stormConfig);
 
@@ -119,31 +111,19 @@ public class AstyanaxClient<K, V> extends CassandraClient<K, V> {
         }
     }
 
-    public String getClientKeySpace(){
+    public String getClientKeySpace() {
         return astyanaxContext.getKeyspaceName();
     }
-    /*
-     * (non-Javadoc)
-     * 
-     * @see backtype.storm.contrib.cassandra.client.CassandraClient#stop()
-     */
+
     @Override
     public void stop() {
         this.astyanaxContext.shutdown();
     }
 
-    /*
-     * (non-Javadoc)
-     * 
-     * @see
-     * backtype.storm.contrib.cassandra.client.CassandraClient#lookup(java.lang
-     * .String, java.lang.String)
-     */
-    @SuppressWarnings("unchecked")
     @Override
     public Columns<K, V> lookup(String columnFamilyName, String rowKey) throws Exception {
-        ColumnFamily<String, K> columnFamily = new ColumnFamily<String, K>(columnFamilyName,
-                StringSerializer.get(), getColumnNameSerializer());
+        ColumnFamily<String, K> columnFamily = new ColumnFamily<String, K>(columnFamilyName, StringSerializer.get(),
+                getColumnNameSerializer());
         OperationResult<ColumnList<K>> result;
         result = this.keyspace.prepareQuery(columnFamily).getKey(rowKey).execute();
         ColumnList<K> columns = (ColumnList<K>) result.getResult();
@@ -152,48 +132,33 @@ public class AstyanaxClient<K, V> extends CassandraClient<K, V> {
 
     @Override
     public Columns<K, V> lookup(String columnFamilyName, String rowKey, List<K> columns) throws Exception {
-        ColumnFamily<String, K> columnFamily = new ColumnFamily<String, K>(columnFamilyName,
-                StringSerializer.get(), getColumnNameSerializer());
+        ColumnFamily<String, K> columnFamily = new ColumnFamily<String, K>(columnFamilyName, StringSerializer.get(),
+                getColumnNameSerializer());
         OperationResult<ColumnList<K>> result;
-        result = this.keyspace.prepareQuery(columnFamily).getKey(rowKey)
-                .withColumnSlice((Collection) columns).execute();
+        result = this.keyspace.prepareQuery(columnFamily).getKey(rowKey).withColumnSlice((Collection<K>) columns)
+                .execute();
         ColumnList<K> resultColumns = (ColumnList<K>) result.getResult();
         return new AstyanaxColumns<K, V>(resultColumns, getColumnValueSerializer());
     }
 
-    /*
-     * (non-Javadoc)
-     * 
-     * @see
-     * backtype.storm.contrib.cassandra.client.CassandraClient#lookup(java.lang
-     * .String, java.lang.String)
-     */
+
     @Override
     public Columns<K, V> lookup(String columnFamilyName, String rowKey, Object start, Object end) throws Exception {
-        if(start == null || end == null){
+        if (start == null || end == null) {
             return null;
         }
         Serializer<K> serializer = getColumnNameSerializer();
-        ColumnFamily<String, K> columnFamily = new ColumnFamily<String, K>(columnFamilyName,
-                StringSerializer.get(), serializer);
+        ColumnFamily<String, K> columnFamily = new ColumnFamily<String, K>(columnFamilyName, StringSerializer.get(),
+                serializer);
         OperationResult<ColumnList<K>> result;
         result = this.keyspace.prepareQuery(columnFamily).getKey(rowKey)
-                 .withColumnRange(getRangeBuilder(start, end, serializer))
-                 .execute();
+                .withColumnRange(getRangeBuilder(start, end, serializer)).execute();
         ColumnList<K> columns = (ColumnList<K>) result.getResult();
         return new AstyanaxColumns<K, V>(columns, getColumnValueSerializer());
     }
 
-    /*
-     * (non-Javadoc)
-     *
-     * @see
-     * backtype.storm.contrib.cassandra.client.CassandraClient#writeTuple(backtype
-     * .storm.tuple.Tuple,
-     * backtype.storm.contrib.cassandra.bolt.mapper.TupleMapper)
-     */
     @Override
-    public void writeTuple(Tuple input, TupleMapper<K,V> tupleMapper) throws Exception {
+    public void writeTuple(Tuple input, TupleMapper<K, V> tupleMapper) throws Exception {
         String columnFamilyName = tupleMapper.mapToColumnFamily(input);
         String rowKey = (String) tupleMapper.mapToRowKey(input);
         MutationBatch mutation = keyspace.prepareMutationBatch();
@@ -203,14 +168,6 @@ public class AstyanaxClient<K, V> extends CassandraClient<K, V> {
         mutation.execute();
     }
 
-    /*
-     * (non-Javadoc)
-     * 
-     * @see
-     * backtype.storm.contrib.cassandra.client.CassandraClient#writeTuple(backtype
-     * .storm.tuple.Tuple,
-     * backtype.storm.contrib.cassandra.bolt.mapper.TupleMapper)
-     */
     @Override
     public void writeTuple(TridentTuple input, TridentTupleMapper<K, V> tupleMapper) throws Exception {
         String columnFamilyName = tupleMapper.mapToColumnFamily(input);
@@ -222,13 +179,6 @@ public class AstyanaxClient<K, V> extends CassandraClient<K, V> {
         mutation.execute();
     }
 
-    /*
-     * (non-Javadoc)
-     *
-     * @see
-     * backtype.storm.contrib.cassandra.client.CassandraClient#writeTuples(java
-     * .util.List, backtype.storm.contrib.cassandra.bolt.mapper.TupleMapper)
-     */
     @Override
     public void writeTuples(List<Tuple> inputs, TupleMapper<K, V> tupleMapper) throws Exception {
         MutationBatch mutation = keyspace.prepareMutationBatch();
@@ -247,8 +197,8 @@ public class AstyanaxClient<K, V> extends CassandraClient<K, V> {
      */
     public void write(String columnFamilyName, String rowKey, Map<K, String> columns) {
         MutationBatch mutation = keyspace.prepareMutationBatch();
-        ColumnFamily<String, K> columnFamily = new ColumnFamily<String, K>(columnFamilyName,
-                StringSerializer.get(), this.getColumnNameSerializer());
+        ColumnFamily<String, K> columnFamily = new ColumnFamily<String, K>(columnFamilyName, StringSerializer.get(),
+                this.getColumnNameSerializer());
         for (Map.Entry<K, String> entry : columns.entrySet()) {
             mutation.withRow(columnFamily, rowKey).putColumn(entry.getKey(), entry.getValue(), null);
         }
@@ -263,7 +213,8 @@ public class AstyanaxClient<K, V> extends CassandraClient<K, V> {
             MutationBatch mutation, TupleMapper<K, V> tupleMapper) {
         Map<K, V> columns = tupleMapper.mapToColumns(input);
         for (Map.Entry<K, V> entry : columns.entrySet()) {
-            mutation.withRow(columnFamily, rowKey).putColumn(entry.getKey(), entry.getValue(), getColumnValueSerializer(), null);
+            mutation.withRow(columnFamily, rowKey).putColumn(entry.getKey(), entry.getValue(),
+                    getColumnValueSerializer(), null);
         }
     }
 
@@ -271,42 +222,41 @@ public class AstyanaxClient<K, V> extends CassandraClient<K, V> {
             MutationBatch mutation, TridentTupleMapper<K, V> tupleMapper) {
         Map<K, V> columns = tupleMapper.mapToColumns(input);
         for (Map.Entry<K, V> entry : columns.entrySet()) {
-            mutation.withRow(columnFamily, rowKey).putColumn(entry.getKey(), entry.getValue(), getColumnValueSerializer(), null);
+            mutation.withRow(columnFamily, rowKey).putColumn(entry.getKey(), entry.getValue(),
+                    getColumnValueSerializer(), null);
         }
     }
 
     @Override
     public void incrementCountColumn(Tuple input, TupleCounterMapper tupleMapper) throws Exception {
-            String columnFamilyName = tupleMapper.mapToColumnFamily(input);
-    String rowKey = (String) tupleMapper.mapToRowKey(input);
-    long incrementAmount = tupleMapper.mapToIncrementAmount(input);
-    MutationBatch mutation = keyspace.prepareMutationBatch();
-    ColumnFamily<String, String> columnFamily = new ColumnFamily<String, String>(columnFamilyName,
-                    StringSerializer.get(), StringSerializer.get());
-    for(String columnName : tupleMapper.mapToColumnList(input)){
+        String columnFamilyName = tupleMapper.mapToColumnFamily(input);
+        String rowKey = (String) tupleMapper.mapToRowKey(input);
+        long incrementAmount = tupleMapper.mapToIncrementAmount(input);
+        MutationBatch mutation = keyspace.prepareMutationBatch();
+        ColumnFamily<String, String> columnFamily = new ColumnFamily<String, String>(columnFamilyName,
+                StringSerializer.get(), StringSerializer.get());
+        for (String columnName : tupleMapper.mapToColumnList(input)) {
             mutation.withRow(columnFamily, rowKey).incrementCounterColumn(columnName, incrementAmount);
-    }
-    mutation.execute();
+        }
+        mutation.execute();
     }
 
     @Override
-    public void incrementCountColumns(List<Tuple> inputs,
-                    TupleCounterMapper tupleMapper) throws Exception {
-            MutationBatch mutation = keyspace.prepareMutationBatch();
-            for (Tuple input : inputs) {
-                    String columnFamilyName = tupleMapper.mapToColumnFamily(input);
+    public void incrementCountColumns(List<Tuple> inputs, TupleCounterMapper tupleMapper) throws Exception {
+        MutationBatch mutation = keyspace.prepareMutationBatch();
+        for (Tuple input : inputs) {
+            String columnFamilyName = tupleMapper.mapToColumnFamily(input);
             String rowKey = (String) tupleMapper.mapToRowKey(input);
             long incrementAmount = tupleMapper.mapToIncrementAmount(input);
             ColumnFamily<String, String> columnFamily = new ColumnFamily<String, String>(columnFamilyName,
                     StringSerializer.get(), StringSerializer.get());
-            for(String columnName : tupleMapper.mapToColumnList(input)){
-                    mutation.withRow(columnFamily, rowKey).incrementCounterColumn(columnName, incrementAmount);
+            for (String columnName : tupleMapper.mapToColumnList(input)) {
+                mutation.withRow(columnFamily, rowKey).incrementCounterColumn(columnName, incrementAmount);
             }
-            }
-            mutation.execute();
+        }
+        mutation.execute();
     }
-    
-    
+
     @SuppressWarnings("unchecked")
     private Serializer<K> getColumnNameSerializer() {
         if (this.getColumnNameClass().equals(String.class)) {
@@ -315,7 +265,7 @@ public class AstyanaxClient<K, V> extends CassandraClient<K, V> {
             return new AnnotatedCompositeSerializer<K>(this.getColumnNameClass());
         }
     }
-    
+
     @SuppressWarnings("unchecked")
     private Serializer<V> getColumnValueSerializer() {
         if (this.getColumnValueClass().equals(String.class)) {

@@ -16,25 +16,24 @@ import com.hmsonline.storm.cassandra.client.AstyanaxClient;
 import com.hmsonline.storm.cassandra.client.CassandraClient;
 
 @SuppressWarnings("serial")
-public abstract class CassandraBolt<K,V> implements Serializable {
+public abstract class CassandraBolt<K, V> implements Serializable {
     private static final Logger LOG = LoggerFactory.getLogger(CassandraBolt.class);
     public static String CASSANDRA_HOST = "cassandra.host";
     public static final String CASSANDRA_KEYSPACE = "cassandra.keyspace";
     public static final String CASSANDRA_BATCH_MAX_SIZE = "cassandra.batch.max_size";
     public static String CASSANDRA_CLIENT_CLASS = "cassandra.client.class";
-    
+
     private String cassandraHost;
     private String cassandraKeyspace;
     private Class<K> columnNameClass;
     private Class<V> columnValueClass;
-    private String clientClass;
-    private CassandraClient<K,V> client;
+    private CassandraClient<K, V> client;
 
-    protected TupleMapper<K,V> tupleMapper;
-    protected CassandraClient<K,V> cassandraClient;
+    protected TupleMapper<K, V> tupleMapper;
+    protected CassandraClient<K, V> cassandraClient;
     protected Map<String, Object> stormConfig;
 
-    public CassandraBolt(TupleMapper<K,V> tupleMapper, Class<K> columnNameClass, Class<V> columnValueClass) {        
+    public CassandraBolt(TupleMapper<K, V> tupleMapper, Class<K> columnNameClass, Class<V> columnValueClass) {
         this.tupleMapper = tupleMapper;
         this.columnNameClass = columnNameClass;
         this.columnValueClass = columnValueClass;
@@ -42,21 +41,20 @@ public abstract class CassandraBolt<K,V> implements Serializable {
         LOG.debug("Creating Cassandra Bolt (" + this + ")");
     }
 
-    @SuppressWarnings("rawtypes")
     public void prepare(Map<String, Object> stormConf, TopologyContext context) {
         this.stormConfig = stormConf;
-        if(this.cassandraHost == null){
+        if (this.cassandraHost == null) {
             this.cassandraHost = (String) stormConf.get(CASSANDRA_HOST);
         }
-        if (this.cassandraKeyspace == null){
+        if (this.cassandraKeyspace == null) {
             this.cassandraKeyspace = (String) stormConf.get(CASSANDRA_KEYSPACE);
         }
         LOG.error("Creating new Cassandra Client @ (" + this.cassandraHost + ":" + this.cassandraKeyspace + ")");
-        client = new AstyanaxClient<K,V>(columnNameClass, columnValueClass);
+        client = new AstyanaxClient<K, V>(columnNameClass, columnValueClass);
         client.start(this.cassandraHost, this.cassandraKeyspace, stormConfig);
     }
 
-    public CassandraClient<K,V> getClient(){
+    public CassandraClient<K, V> getClient() {
         return client;
     }
 
@@ -66,23 +64,23 @@ public abstract class CassandraBolt<K,V> implements Serializable {
         // getClient().stop();
     }
 
-    public void writeTuple(Tuple input, TupleMapper<K,V> tupleMapper) throws Exception {
+    public void writeTuple(Tuple input, TupleMapper<K, V> tupleMapper) throws Exception {
         getClient().writeTuple(input, tupleMapper);
     }
 
-    public void writeTuples(List<Tuple> inputs, TupleMapper<K,V> tupleMapper) throws Exception {
+    public void writeTuples(List<Tuple> inputs, TupleMapper<K, V> tupleMapper) throws Exception {
         getClient().writeTuples(inputs, tupleMapper);
     }
 
     public Map<String, Object> getComponentConfiguration() {
         return null;
     }
-    
-    public void incrementCounter(Tuple input, TupleCounterMapper tupleMapper) throws Exception{
+
+    public void incrementCounter(Tuple input, TupleCounterMapper tupleMapper) throws Exception {
         getClient().incrementCountColumn(input, tupleMapper);
     }
-    
-    public void incrementCounters(List<Tuple> inputs, TupleCounterMapper tupleMapper) throws Exception{
+
+    public void incrementCounters(List<Tuple> inputs, TupleCounterMapper tupleMapper) throws Exception {
         getClient().incrementCountColumns(inputs, tupleMapper);
     }
 }

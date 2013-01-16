@@ -9,11 +9,11 @@ import com.hmsonline.storm.cassandra.bolt.mapper.Columns;
 import com.netflix.astyanax.Serializer;
 import com.netflix.astyanax.model.ColumnList;
 
-public class AstyanaxColumns<K,V> implements Columns<K,V> {
+public class AstyanaxColumns<K, V> implements Columns<K, V> {
     private ColumnList<K> astyanaxColumns;
     private Serializer<V> serializer;
-    
-    public AstyanaxColumns(ColumnList<K> columns, Serializer<V> serializer){
+
+    public AstyanaxColumns(ColumnList<K> columns, Serializer<V> serializer) {
         this.astyanaxColumns = columns;
         this.serializer = serializer;
     }
@@ -23,23 +23,23 @@ public class AstyanaxColumns<K,V> implements Columns<K,V> {
         return (V) astyanaxColumns.getColumnByName(columnName).getValue(serializer);
     }
 
-	@Override
-	public V getColumnByIndex(int i) {
+    @Override
+    public V getColumnByIndex(int i) {
         return (V) astyanaxColumns.getColumnByIndex(i).getValue(serializer);
-	}
+    }
 
-	@Override
-	public int size() {
-		return astyanaxColumns.size();
-	}
+    @Override
+    public int size() {
+        return astyanaxColumns.size();
+    }
 
-	@Override
-	public Iterator<Column<K, V>> iterator() {
-		List<Column<K,V>> columns = new ArrayList<Column<K,V>>();
-		for (com.netflix.astyanax.model.Column<K> astyanaxColumn : this.astyanaxColumns){
-			columns.add(new AstyanaxColumn<K,V>(astyanaxColumn, serializer));
-		}
-		return columns.iterator();
-	}
+    @Override
+    public Iterator<Column<K, V>> iterator() {
+        List<Column<K, V>> columns = new ArrayList<Column<K, V>>();
+        for (com.netflix.astyanax.model.Column<K> astyanaxColumn : this.astyanaxColumns) {
+            columns.add(new AstyanaxColumn<K, V>(astyanaxColumn, serializer));
+        }
+        return columns.iterator();
+    }
 
 }

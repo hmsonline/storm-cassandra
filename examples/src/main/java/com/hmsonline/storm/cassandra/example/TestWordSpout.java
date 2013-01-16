@@ -13,24 +13,24 @@ import backtype.storm.tuple.Values;
 
 @SuppressWarnings("serial")
 public class TestWordSpout implements IRichSpout {
-    boolean _isDistributed;
-    SpoutOutputCollector _collector;
+    boolean isDistributed;
+    SpoutOutputCollector collector;
 
     public TestWordSpout() {
         this(true);
     }
 
     public TestWordSpout(boolean isDistributed) {
-        _isDistributed = isDistributed;
+        this.isDistributed = isDistributed;
     }
 
     public boolean isDistributed() {
-        return _isDistributed;
+        return this.isDistributed;
     }
 
     @SuppressWarnings("rawtypes")
     public void open(Map conf, TopologyContext context, SpoutOutputCollector collector) {
-        _collector = collector;
+        this.collector = collector;
     }
 
     public void close() {
@@ -41,7 +41,7 @@ public class TestWordSpout implements IRichSpout {
         final String[] words = new String[] { "nathan", "mike", "jackson", "golda", "bertels" };
         final Random rand = new Random();
         final String word = words[rand.nextInt(words.length)];
-        _collector.emit(new Values(word), UUID.randomUUID());
+        this.collector.emit(new Values(word), UUID.randomUUID());
     }
 
     public void ack(Object msgId) {

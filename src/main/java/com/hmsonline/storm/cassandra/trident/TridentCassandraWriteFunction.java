@@ -14,10 +14,10 @@ import com.hmsonline.storm.cassandra.bolt.mapper.TridentTupleMapper;
 import com.hmsonline.storm.cassandra.client.AstyanaxClient;
 import com.hmsonline.storm.cassandra.client.CassandraClient;
 
-public class TridentCassandraWriteFunction<K,V> implements Function{
-	private static final long serialVersionUID = 1L;
-	private static final Logger LOG = LoggerFactory.getLogger(TridentCassandraWriteFunction.class);
-    protected TridentTupleMapper<K,V> tupleMapper;
+public class TridentCassandraWriteFunction<K, V> implements Function {
+    private static final long serialVersionUID = 1L;
+    private static final Logger LOG = LoggerFactory.getLogger(TridentCassandraWriteFunction.class);
+    protected TridentTupleMapper<K, V> tupleMapper;
 
     public static String CASSANDRA_HOST = "cassandra.host";
     public static final String CASSANDRA_KEYSPACE = "cassandra.keyspace";
@@ -27,29 +27,30 @@ public class TridentCassandraWriteFunction<K,V> implements Function{
     private String cassandraHost;
     private String cassandraKeyspace;
     protected Map<String, Object> stormConfig;
-    private CassandraClient<K,V> client;
+    private CassandraClient<K, V> client;
     private Class<K> columnNameClass;
     private Class<V> columnValueClass;
 
-    public TridentCassandraWriteFunction(TridentTupleMapper<K,V> tupleMapper, Class<K> columnNameClass, Class<V> columnValueClass) {
+    public TridentCassandraWriteFunction(TridentTupleMapper<K, V> tupleMapper, Class<K> columnNameClass,
+            Class<V> columnValueClass) {
         this.tupleMapper = tupleMapper;
         this.columnNameClass = columnNameClass;
         this.columnValueClass = columnValueClass;
     }
 
-	@Override
+    @Override
     @SuppressWarnings({ "rawtypes", "unchecked" })
     public void prepare(Map stormConf, TridentOperationContext context) {
         this.stormConfig = stormConf;
-        if(this.cassandraHost == null){
+        if (this.cassandraHost == null) {
             this.cassandraHost = (String) stormConf.get(CASSANDRA_HOST);
         }
-        if (this.cassandraKeyspace == null){
+        if (this.cassandraKeyspace == null) {
             this.cassandraKeyspace = (String) stormConf.get(CASSANDRA_KEYSPACE);
         }
 
         LOG.error("Creating new Cassandra Client @ (" + this.cassandraHost + ":" + this.cassandraKeyspace + ")");
-        client = new AstyanaxClient<K,V>(columnNameClass, columnValueClass);
+        client = new AstyanaxClient<K, V>(columnNameClass, columnValueClass);
         client.start(this.cassandraHost, this.cassandraKeyspace, stormConfig);
     }
 
@@ -72,10 +73,10 @@ public class TridentCassandraWriteFunction<K,V> implements Function{
         getClient().writeTuple(input, this.tupleMapper);
     }
 
-    public synchronized CassandraClient<K,V> getClient(){
-    	if (client == null){
-    		
-    	}
-    	return client;
+    public synchronized CassandraClient<K, V> getClient() {
+        if (client == null) {
+
+        }
+        return client;
     }
 }

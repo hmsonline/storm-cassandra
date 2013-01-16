@@ -8,17 +8,17 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.hmsonline.storm.cassandra.bolt.mapper.Columns;
-import com.hmsonline.storm.cassandra.bolt.mapper.ColumnsMapper;
-import com.hmsonline.storm.cassandra.bolt.mapper.RangeQueryTupleMapper;
-import com.hmsonline.storm.cassandra.bolt.mapper.TupleMapper;
-
 import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.BasicOutputCollector;
 import backtype.storm.topology.IBasicBolt;
 import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.tuple.Tuple;
 import backtype.storm.tuple.Values;
+
+import com.hmsonline.storm.cassandra.bolt.mapper.Columns;
+import com.hmsonline.storm.cassandra.bolt.mapper.ColumnsMapper;
+import com.hmsonline.storm.cassandra.bolt.mapper.RangeQueryTupleMapper;
+import com.hmsonline.storm.cassandra.bolt.mapper.TupleMapper;
 
 /**
  * A bolt implementation that emits tuples based on a combination of cassandra
@@ -44,7 +44,7 @@ public class CassandraLookupBolt<K,V> extends CassandraBolt<K,V> implements IBas
         this.columnsMapper = columnsMapper;
     }
 
-    @SuppressWarnings("rawtypes")
+    @SuppressWarnings({ "rawtypes", "unchecked" })
     @Override
     public void prepare(Map stormConf, TopologyContext context) {
         super.prepare(stormConf, context);

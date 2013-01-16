@@ -30,8 +30,8 @@ public class DefaultTupleMapper implements TupleMapper<String, String> {
     }
 
     /**
-     * Default behavior is to write each value in the tuple as a 
-     * key:value pair in the Cassandra row.
+     * Default behavior is to write each value in the tuple as a key:value pair
+     * in the Cassandra row.
      * 
      * @param tuple
      * @return

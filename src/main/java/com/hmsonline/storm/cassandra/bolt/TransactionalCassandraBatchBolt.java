@@ -8,8 +8,6 @@ import java.util.concurrent.LinkedBlockingQueue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.hmsonline.storm.cassandra.bolt.mapper.TupleMapper;
-
 import backtype.storm.coordination.BatchOutputCollector;
 import backtype.storm.coordination.IBatchBolt;
 import backtype.storm.task.TopologyContext;
@@ -17,37 +15,42 @@ import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.transactional.ICommitter;
 import backtype.storm.tuple.Tuple;
 
+import com.hmsonline.storm.cassandra.bolt.mapper.TupleMapper;
+
 @SuppressWarnings({ "serial", "rawtypes" })
-public class TransactionalCassandraBatchBolt<K,V> extends CassandraBatchingBolt<K,V> implements IBatchBolt, ICommitter {
+public class TransactionalCassandraBatchBolt<K, V> extends CassandraBatchingBolt<K, V> implements IBatchBolt,
+        ICommitter {
     private static final Logger LOG = LoggerFactory.getLogger(TransactionalCassandraBatchBolt.class);
     private Object transactionId = null;
 
-    public TransactionalCassandraBatchBolt(TupleMapper<K,V> tupleMapper, Class<K> columnNameClass, Class<V> columnValueClass) {
+    public TransactionalCassandraBatchBolt(TupleMapper<K, V> tupleMapper, Class<K> columnNameClass,
+            Class<V> columnValueClass) {
         super(tupleMapper, columnNameClass, columnValueClass);
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public void prepare(Map conf, TopologyContext context, BatchOutputCollector collector, Object id) {
         super.prepare(conf, context);
-        this.queue = new LinkedBlockingQueue<Tuple>();  
+        this.queue = new LinkedBlockingQueue<Tuple>();
         this.transactionId = id;
         LOG.debug("Preparing cassandra batch [" + transactionId + "]");
     }
 
     @Override
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
-        // By default we don't emit anything.        
+        // By default we don't emit anything.
     }
 
     @Override
     public void execute(Tuple tuple) {
         LOG.debug("Executing tuple for [" + transactionId + "]");
-        queue.add(tuple);        
+        queue.add(tuple);
     }
-    
+
     @Override
     public void finishBatch() {
-        
+
         List<Tuple> batch = new ArrayList<Tuple>();
         int size = queue.drainTo(batch);
         LOG.debug("Finishing batch for [" + transactionId + "], writing [" + size + "] tuples.");

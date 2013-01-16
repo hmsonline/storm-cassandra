@@ -11,12 +11,17 @@ import org.apache.thrift.transport.TTransportException;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import static org.junit.Assert.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.hmsonline.storm.cassandra.bolt.CassandraBatchingBolt;
-import com.hmsonline.storm.cassandra.bolt.CassandraBolt;
+import backtype.storm.Config;
+import backtype.storm.task.TopologyContext;
+import backtype.storm.topology.TopologyBuilder;
+import backtype.storm.tuple.Fields;
+import backtype.storm.tuple.Tuple;
+import backtype.storm.tuple.TupleImpl;
+import backtype.storm.tuple.Values;
+
 import com.hmsonline.storm.cassandra.bolt.mapper.DefaultTupleMapper;
 import com.hmsonline.storm.cassandra.bolt.mapper.TupleMapper;
 import com.netflix.astyanax.AstyanaxContext;
@@ -32,18 +37,9 @@ import com.netflix.astyanax.model.ColumnFamily;
 import com.netflix.astyanax.serializers.StringSerializer;
 import com.netflix.astyanax.thrift.ThriftFamilyFactory;
 
-import backtype.storm.Config;
-import backtype.storm.task.TopologyContext;
-import backtype.storm.topology.TopologyBuilder;
-import backtype.storm.tuple.Fields;
-import backtype.storm.tuple.Tuple;
-import backtype.storm.tuple.TupleImpl;
-import backtype.storm.tuple.Values;
-
 public class CassandraBoltTest {
     private static Logger LOG = LoggerFactory.getLogger(CassandraBoltTest.class);
     private static EmbeddedCassandra cassandra;
-
 
     @BeforeClass
     public static void setupCassandra() throws TTransportException, IOException, InterruptedException,
@@ -73,7 +69,8 @@ public class CassandraBoltTest {
                     .addColumnFamily(
                             cluster.makeColumnFamilyDefinition().setName("users").setComparatorType("UTF8Type")
                                     .setKeyValidationClass("UTF8Type").setDefaultValidationClass("UTF8Type"))
-                    .addColumnFamily(cluster.makeColumnFamilyDefinition().setName("Counts").setComparatorType("UTF8Type")
+                    .addColumnFamily(
+                            cluster.makeColumnFamilyDefinition().setName("Counts").setComparatorType("UTF8Type")
                                     .setKeyValidationClass("UTF8Type").setDefaultValidationClass("CounterColumnType"));
 
             cluster.addKeyspace(ksDef);
@@ -93,7 +90,8 @@ public class CassandraBoltTest {
     @Test
     public void testBolt() throws Exception {
         TupleMapper<String, String> tupleMapper = new DefaultTupleMapper("users", "VALUE");
-        CassandraBatchingBolt<String, String> bolt = new CassandraBatchingBolt<String, String>(tupleMapper, String.class, String.class);
+        CassandraBatchingBolt<String, String> bolt = new CassandraBatchingBolt<String, String>(tupleMapper,
+                String.class, String.class);
         TopologyBuilder builder = new TopologyBuilder();
         builder.setBolt("TEST_BOLT", bolt);
 
@@ -132,14 +130,15 @@ public class CassandraBoltTest {
         assertEquals("42", result.getStringValue());
 
     }
-    
+
     @Test
     public void testCounterBolt() throws Exception {
-    	CassandraCounterBatchingBolt bolt = new CassandraCounterBatchingBolt("Counts", "Timestamp", "IncrementAmount", String.class, String.class);
+        CassandraCounterBatchingBolt<String, String> bolt = new CassandraCounterBatchingBolt<String, String>("Counts", "Timestamp", "IncrementAmount",
+                String.class, String.class);
         TopologyBuilder builder = new TopologyBuilder();
         builder.setBolt("TEST__COUNTER_BOLT", bolt);
 
-        Fields fields = new Fields("Timestamp","IncrementAmount","CounterColumn");
+        Fields fields = new Fields("Timestamp", "IncrementAmount", "CounterColumn");
         TopologyContext context = new MockTopologyContext(builder.createTopology(), fields);
 
         Config config = new Config();
@@ -150,7 +149,7 @@ public class CassandraBoltTest {
         bolt.prepare(config, context, null);
         System.out.println("Bolt Preparation Complete.");
 
-        Values values = new Values(1L,1L,"MyCountColumn");
+        Values values = new Values(1L, 1L, "MyCountColumn");
         Tuple tuple = new TupleImpl(context, values, 5, "test");
         bolt.execute(tuple);
 
@@ -167,9 +166,10 @@ public class CassandraBoltTest {
                 .buildKeyspace(ThriftFamilyFactory.getInstance());
         astyContext.start();
         Keyspace ks = astyContext.getEntity();
-        
+
         Column<String> result = ks
-                .prepareQuery(new ColumnFamily<String, String>("Counts", StringSerializer.get(), StringSerializer.get()))
+                .prepareQuery(
+                        new ColumnFamily<String, String>("Counts", StringSerializer.get(), StringSerializer.get()))
                 .getKey("1").getColumn("MyCountColumn").execute().getResult();
         assertEquals(1L, result.getLongValue());
 

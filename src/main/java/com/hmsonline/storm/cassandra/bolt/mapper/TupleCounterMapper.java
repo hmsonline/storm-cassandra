@@ -2,11 +2,9 @@ package com.hmsonline.storm.cassandra.bolt.mapper;
 
 import java.io.Serializable;
 import java.util.List;
-import java.util.Map;
 
 import backtype.storm.tuple.Tuple;
 
-// TODO: Need to add generics everywhere instead of Strings
 public interface TupleCounterMapper extends Serializable {
 
     /**
@@ -16,7 +14,7 @@ public interface TupleCounterMapper extends Serializable {
      * @param tuple
      * @return
      */
-    public String mapToColumnFamily(Tuple tuple);
+    String mapToColumnFamily(Tuple tuple);
 
     /**
      * Given a <code>backtype.storm.tuple.Tuple</code> generate a Cassandra row
@@ -25,7 +23,7 @@ public interface TupleCounterMapper extends Serializable {
      * @param tuple
      * @return
      */
-    public String mapToRowKey(Tuple tuple);
+    String mapToRowKey(Tuple tuple);
 
     /**
      * Given a <code>backtype.storm.tuple.Tuple</code> returns the amount that
@@ -34,7 +32,7 @@ public interface TupleCounterMapper extends Serializable {
      * @param tuple
      * @return
      */
-    public long mapToIncrementAmount(Tuple tuple);
+    long mapToIncrementAmount(Tuple tuple);
 
     /**
      * Given a <code>backtype.storm.tuple.Tuple</code> object, map the columns
@@ -43,6 +41,6 @@ public interface TupleCounterMapper extends Serializable {
      * @param tuple
      * @return
      */
-    public List<String> mapToColumnList(Tuple tuple);
+    List<String> mapToColumnList(Tuple tuple);
 
 }

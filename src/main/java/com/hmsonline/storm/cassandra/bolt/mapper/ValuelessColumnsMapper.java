@@ -2,11 +2,7 @@ package com.hmsonline.storm.cassandra.bolt.mapper;
 
 import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
-
-import org.mortbay.log.Log;
 
 import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.tuple.Fields;
@@ -103,9 +99,9 @@ public class ValuelessColumnsMapper implements ColumnsMapper<String, String>, Se
      */
     @Override
     public List<Values> mapToValues(String rowKey, Columns<String, String> columns, Tuple input) {
-        List<Values> values = new ArrayList<Values>();        
-        for(Column<String,String> column : columns) {
-        	String columnName = column.getKey();
+        List<Values> values = new ArrayList<Values>();
+        for (Column<String, String> column : columns) {
+            String columnName = column.getKey();
             if (this.isDrpc) {
                 values.add(new Values(input.getValue(0), rowKey, columnName));
             } else {

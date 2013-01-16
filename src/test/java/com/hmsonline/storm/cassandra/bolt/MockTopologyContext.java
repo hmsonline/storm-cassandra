@@ -8,7 +8,7 @@ import backtype.storm.task.TopologyContext;
 import backtype.storm.tuple.Fields;
 
 public class MockTopologyContext extends TopologyContext {
-    
+
     private Fields declaredFields;
 
     public MockTopologyContext(StormTopology topology, Fields fields) {

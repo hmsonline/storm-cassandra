@@ -7,24 +7,25 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.hmsonline.storm.cassandra.bolt.mapper.TupleMapper;
-
 import storm.trident.topology.BatchInfo;
 import storm.trident.topology.ITridentBatchBolt;
 import backtype.storm.coordination.BatchOutputCollector;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.tuple.Tuple;
 
+import com.hmsonline.storm.cassandra.bolt.mapper.TupleMapper;
+
 /**
  * Still WIP.
+ * 
  * @author boneill42
  */
 @SuppressWarnings({ "serial", "rawtypes", "unchecked" })
-public class TridentCassandraBatchBolt<K,V> extends TransactionalCassandraBatchBolt implements ITridentBatchBolt {
+public class TridentCassandraBatchBolt<K, V> extends TransactionalCassandraBatchBolt implements ITridentBatchBolt {
     private static final Logger LOG = LoggerFactory.getLogger(TridentCassandraBatchBolt.class);
     private Object transactionId = null;
 
-    public TridentCassandraBatchBolt(TupleMapper<K,V> tupleMapper, Class<K> columnNameClass, Class<V> columnValueClass) {
+    public TridentCassandraBatchBolt(TupleMapper<K, V> tupleMapper, Class<K> columnNameClass, Class<V> columnValueClass) {
         super(tupleMapper, columnNameClass, columnValueClass);
     }
 
@@ -34,7 +35,7 @@ public class TridentCassandraBatchBolt<K,V> extends TransactionalCassandraBatchB
     }
 
     @Override
-    public void finishBatch() {        
+    public void finishBatch() {
         List<Tuple> batch = new ArrayList<Tuple>();
         int size = queue.drainTo(batch);
         LOG.debug("Finishing batch for [" + transactionId + "], writing [" + size + "] tuples.");
@@ -47,12 +48,12 @@ public class TridentCassandraBatchBolt<K,V> extends TransactionalCassandraBatchB
 
     @Override
     public void execute(BatchInfo batchInfo, Tuple tuple) {
-        super.execute(tuple);        
+        super.execute(tuple);
     }
 
     @Override
     public void finishBatch(BatchInfo batchInfo) {
-        super.finishBatch();        
+        super.finishBatch();
     }
 
     @Override

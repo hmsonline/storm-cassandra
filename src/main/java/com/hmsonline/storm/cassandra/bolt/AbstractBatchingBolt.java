@@ -1,4 +1,5 @@
 package com.hmsonline.storm.cassandra.bolt;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -33,7 +34,7 @@ import backtype.storm.utils.Utils;
  * @author ptgoetz
  */
 @SuppressWarnings("serial")
-public abstract class AbstractBatchingBolt<K,V> extends CassandraBolt<K,V> implements IRichBolt {
+public abstract class AbstractBatchingBolt<K, V> extends CassandraBolt<K, V> implements IRichBolt {
     private static final Logger LOG = LoggerFactory.getLogger(AbstractBatchingBolt.class);
 
     protected AckStrategy ackStrategy = AckStrategy.ACK_IGNORE;
@@ -44,10 +45,10 @@ public abstract class AbstractBatchingBolt<K,V> extends CassandraBolt<K,V> imple
 
     private BatchThread batchThread;
 
-    public AbstractBatchingBolt(TupleMapper<K,V> tupleMapper, Class<K> columnNameClass, Class<V> columnValueClass) {
+    public AbstractBatchingBolt(TupleMapper<K, V> tupleMapper, Class<K> columnNameClass, Class<V> columnValueClass) {
         super(tupleMapper, columnNameClass, columnValueClass);
     }
-    
+
     @SuppressWarnings({ "rawtypes", "unchecked" })
     @Override
     public void prepare(Map stormConf, TopologyContext context, OutputCollector collector) {

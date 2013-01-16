@@ -5,8 +5,7 @@ import java.util.Map;
 
 import backtype.storm.tuple.Tuple;
 
-// TODO: Need to add generics everywhere instead of Strings
-public interface TupleMapper<K,V> extends Serializable {
+public interface TupleMapper<K, V> extends Serializable {
 
     /**
      * Given a <code>backtype.storm.tuple.Tuple</code> object, map the column
@@ -15,7 +14,7 @@ public interface TupleMapper<K,V> extends Serializable {
      * @param tuple
      * @return
      */
-    public String mapToColumnFamily(Tuple tuple);
+    String mapToColumnFamily(Tuple tuple);
 
     /**
      * Given a <code>backtype.storm.tuple.Tuple</code> generate a Cassandra row
@@ -24,7 +23,7 @@ public interface TupleMapper<K,V> extends Serializable {
      * @param tuple
      * @return
      */
-    public String mapToRowKey(Tuple tuple);
+    String mapToRowKey(Tuple tuple);
 
     /**
      * Given a <code>backtype.storm.tuple.Tuple</code> object, map the columns
@@ -33,5 +32,5 @@ public interface TupleMapper<K,V> extends Serializable {
      * @param tuple
      * @return
      */
-    public Map<K, V> mapToColumns(Tuple tuple);
+    Map<K, V> mapToColumns(Tuple tuple);
 }
