@@ -1,9 +1,9 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
-	<groupId>backtype.storm.contrib</groupId>
+	<groupId>com.hmsonline</groupId>
 	<artifactId>storm-cassandra-examples</artifactId>
-	<version>0.3.0-SNAPSHOT</version>
+	<version>0.4.0-SNAPSHOT</version>
 	<name>Storm Cassandra Examples</name>
 	<description>Storm Cassandra Examples</description>
 	<repositories>
@@ -23,9 +23,9 @@
 	</properties>
 	<dependencies>
 		<dependency>
-			<groupId>com.github.ptgoetz</groupId>
+			<groupId>com.hmsonline</groupId>
 			<artifactId>storm-cassandra</artifactId>
-			<version>0.3.0-SNAPSHOT</version>
+			<version>0.4.0-SNAPSHOT</version>
 		</dependency>
 		<dependency>
 			<groupId>storm</groupId>
@@ -85,7 +85,6 @@
 					<includeProjectDependencies>true</includeProjectDependencies>
 					<includePluginDependencies>false</includePluginDependencies>
 					<classpathScope>compile</classpathScope>
-					<!-- <mainClass>backtype.storm.contrib.cassandra.example.CassandraReachTopology</mainClass> -->
 					<systemProperties>
 						<systemProperty>
 							<key>log4j.configuration</key>

@@ -6,14 +6,15 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import com.hmsonline.storm.cassandra.bolt.CassandraBolt;
+import com.hmsonline.storm.cassandra.bolt.CassandraLookupBolt;
+import com.hmsonline.storm.cassandra.bolt.mapper.DefaultTupleMapper;
+import com.hmsonline.storm.cassandra.bolt.mapper.ValuelessColumnsMapper;
+
 import backtype.storm.Config;
 import backtype.storm.LocalCluster;
 import backtype.storm.LocalDRPC;
 import backtype.storm.StormSubmitter;
-import backtype.storm.contrib.cassandra.bolt.CassandraBolt;
-import backtype.storm.contrib.cassandra.bolt.CassandraLookupBolt;
-import backtype.storm.contrib.cassandra.bolt.mapper.DefaultTupleMapper;
-import backtype.storm.contrib.cassandra.bolt.mapper.ValuelessColumnsMapper;
 import backtype.storm.coordination.BatchOutputCollector;
 import backtype.storm.drpc.LinearDRPCTopologyBuilder;
 import backtype.storm.task.TopologyContext;
@@ -43,13 +44,13 @@ public class CassandraReachTopology {
         DefaultTupleMapper tweetersTupleMapper = new DefaultTupleMapper("tweeters", "url");
         // cf (url -> tweeters) -> emit(url, follower)
         ValuelessColumnsMapper tweetersColumnsMapper = new ValuelessColumnsMapper("url", "tweeter", true);
-        CassandraLookupBolt tweetersBolt = new CassandraLookupBolt(tweetersTupleMapper, tweetersColumnsMapper);
+        CassandraLookupBolt<String> tweetersBolt = new CassandraLookupBolt<String>(tweetersTupleMapper, tweetersColumnsMapper, String.class);
 
         // cf = "followers", rowkey = tuple["tweeter"]
         DefaultTupleMapper followersTupleMapper = new DefaultTupleMapper("followers", "tweeter");
         // cf (tweeter -> followers) ==> emit(url, follower)
         ValuelessColumnsMapper followersColumnsMapper = new ValuelessColumnsMapper("url", "follower", true);
-        CassandraLookupBolt followersBolt = new CassandraLookupBolt(followersTupleMapper, followersColumnsMapper);
+        CassandraLookupBolt<String> followersBolt = new CassandraLookupBolt<String>(followersTupleMapper, followersColumnsMapper, String.class);
 
         builder.addBolt(new InitBolt());
         builder.addBolt(tweetersBolt).shuffleGrouping();

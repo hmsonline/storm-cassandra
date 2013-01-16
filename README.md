@@ -111,7 +111,7 @@ Create the sample schema using `cassandra-cli`:
 
 To run the `CassandraReachTopology` execute the following maven command:
 
-		$ mvn exec:java -Dexec.mainClass=backtype.storm.contrib.cassandra.example.CassandraReachTopology
+		$ mvn exec:java -Dexec.mainClass=com.hmsonline.storm.cassandra.example.CassandraReachTopology
 
 Among the output, you should see the following:
 
@@ -122,7 +122,7 @@ Among the output, you should see the following:
 
 To enable logging of all tuples sent within the topology, run the following command:
 
-		$ mvn exec:java -Dexec.mainClass=backtype.storm.contrib.cassandra.example.CassandraReachTopology -Ddebug=true
+		$ mvn exec:java -Dexec.mainClass=com.hmsonline.storm.cassandra.example.CassandraReachTopology -Ddebug=true
 
 
 ## Running the Persistent Word Count Example
@@ -142,7 +142,7 @@ Cassandra database using the word as the row key.
 
 Run the `PersistentWordCount` topology:
 
-		$ mvn exec:java -Dexec.mainClass=backtype.storm.contrib.cassandra.example.PersistentWordCount
+		$ mvn exec:java -Dexec.mainClass=com.hmsonline.storm.cassandra.example.PersistentWordCount
 	
 View the end result in `cassandra-cli`:
 
