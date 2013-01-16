@@ -8,7 +8,7 @@ import backtype.storm.tuple.Tuple;
 import storm.trident.tuple.TridentTuple;
 
 
-public interface TridentTupleMapper<T> extends Serializable {
+public interface TridentTupleMapper<K,V> extends Serializable {
     /**
      * Given a <code>backtype.storm.tuple.Tuple</code> object, map the column
      * family to write to.
@@ -27,7 +27,7 @@ public interface TridentTupleMapper<T> extends Serializable {
      */
     public String mapToRowKey(TridentTuple tuple);
 
-    public Map<T, String> mapToColumns(TridentTuple tuple);
+    public Map<K, V> mapToColumns(TridentTuple tuple);
 
     public Object mapToEndKey(TridentTuple tuple);
 

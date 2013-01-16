@@ -6,6 +6,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import org.mortbay.log.Log;
+
 import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Tuple;
@@ -57,7 +59,7 @@ import backtype.storm.tuple.Values;
  * @author boneill42
  */
 @SuppressWarnings("serial")
-public class ValuelessColumnsMapper implements ColumnsMapper<String>, Serializable {
+public class ValuelessColumnsMapper implements ColumnsMapper<String, String>, Serializable {
     private String emitFieldForRowKey;
     private String emitFieldForColumnName;
     private boolean isDrpc;
@@ -100,11 +102,10 @@ public class ValuelessColumnsMapper implements ColumnsMapper<String>, Serializab
      * @return
      */
     @Override
-    public List<Values> mapToValues(String rowKey, Columns<String> columns, Tuple input) {
-        List<Values> values = new ArrayList<Values>();
-        Iterator<String> columnNames = columns.getColumnNames();
-        while(columnNames.hasNext()) {
-            String columnName = columnNames.next();
+    public List<Values> mapToValues(String rowKey, Columns<String, String> columns, Tuple input) {
+        List<Values> values = new ArrayList<Values>();        
+        for(Column<String,String> column : columns) {
+        	String columnName = column.getKey();
             if (this.isDrpc) {
                 values.add(new Values(input.getValue(0), rowKey, columnName));
             } else {

@@ -20,12 +20,12 @@ import backtype.storm.tuple.Tuple;
  * @author boneill42
  */
 @SuppressWarnings({ "serial", "rawtypes", "unchecked" })
-public class TridentCassandraBatchBolt extends TransactionalCassandraBatchBolt implements ITridentBatchBolt {
+public class TridentCassandraBatchBolt<K,V> extends TransactionalCassandraBatchBolt implements ITridentBatchBolt {
     private static final Logger LOG = LoggerFactory.getLogger(TridentCassandraBatchBolt.class);
     private Object transactionId = null;
 
-    public TridentCassandraBatchBolt(TupleMapper tupleMapper) {
-        super(tupleMapper);
+    public TridentCassandraBatchBolt(TupleMapper<K,V> tupleMapper, Class<K> columnNameClass, Class<V> columnValueClass) {
+        super(tupleMapper, columnNameClass, columnValueClass);
     }
 
     @Override
