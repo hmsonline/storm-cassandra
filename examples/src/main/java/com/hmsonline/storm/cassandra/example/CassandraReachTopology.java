@@ -21,6 +21,7 @@ import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Tuple;
 import backtype.storm.tuple.Values;
 
+import com.hmsonline.storm.cassandra.StormCassandraConstants;
 import com.hmsonline.storm.cassandra.bolt.CassandraBolt;
 import com.hmsonline.storm.cassandra.bolt.CassandraLookupBolt;
 import com.hmsonline.storm.cassandra.bolt.mapper.DefaultTupleMapper;
@@ -61,8 +62,8 @@ public class CassandraReachTopology {
         builder.addBolt(new CountAggregator()).fieldsGrouping(new Fields("id"));
 
         Config config = new Config();
-        config.put(CassandraBolt.CASSANDRA_HOST, "localhost:9160");
-        config.put(CassandraBolt.CASSANDRA_KEYSPACE, "stormks");
+        config.put(StormCassandraConstants.CASSANDRA_HOST, "localhost:9160");
+        config.put(StormCassandraConstants.CASSANDRA_KEYSPACE, "stormks");
 
         if (args == null || args.length == 0) {
             config.setMaxTaskParallelism(3);

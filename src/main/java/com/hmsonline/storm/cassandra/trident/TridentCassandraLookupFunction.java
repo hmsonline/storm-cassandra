@@ -12,6 +12,7 @@ import storm.trident.operation.TridentOperationContext;
 import storm.trident.tuple.TridentTuple;
 import backtype.storm.tuple.Values;
 
+import com.hmsonline.storm.cassandra.StormCassandraConstants;
 import com.hmsonline.storm.cassandra.bolt.mapper.Columns;
 import com.hmsonline.storm.cassandra.bolt.mapper.TridentColumnMapper;
 import com.hmsonline.storm.cassandra.bolt.mapper.TridentTupleMapper;
@@ -29,11 +30,6 @@ public class TridentCassandraLookupFunction<K, V> implements Function {
     private CassandraClient<K, V> client;
     private Class<K> columnNameClass;
     private Class<V> columnValueClass;
-
-    public static String CASSANDRA_HOST = "cassandra.host";
-    public static final String CASSANDRA_KEYSPACE = "cassandra.keyspace";
-    public static final String CASSANDRA_BATCH_MAX_SIZE = "cassandra.batch.max_size";
-    public static String CASSANDRA_CLIENT_CLASS = "cassandra.client.class";
     protected Map<String, Object> stormConfig;
 
     public TridentCassandraLookupFunction(TridentTupleMapper<K, V> tupleMapper, TridentColumnMapper<K, V> columnMapper,
@@ -49,10 +45,10 @@ public class TridentCassandraLookupFunction<K, V> implements Function {
     public void prepare(Map stormConf, TridentOperationContext context) {
         this.stormConfig = stormConf;
         if (this.cassandraHost == null) {
-            this.cassandraHost = (String) stormConf.get(CASSANDRA_HOST);
+            this.cassandraHost = (String) stormConf.get(StormCassandraConstants.CASSANDRA_HOST);
         }
         if (this.cassandraKeyspace == null) {
-            this.cassandraKeyspace = (String) stormConf.get(CASSANDRA_KEYSPACE);
+            this.cassandraKeyspace = (String) stormConf.get(StormCassandraConstants.CASSANDRA_KEYSPACE);
         }
 
         LOG.error("Creating new Cassandra Client @ (" + this.cassandraHost + ":" + this.cassandraKeyspace + ")");

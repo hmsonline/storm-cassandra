@@ -9,7 +9,7 @@ import org.slf4j.LoggerFactory;
 
 import backtype.storm.task.TopologyContext;
 import backtype.storm.tuple.Tuple;
-
+import com.hmsonline.storm.cassandra.StormCassandraConstants;
 import com.hmsonline.storm.cassandra.bolt.mapper.TupleCounterMapper;
 import com.hmsonline.storm.cassandra.bolt.mapper.TupleMapper;
 import com.hmsonline.storm.cassandra.client.AstyanaxClient;
@@ -18,10 +18,6 @@ import com.hmsonline.storm.cassandra.client.CassandraClient;
 @SuppressWarnings("serial")
 public abstract class CassandraBolt<K, V> implements Serializable {
     private static final Logger LOG = LoggerFactory.getLogger(CassandraBolt.class);
-    public static String CASSANDRA_HOST = "cassandra.host";
-    public static final String CASSANDRA_KEYSPACE = "cassandra.keyspace";
-    public static final String CASSANDRA_BATCH_MAX_SIZE = "cassandra.batch.max_size";
-    public static String CASSANDRA_CLIENT_CLASS = "cassandra.client.class";
 
     private String cassandraHost;
     private String cassandraKeyspace;
@@ -44,10 +40,10 @@ public abstract class CassandraBolt<K, V> implements Serializable {
     public void prepare(Map<String, Object> stormConf, TopologyContext context) {
         this.stormConfig = stormConf;
         if (this.cassandraHost == null) {
-            this.cassandraHost = (String) stormConf.get(CASSANDRA_HOST);
+            this.cassandraHost = (String) stormConf.get(StormCassandraConstants.CASSANDRA_HOST);
         }
         if (this.cassandraKeyspace == null) {
-            this.cassandraKeyspace = (String) stormConf.get(CASSANDRA_KEYSPACE);
+            this.cassandraKeyspace = (String) stormConf.get(StormCassandraConstants.CASSANDRA_KEYSPACE);
         }
         LOG.error("Creating new Cassandra Client @ (" + this.cassandraHost + ":" + this.cassandraKeyspace + ")");
         client = new AstyanaxClient<K, V>(columnNameClass, columnValueClass);
