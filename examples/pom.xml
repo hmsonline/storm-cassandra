@@ -1,0 +1,109 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<groupId>com.hmsonline</groupId>
+	<artifactId>storm-cassandra-examples</artifactId>
+	<version>0.4.0-SNAPSHOT</version>
+	<name>Storm Cassandra Examples</name>
+	<description>Storm Cassandra Examples</description>
+	<repositories>
+		<repository>
+			<id>clojars.org</id>
+			<url>http://clojars.org/repo</url>
+		</repository>
+	</repositories>
+	<pluginRepositories>
+		<pluginRepository>
+			<id>clojars.org</id>
+			<url>http://clojars.org/repo</url>
+		</pluginRepository>
+	</pluginRepositories>
+	<properties>
+		<storm.version>0.8.1</storm.version>
+	</properties>
+	<dependencies>
+		<dependency>
+			<groupId>com.hmsonline</groupId>
+			<artifactId>storm-cassandra</artifactId>
+			<version>0.4.0-SNAPSHOT</version>
+		</dependency>
+		<dependency>
+			<groupId>storm</groupId>
+			<artifactId>storm</artifactId>
+			<version>${storm.version}</version>
+			<!-- keep storm out of the jar-with-dependencies -->
+			<scope>provided</scope>
+			<exclusions>
+				<exclusion>
+					<artifactId>guava</artifactId>
+					<groupId>com.google.guava</groupId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+	</dependencies>
+	<build>
+		<plugins>
+			<!-- bind the maven-assembly-plugin to the package phase this will create 
+				a jar file without the storm dependencies suitable for deployment to a cluster. -->
+			<plugin>
+				<artifactId>maven-assembly-plugin</artifactId>
+				<configuration>
+					<descriptorRefs>
+						<descriptorRef>jar-with-dependencies</descriptorRef>
+					</descriptorRefs>
+					<archive>
+						<manifest>
+							<mainClass></mainClass>
+						</manifest>
+					</archive>
+				</configuration>
+				<executions>
+					<execution>
+						<id>make-assembly</id>
+						<phase>package</phase>
+						<goals>
+							<goal>single</goal>
+						</goals>
+					</execution>
+				</executions>
+
+			</plugin>
+
+			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>exec-maven-plugin</artifactId>
+				<version>1.2.1</version>
+				<executions>
+					<execution>
+						<goals>
+							<goal>exec</goal>
+						</goals>
+					</execution>
+				</executions>
+				<configuration>
+					<executable>java</executable>
+					<includeProjectDependencies>true</includeProjectDependencies>
+					<includePluginDependencies>false</includePluginDependencies>
+					<classpathScope>compile</classpathScope>
+					<systemProperties>
+						<systemProperty>
+							<key>log4j.configuration</key>
+							<value>file:./src/main/resources/log4j.properties</value>
+						</systemProperty>
+					</systemProperties>
+				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<version>2.5.1</version>
+				<configuration>
+					<source>1.6</source>
+					<target>1.6</target>
+				</configuration>
+			</plugin>
+
+		</plugins>
+
+	</build>
+</project>
