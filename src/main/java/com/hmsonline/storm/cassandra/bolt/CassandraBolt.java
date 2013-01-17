@@ -30,7 +30,6 @@ public abstract class CassandraBolt<K, V> implements Serializable {
     private CassandraClient<K, V> client;
 
     protected TupleMapper<K, V> tupleMapper;
-    protected CassandraClient<K, V> cassandraClient;
     protected Map<String, Object> stormConfig;
 
     public CassandraBolt(TupleMapper<K, V> tupleMapper, Class<K> columnNameClass, Class<V> columnValueClass) {
