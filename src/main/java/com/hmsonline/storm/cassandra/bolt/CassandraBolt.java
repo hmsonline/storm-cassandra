@@ -27,8 +27,8 @@ public abstract class CassandraBolt<K, V> implements Serializable {
     private String cassandraKeyspace;
     private Class<K> columnNameClass;
     private Class<V> columnValueClass;
-    private CassandraClient<K, V> client;
 
+    protected CassandraClient<K, V> client;
     protected TupleMapper<K, V> tupleMapper;
     protected Map<String, Object> stormConfig;
 
@@ -53,22 +53,20 @@ public abstract class CassandraBolt<K, V> implements Serializable {
         client.start(this.cassandraHost, this.cassandraKeyspace, stormConfig);
     }
 
-    public CassandraClient<K, V> getClient() {
-        return client;
-    }
+//    public CassandraClient<K, V> getClient() {
+//        return client;
+//    }
 
     public void cleanup() {
-        // No longer stop the client since it might be shared.
-        // TODO: Come back and fix this.
-        // getClient().stop();
+         this.client.stop();
     }
 
     public void writeTuple(Tuple input, TupleMapper<K, V> tupleMapper) throws Exception {
-        getClient().writeTuple(input, tupleMapper);
+        this.client.writeTuple(input, tupleMapper);
     }
 
     public void writeTuples(List<Tuple> inputs, TupleMapper<K, V> tupleMapper) throws Exception {
-        getClient().writeTuples(inputs, tupleMapper);
+        this.client.writeTuples(inputs, tupleMapper);
     }
 
     public Map<String, Object> getComponentConfiguration() {
@@ -76,10 +74,10 @@ public abstract class CassandraBolt<K, V> implements Serializable {
     }
 
     public void incrementCounter(Tuple input, TupleCounterMapper tupleMapper) throws Exception {
-        getClient().incrementCountColumn(input, tupleMapper);
+        this.client.incrementCountColumn(input, tupleMapper);
     }
 
     public void incrementCounters(List<Tuple> inputs, TupleCounterMapper tupleMapper) throws Exception {
-        getClient().incrementCountColumns(inputs, tupleMapper);
+        this.client.incrementCountColumns(inputs, tupleMapper);
     }
 }

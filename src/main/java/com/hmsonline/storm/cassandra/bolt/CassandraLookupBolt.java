@@ -59,9 +59,9 @@ public class CassandraLookupBolt<K,V> extends CassandraBolt<K,V> implements IBas
             if (queryTupleMapper != null) {
                 String start = queryTupleMapper.mapToStartkey(input);
                 String end = queryTupleMapper.mapToEndkey(input);
-                colMap = getClient().lookup(columnFamily, rowKey, start, end);
+                colMap = this.client.lookup(columnFamily, rowKey, start, end);
             } else {
-                colMap = getClient().lookup(columnFamily, rowKey);
+                colMap = this.client.lookup(columnFamily, rowKey);
             }
 
             List<Values> valuesToEmit = columnsMapper.mapToValues(rowKey, colMap, input);
