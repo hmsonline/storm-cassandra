@@ -22,6 +22,7 @@ import backtype.storm.tuple.Tuple;
 import backtype.storm.tuple.TupleImpl;
 import backtype.storm.tuple.Values;
 
+import com.hmsonline.storm.cassandra.StormCassandraConstants;
 import com.hmsonline.storm.cassandra.bolt.mapper.DefaultTupleMapper;
 import com.hmsonline.storm.cassandra.bolt.mapper.TupleMapper;
 import com.netflix.astyanax.AstyanaxContext;
@@ -99,8 +100,8 @@ public class CassandraBoltTest {
         TopologyContext context = new MockTopologyContext(builder.createTopology(), fields);
 
         Config config = new Config();
-        config.put(CassandraBolt.CASSANDRA_HOST, "localhost:9171");
-        config.put(CassandraBolt.CASSANDRA_KEYSPACE, "TestKeyspace");
+        config.put(StormCassandraConstants.CASSANDRA_HOST, "localhost:9171");
+        config.put(StormCassandraConstants.CASSANDRA_KEYSPACE, "TestKeyspace");
         config.put(Config.TOPOLOGY_MAX_SPOUT_PENDING, 5000);
 
         bolt.prepare(config, context, null);
@@ -142,8 +143,8 @@ public class CassandraBoltTest {
         TopologyContext context = new MockTopologyContext(builder.createTopology(), fields);
 
         Config config = new Config();
-        config.put(CassandraBolt.CASSANDRA_HOST, "localhost:9171");
-        config.put(CassandraBolt.CASSANDRA_KEYSPACE, "TestKeyspace");
+        config.put(StormCassandraConstants.CASSANDRA_HOST, "localhost:9171");
+        config.put(StormCassandraConstants.CASSANDRA_KEYSPACE, "TestKeyspace");
         config.put(Config.TOPOLOGY_MAX_SPOUT_PENDING, 5000);
 
         bolt.prepare(config, context, null);

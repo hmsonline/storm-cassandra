@@ -225,6 +225,16 @@ public class AstyanaxClient<K, V> extends CassandraClient<K, V> {
             mutation.withRow(columnFamily, rowKey).putColumn(entry.getKey(), entry.getValue(),
                     getColumnValueSerializer(), null);
         }
+
+        if(tupleMapper.shouldDelete(input)) {
+            for (Map.Entry<K, V> entry : columns.entrySet()) {
+                mutation.withRow(columnFamily, rowKey).deleteColumn(entry.getKey());
+            }
+        } else {
+            for (Map.Entry<K, V> entry : columns.entrySet()) {
+                mutation.withRow(columnFamily, rowKey).putColumn(entry.getKey(), entry.getValue(), getColumnValueSerializer(), null);
+            }
+        }
     }
 
     @Override
