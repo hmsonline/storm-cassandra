@@ -2,6 +2,7 @@
 
 package com.hmsonline.storm.cassandra.example;
 
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -22,7 +23,6 @@ import backtype.storm.tuple.Tuple;
 import backtype.storm.tuple.Values;
 
 import com.hmsonline.storm.cassandra.StormCassandraConstants;
-import com.hmsonline.storm.cassandra.bolt.CassandraBolt;
 import com.hmsonline.storm.cassandra.bolt.CassandraLookupBolt;
 import com.hmsonline.storm.cassandra.bolt.mapper.DefaultTupleMapper;
 import com.hmsonline.storm.cassandra.bolt.mapper.ValuelessColumnsMapper;
@@ -32,6 +32,13 @@ public class CassandraReachTopology {
 
     public static void main(String[] args) throws Exception {
         LinearDRPCTopologyBuilder builder = new LinearDRPCTopologyBuilder("reach");
+
+        Config config = new Config();
+        String configKey = "cassandra-config";
+        HashMap<String, Object> clientConfig = new HashMap<String, Object>();
+        clientConfig.put(StormCassandraConstants.CASSANDRA_HOST, "localhost:9160");
+        clientConfig.put(StormCassandraConstants.CASSANDRA_KEYSPACE, "stormks");
+        config.put(configKey, clientConfig);
 
         // DelimitedColumnLookupBolt tweetersBolt =
         // new DelimitedColumnLookupBolt("tweeters_delimited", "rowKey",
@@ -45,14 +52,14 @@ public class CassandraReachTopology {
         DefaultTupleMapper tweetersTupleMapper = new DefaultTupleMapper("tweeters", "url");
         // cf (url -> tweeters) -> emit(url, follower)
         ValuelessColumnsMapper tweetersColumnsMapper = new ValuelessColumnsMapper("url", "tweeter", true);
-        CassandraLookupBolt<String, String> tweetersBolt = new CassandraLookupBolt<String, String>(tweetersTupleMapper,
-                tweetersColumnsMapper, String.class, String.class);
+        CassandraLookupBolt<String, String> tweetersBolt = new CassandraLookupBolt<String, String>(configKey,
+                tweetersTupleMapper, tweetersColumnsMapper, String.class, String.class);
 
         // cf = "followers", rowkey = tuple["tweeter"]
         DefaultTupleMapper followersTupleMapper = new DefaultTupleMapper("followers", "tweeter");
         // cf (tweeter -> followers) ==> emit(url, follower)
         ValuelessColumnsMapper followersColumnsMapper = new ValuelessColumnsMapper("url", "follower", true);
-        CassandraLookupBolt<String, String> followersBolt = new CassandraLookupBolt<String, String>(
+        CassandraLookupBolt<String, String> followersBolt = new CassandraLookupBolt<String, String>(configKey,
                 followersTupleMapper, followersColumnsMapper, String.class, String.class);
 
         builder.addBolt(new InitBolt());
@@ -60,10 +67,6 @@ public class CassandraReachTopology {
         builder.addBolt(followersBolt).shuffleGrouping();
         builder.addBolt(new PartialUniquer()).fieldsGrouping(new Fields("id", "follower"));
         builder.addBolt(new CountAggregator()).fieldsGrouping(new Fields("id"));
-
-        Config config = new Config();
-        config.put(StormCassandraConstants.CASSANDRA_HOST, "localhost:9160");
-        config.put(StormCassandraConstants.CASSANDRA_KEYSPACE, "stormks");
 
         if (args == null || args.length == 0) {
             config.setMaxTaskParallelism(3);

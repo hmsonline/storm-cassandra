@@ -30,7 +30,7 @@ public abstract class CassandraClient<K, V> implements Serializable {
         return this.columnValueClass;
     }
 
-    public abstract void start(String cassandraHost, String cassandraKeyspace, Map<String, Object> stormConfig);
+    public abstract void start(Map<String, Object> stormConfig);
 
     public abstract void stop();
 

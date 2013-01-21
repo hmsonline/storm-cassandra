@@ -23,9 +23,9 @@ public class TransactionalCassandraBatchBolt<K, V> extends CassandraBatchingBolt
     private static final Logger LOG = LoggerFactory.getLogger(TransactionalCassandraBatchBolt.class);
     private Object transactionId = null;
 
-    public TransactionalCassandraBatchBolt(TupleMapper<K, V> tupleMapper, Class<K> columnNameClass,
+    public TransactionalCassandraBatchBolt(String clientConfigKey, TupleMapper<K, V> tupleMapper, Class<K> columnNameClass,
             Class<V> columnValueClass) {
-        super(tupleMapper, columnNameClass, columnValueClass);
+        super(clientConfigKey, tupleMapper, columnNameClass, columnValueClass);
     }
 
     @SuppressWarnings("unchecked")

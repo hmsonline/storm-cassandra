@@ -1,5 +1,7 @@
 package com.hmsonline.storm.cassandra.example;
 
+import java.util.HashMap;
+
 import backtype.storm.Config;
 import backtype.storm.LocalCluster;
 import backtype.storm.StormSubmitter;
@@ -9,7 +11,6 @@ import backtype.storm.tuple.Fields;
 import com.hmsonline.storm.cassandra.StormCassandraConstants;
 import com.hmsonline.storm.cassandra.bolt.AckStrategy;
 import com.hmsonline.storm.cassandra.bolt.CassandraBatchingBolt;
-import com.hmsonline.storm.cassandra.bolt.CassandraBolt;
 import com.hmsonline.storm.cassandra.bolt.mapper.DefaultTupleMapper;
 
 public class PersistentWordCount {
@@ -19,9 +20,11 @@ public class PersistentWordCount {
 
     public static void main(String[] args) throws Exception {
         Config config = new Config();
-
-        config.put(StormCassandraConstants.CASSANDRA_HOST, "localhost:9160");
-        config.put(StormCassandraConstants.CASSANDRA_KEYSPACE, "stormks");
+        String configKey = "cassandra-config";
+        HashMap<String, Object> clientConfig = new HashMap<String, Object>();
+        clientConfig.put(StormCassandraConstants.CASSANDRA_HOST, "localhost:9160");
+        clientConfig.put(StormCassandraConstants.CASSANDRA_KEYSPACE, "stormks");
+        config.put(configKey, clientConfig);
 
         TestWordSpout wordSpout = new TestWordSpout();
 
@@ -29,7 +32,7 @@ public class PersistentWordCount {
 
         // create a CassandraBolt that writes to the "stormcf" column
         // family and uses the Tuple field "word" as the row key
-        CassandraBatchingBolt<String, String> cassandraBolt = new CassandraBatchingBolt<String, String>(
+        CassandraBatchingBolt<String, String> cassandraBolt = new CassandraBatchingBolt<String, String>(configKey,
                 new DefaultTupleMapper("stormcf", "word"), String.class, String.class);
         cassandraBolt.setAckStrategy(AckStrategy.ACK_ON_WRITE);
 

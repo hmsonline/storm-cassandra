@@ -46,8 +46,8 @@ public abstract class AbstractBatchingBolt<K, V> extends CassandraBolt<K, V> imp
 
     private BatchThread batchThread;
 
-    public AbstractBatchingBolt(TupleMapper<K, V> tupleMapper, Class<K> columnNameClass, Class<V> columnValueClass) {
-        super(tupleMapper, columnNameClass, columnValueClass);
+    public AbstractBatchingBolt(String clientConfigKey, TupleMapper<K, V> tupleMapper, Class<K> columnNameClass, Class<V> columnValueClass) {
+        super(clientConfigKey, tupleMapper, columnNameClass, columnValueClass);
     }
 
     @SuppressWarnings({ "rawtypes", "unchecked" })

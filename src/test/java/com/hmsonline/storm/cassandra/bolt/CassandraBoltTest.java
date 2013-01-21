@@ -91,7 +91,8 @@ public class CassandraBoltTest {
     @Test
     public void testBolt() throws Exception {
         TupleMapper<String, String> tupleMapper = new DefaultTupleMapper("users", "VALUE");
-        CassandraBatchingBolt<String, String> bolt = new CassandraBatchingBolt<String, String>(tupleMapper,
+        String configKey = "cassandra-config";
+        CassandraBatchingBolt<String, String> bolt = new CassandraBatchingBolt<String, String>(configKey, tupleMapper,
                 String.class, String.class);
         TopologyBuilder builder = new TopologyBuilder();
         builder.setBolt("TEST_BOLT", bolt);
@@ -100,9 +101,12 @@ public class CassandraBoltTest {
         TopologyContext context = new MockTopologyContext(builder.createTopology(), fields);
 
         Config config = new Config();
-        config.put(StormCassandraConstants.CASSANDRA_HOST, "localhost:9171");
-        config.put(StormCassandraConstants.CASSANDRA_KEYSPACE, "TestKeyspace");
         config.put(Config.TOPOLOGY_MAX_SPOUT_PENDING, 5000);
+        
+        Map<String, Object> clientConfig = new HashMap<String, Object>();
+        clientConfig.put(StormCassandraConstants.CASSANDRA_HOST, "localhost:9171");
+        clientConfig.put(StormCassandraConstants.CASSANDRA_KEYSPACE, "TestKeyspace");
+        config.put(configKey, clientConfig);
 
         bolt.prepare(config, context, null);
         System.out.println("Bolt Preparation Complete.");
@@ -134,7 +138,8 @@ public class CassandraBoltTest {
 
     @Test
     public void testCounterBolt() throws Exception {
-        CassandraCounterBatchingBolt<String, String> bolt = new CassandraCounterBatchingBolt<String, String>("Counts", "Timestamp", "IncrementAmount",
+        String configKey = "cassandra-config";
+        CassandraCounterBatchingBolt<String, String> bolt = new CassandraCounterBatchingBolt<String, String>(configKey, "Counts", "Timestamp", "IncrementAmount",
                 String.class, String.class);
         TopologyBuilder builder = new TopologyBuilder();
         builder.setBolt("TEST__COUNTER_BOLT", bolt);
@@ -143,9 +148,13 @@ public class CassandraBoltTest {
         TopologyContext context = new MockTopologyContext(builder.createTopology(), fields);
 
         Config config = new Config();
-        config.put(StormCassandraConstants.CASSANDRA_HOST, "localhost:9171");
-        config.put(StormCassandraConstants.CASSANDRA_KEYSPACE, "TestKeyspace");
         config.put(Config.TOPOLOGY_MAX_SPOUT_PENDING, 5000);
+        
+        Map<String, Object> clientConfig = new HashMap<String, Object>();
+        clientConfig.put(StormCassandraConstants.CASSANDRA_HOST, "localhost:9171");
+        clientConfig.put(StormCassandraConstants.CASSANDRA_KEYSPACE, "TestKeyspace");
+        config.put(configKey, clientConfig);
+        
 
         bolt.prepare(config, context, null);
         System.out.println("Bolt Preparation Complete.");

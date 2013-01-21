@@ -12,6 +12,7 @@ import backtype.storm.tuple.Tuple;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
+import com.hmsonline.storm.cassandra.StormCassandraConstants;
 import com.hmsonline.storm.cassandra.bolt.mapper.Columns;
 import com.hmsonline.storm.cassandra.bolt.mapper.TridentTupleMapper;
 import com.hmsonline.storm.cassandra.bolt.mapper.TupleCounterMapper;
@@ -67,12 +68,11 @@ public class AstyanaxClient<K, V> extends CassandraClient<K, V> {
         super(columnNameClass, columnValueClass);
     }
 
-    protected AstyanaxContext<Keyspace> createContext(String cassandraHost, String cassandraKeyspace,
-            Map<String, Object> stormConfig) {
+    protected AstyanaxContext<Keyspace> createContext(Map<String, Object> config) {
         Map<String, Object> settings = Maps.newHashMap();
         for (Map.Entry<String, Object> defaultEntry : DEFAULTS.entrySet()) {
-            if (stormConfig.containsKey(defaultEntry.getKey())) {
-                settings.put(defaultEntry.getKey(), stormConfig.get(defaultEntry.getKey()));
+            if (config.containsKey(defaultEntry.getKey())) {
+                settings.put(defaultEntry.getKey(), config.get(defaultEntry.getKey()));
             } else {
                 settings.put(defaultEntry.getKey(), defaultEntry.getValue());
             }
@@ -82,12 +82,12 @@ public class AstyanaxClient<K, V> extends CassandraClient<K, V> {
         if (settings.get(ASTYANAX_CONNECTION_POOL_CONFIGURATION) instanceof ConnectionPoolConfigurationImpl) {
             ConnectionPoolConfigurationImpl cpConfig = (ConnectionPoolConfigurationImpl) settings
                     .get(ASTYANAX_CONNECTION_POOL_CONFIGURATION);
-            cpConfig.setSeeds(cassandraHost);
+            cpConfig.setSeeds((String)config.get(StormCassandraConstants.CASSANDRA_HOST));
         }
 
         return new AstyanaxContext.Builder()
                 .forCluster((String) settings.get(CASSANDRA_CLUSTER_NAME))
-                .forKeyspace(cassandraKeyspace)
+                .forKeyspace((String)config.get(StormCassandraConstants.CASSANDRA_KEYSPACE))
                 .withAstyanaxConfiguration((AstyanaxConfiguration) settings.get(ASTYANAX_CONFIGURATION))
                 .withConnectionPoolConfiguration(
                         (ConnectionPoolConfiguration) settings.get(ASTYANAX_CONNECTION_POOL_CONFIGURATION))
@@ -97,9 +97,9 @@ public class AstyanaxClient<K, V> extends CassandraClient<K, V> {
 
 
     @Override
-    public void start(String cassandraHost, String cassandraKeyspace, Map<String, Object> stormConfig) {
+    public void start(Map<String, Object> config) {
         try {
-            this.astyanaxContext = createContext(cassandraHost, cassandraKeyspace, stormConfig);
+            this.astyanaxContext = createContext(config);
 
             this.astyanaxContext.start();
             this.keyspace = this.astyanaxContext.getEntity();
