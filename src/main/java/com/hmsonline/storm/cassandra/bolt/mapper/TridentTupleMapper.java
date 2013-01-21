@@ -4,6 +4,7 @@ import java.io.Serializable;
 import java.util.Map;
 
 import storm.trident.tuple.TridentTuple;
+import com.hmsonline.storm.cassandra.exceptions.TupleMappingException;
 
 public interface TridentTupleMapper<K, V> extends Serializable {
     /**
@@ -13,7 +14,7 @@ public interface TridentTupleMapper<K, V> extends Serializable {
      * @param tuple
      * @return
      */
-    String mapToColumnFamily(TridentTuple tuple);
+    String mapToColumnFamily(TridentTuple tuple) throws TupleMappingException;
 
     /**
      * Given a <code>backtype.storm.tuple.Tuple</code> generate a Cassandra row
@@ -22,11 +23,13 @@ public interface TridentTupleMapper<K, V> extends Serializable {
      * @param tuple
      * @return
      */
-    String mapToRowKey(TridentTuple tuple);
+    String mapToRowKey(TridentTuple tuple) throws TupleMappingException;
 
-    Map<K, V> mapToColumns(TridentTuple tuple);
+    Map<K, V> mapToColumns(TridentTuple tuple) throws TupleMappingException;
 
-    Object mapToEndKey(TridentTuple tuple);
+    Object mapToEndKey(TridentTuple tuple) throws TupleMappingException;
 
-    Object mapToStartKey(TridentTuple tuple);
+    Object mapToStartKey(TridentTuple tuple) throws TupleMappingException;
+
+    boolean shouldDelete(TridentTuple tuple);
 }

@@ -9,21 +9,19 @@ import storm.trident.operation.Function;
 import storm.trident.operation.TridentCollector;
 import storm.trident.operation.TridentOperationContext;
 import storm.trident.tuple.TridentTuple;
+import backtype.storm.topology.FailedException;
 
 import com.hmsonline.storm.cassandra.bolt.mapper.TridentTupleMapper;
 import com.hmsonline.storm.cassandra.client.AstyanaxClient;
 import com.hmsonline.storm.cassandra.client.CassandraClient;
+import com.hmsonline.storm.cassandra.exceptions.TupleMappingException;
+import com.hmsonline.storm.cassandra.exceptions.StormCassandraException;
+import com.hmsonline.storm.cassandra.StormCassandraConstants;
 
 public class TridentCassandraWriteFunction<K, V> implements Function {
     private static final long serialVersionUID = 1L;
     private static final Logger LOG = LoggerFactory.getLogger(TridentCassandraWriteFunction.class);
     protected TridentTupleMapper<K, V> tupleMapper;
-
-    public static String CASSANDRA_HOST = "cassandra.host";
-    public static final String CASSANDRA_KEYSPACE = "cassandra.keyspace";
-    public static final String CASSANDRA_BATCH_MAX_SIZE = "cassandra.batch.max_size";
-    public static String CASSANDRA_CLIENT_CLASS = "cassandra.client.class";
-
     private String cassandraHost;
     private String cassandraKeyspace;
     protected Map<String, Object> stormConfig;
@@ -43,10 +41,10 @@ public class TridentCassandraWriteFunction<K, V> implements Function {
     public void prepare(Map stormConf, TridentOperationContext context) {
         this.stormConfig = stormConf;
         if (this.cassandraHost == null) {
-            this.cassandraHost = (String) stormConf.get(CASSANDRA_HOST);
+            this.cassandraHost = (String) stormConf.get(StormCassandraConstants.CASSANDRA_HOST);
         }
         if (this.cassandraKeyspace == null) {
-            this.cassandraKeyspace = (String) stormConf.get(CASSANDRA_KEYSPACE);
+            this.cassandraKeyspace = (String) stormConf.get(StormCassandraConstants.CASSANDRA_KEYSPACE);
         }
 
         LOG.error("Creating new Cassandra Client @ (" + this.cassandraHost + ":" + this.cassandraKeyspace + ")");
@@ -64,8 +62,17 @@ public class TridentCassandraWriteFunction<K, V> implements Function {
     public void execute(TridentTuple tuple, TridentCollector collector) {
         try {
             writeTuple(tuple);
-        } catch (Exception e) {
+        } catch (TupleMappingException e) {
+            LOG.error("Skipping tuple: " + tuple, e);
+        } catch (StormCassandraException e) {
             LOG.error("Failed to write tuple. Exception: " + e.getLocalizedMessage());
+            // This will tell storm to replay the whole batch
+            // TODO should we add a number of retry here? 
+            throw new FailedException();
+        } catch (Exception e) {
+            LOG.error("Unexcepted exception: " + e.getLocalizedMessage());
+            // unexpected error should not be replayed. Log only
+            collector.reportError(e);
         }
     }
 

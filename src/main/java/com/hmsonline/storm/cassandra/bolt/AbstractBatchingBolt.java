@@ -9,6 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.hmsonline.storm.cassandra.bolt.mapper.TupleMapper;
+import com.hmsonline.storm.cassandra.StormCassandraConstants;
 
 import backtype.storm.task.OutputCollector;
 import backtype.storm.task.TopologyContext;
@@ -53,7 +54,7 @@ public abstract class AbstractBatchingBolt<K, V> extends CassandraBolt<K, V> imp
     @Override
     public void prepare(Map stormConf, TopologyContext context, OutputCollector collector) {
         super.prepare(stormConf, context);
-        int batchMaxSize = Utils.getInt(Utils.get(stormConf, CASSANDRA_BATCH_MAX_SIZE, 0));
+        int batchMaxSize = Utils.getInt(Utils.get(stormConf, StormCassandraConstants.CASSANDRA_BATCH_MAX_SIZE, 0));
         this.collector = collector;
         this.queue = new LinkedBlockingQueue<Tuple>();
         this.batchThread = new BatchThread(batchMaxSize);
