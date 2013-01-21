@@ -23,8 +23,8 @@ import com.hmsonline.storm.cassandra.bolt.mapper.TupleMapper;
 public class CassandraBatchingBolt<K, V> extends AbstractBatchingBolt<K, V> {
     private static final Logger LOG = LoggerFactory.getLogger(CassandraBatchingBolt.class);
 
-    public CassandraBatchingBolt(TupleMapper<K, V> tupleMapper, Class<K> columnNameClass, Class<V> columnValueClass) {
-        super(tupleMapper, columnNameClass, columnValueClass);
+    public CassandraBatchingBolt(String clientConfigKey, TupleMapper<K, V> tupleMapper, Class<K> columnNameClass, Class<V> columnValueClass) {
+        super(clientConfigKey, tupleMapper, columnNameClass, columnValueClass);
     }
 
     @Override

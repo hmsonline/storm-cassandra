@@ -17,15 +17,15 @@ public class CassandraCounterBatchingBolt<K, V> extends AbstractBatchingBolt<K, 
 
     private TupleCounterMapper tupleMapper;
 
-    public CassandraCounterBatchingBolt(TupleCounterMapper tupleMapper, Class<K> columnNameClass,
+    public CassandraCounterBatchingBolt(String clientConfigKey, TupleCounterMapper tupleMapper, Class<K> columnNameClass,
             Class<V> columnValueClass) {
-        super(null, columnNameClass, columnValueClass);
+        super(clientConfigKey, null, columnNameClass, columnValueClass);
         this.tupleMapper = tupleMapper;
     }
 
-    public CassandraCounterBatchingBolt(String columnFamily, String rowKeyField, String incrementAmountField,
+    public CassandraCounterBatchingBolt(String clientConfigKey, String columnFamily, String rowKeyField, String incrementAmountField,
             Class<K> columnNameClass, Class<V> columnValueClass) {
-        this(new DefaultTupleCounterMapper(columnFamily, rowKeyField, incrementAmountField), columnNameClass,
+        this(clientConfigKey, new DefaultTupleCounterMapper(columnFamily, rowKeyField, incrementAmountField), columnNameClass,
                 columnValueClass);
     }
 

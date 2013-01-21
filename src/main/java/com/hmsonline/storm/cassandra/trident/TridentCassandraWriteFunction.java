@@ -14,48 +14,37 @@ import backtype.storm.topology.FailedException;
 import com.hmsonline.storm.cassandra.bolt.mapper.TridentTupleMapper;
 import com.hmsonline.storm.cassandra.client.AstyanaxClient;
 import com.hmsonline.storm.cassandra.client.CassandraClient;
-import com.hmsonline.storm.cassandra.exceptions.TupleMappingException;
 import com.hmsonline.storm.cassandra.exceptions.StormCassandraException;
-import com.hmsonline.storm.cassandra.StormCassandraConstants;
+import com.hmsonline.storm.cassandra.exceptions.TupleMappingException;
 
 public class TridentCassandraWriteFunction<K, V> implements Function {
     private static final long serialVersionUID = 1L;
     private static final Logger LOG = LoggerFactory.getLogger(TridentCassandraWriteFunction.class);
     protected TridentTupleMapper<K, V> tupleMapper;
-    private String cassandraHost;
-    private String cassandraKeyspace;
-    protected Map<String, Object> stormConfig;
     private CassandraClient<K, V> client;
     private Class<K> columnNameClass;
     private Class<V> columnValueClass;
+    private String clientConfigKey;
 
-    public TridentCassandraWriteFunction(TridentTupleMapper<K, V> tupleMapper, Class<K> columnNameClass,
-            Class<V> columnValueClass) {
+    public TridentCassandraWriteFunction(String clientConfigKey, TridentTupleMapper<K, V> tupleMapper,
+            Class<K> columnNameClass, Class<V> columnValueClass) {
         this.tupleMapper = tupleMapper;
         this.columnNameClass = columnNameClass;
         this.columnValueClass = columnValueClass;
+        this.clientConfigKey = clientConfigKey;
     }
 
     @Override
     @SuppressWarnings({ "rawtypes", "unchecked" })
     public void prepare(Map stormConf, TridentOperationContext context) {
-        this.stormConfig = stormConf;
-        if (this.cassandraHost == null) {
-            this.cassandraHost = (String) stormConf.get(StormCassandraConstants.CASSANDRA_HOST);
-        }
-        if (this.cassandraKeyspace == null) {
-            this.cassandraKeyspace = (String) stormConf.get(StormCassandraConstants.CASSANDRA_KEYSPACE);
-        }
-
-        LOG.error("Creating new Cassandra Client @ (" + this.cassandraHost + ":" + this.cassandraKeyspace + ")");
+        Map<String, Object> config = (Map<String, Object>) stormConf.get(this.clientConfigKey);
         client = new AstyanaxClient<K, V>(columnNameClass, columnValueClass);
-        client.start(this.cassandraHost, this.cassandraKeyspace, stormConfig);
+        client.start(config);
     }
 
     @Override
     public void cleanup() {
-        // TODO Auto-generated method stub
-
+        this.client.stop();
     }
 
     @Override
@@ -67,7 +56,7 @@ public class TridentCassandraWriteFunction<K, V> implements Function {
         } catch (StormCassandraException e) {
             LOG.error("Failed to write tuple. Exception: " + e.getLocalizedMessage());
             // This will tell storm to replay the whole batch
-            // TODO should we add a number of retry here? 
+            // TODO should we add a number of retry here?
             throw new FailedException();
         } catch (Exception e) {
             LOG.error("Unexcepted exception: " + e.getLocalizedMessage());

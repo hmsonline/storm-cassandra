@@ -9,7 +9,7 @@ import org.slf4j.LoggerFactory;
 
 import backtype.storm.task.TopologyContext;
 import backtype.storm.tuple.Tuple;
-import com.hmsonline.storm.cassandra.StormCassandraConstants;
+
 import com.hmsonline.storm.cassandra.bolt.mapper.TupleCounterMapper;
 import com.hmsonline.storm.cassandra.bolt.mapper.TupleMapper;
 import com.hmsonline.storm.cassandra.client.AstyanaxClient;
@@ -19,42 +19,34 @@ import com.hmsonline.storm.cassandra.client.CassandraClient;
 public abstract class CassandraBolt<K, V> implements Serializable {
     private static final Logger LOG = LoggerFactory.getLogger(CassandraBolt.class);
 
-    private String cassandraHost;
-    private String cassandraKeyspace;
     private Class<K> columnNameClass;
     private Class<V> columnValueClass;
+    private String clientConfigKey;
 
     protected CassandraClient<K, V> client;
+
     protected TupleMapper<K, V> tupleMapper;
     protected Map<String, Object> stormConfig;
 
-    public CassandraBolt(TupleMapper<K, V> tupleMapper, Class<K> columnNameClass, Class<V> columnValueClass) {
+    public CassandraBolt(String clientConfigKey, TupleMapper<K, V> tupleMapper, Class<K> columnNameClass,
+            Class<V> columnValueClass) {
         this.tupleMapper = tupleMapper;
         this.columnNameClass = columnNameClass;
         this.columnValueClass = columnValueClass;
+        this.clientConfigKey = clientConfigKey;
 
         LOG.debug("Creating Cassandra Bolt (" + this + ")");
     }
 
+    @SuppressWarnings("unchecked")
     public void prepare(Map<String, Object> stormConf, TopologyContext context) {
-        this.stormConfig = stormConf;
-        if (this.cassandraHost == null) {
-            this.cassandraHost = (String) stormConf.get(StormCassandraConstants.CASSANDRA_HOST);
-        }
-        if (this.cassandraKeyspace == null) {
-            this.cassandraKeyspace = (String) stormConf.get(StormCassandraConstants.CASSANDRA_KEYSPACE);
-        }
-        LOG.error("Creating new Cassandra Client @ (" + this.cassandraHost + ":" + this.cassandraKeyspace + ")");
-        client = new AstyanaxClient<K, V>(columnNameClass, columnValueClass);
-        client.start(this.cassandraHost, this.cassandraKeyspace, stormConfig);
+        Map<String, Object> config = (Map<String, Object>) stormConf.get(this.clientConfigKey);
+        this.client = new AstyanaxClient<K, V>(columnNameClass, columnValueClass);
+        this.client.start(config);
     }
 
-//    public CassandraClient<K, V> getClient() {
-//        return client;
-//    }
-
     public void cleanup() {
-         this.client.stop();
+        this.client.stop();
     }
 
     public void writeTuple(Tuple input, TupleMapper<K, V> tupleMapper) throws Exception {

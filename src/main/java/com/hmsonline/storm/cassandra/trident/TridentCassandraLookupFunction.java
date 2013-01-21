@@ -12,7 +12,6 @@ import storm.trident.operation.TridentOperationContext;
 import storm.trident.tuple.TridentTuple;
 import backtype.storm.tuple.Values;
 
-import com.hmsonline.storm.cassandra.StormCassandraConstants;
 import com.hmsonline.storm.cassandra.bolt.mapper.Columns;
 import com.hmsonline.storm.cassandra.bolt.mapper.TridentColumnMapper;
 import com.hmsonline.storm.cassandra.bolt.mapper.TridentTupleMapper;
@@ -23,43 +22,35 @@ public class TridentCassandraLookupFunction<K, V> implements Function {
     private static final long serialVersionUID = 12132012L;
 
     private static final Logger LOG = LoggerFactory.getLogger(TridentCassandraLookupFunction.class);
-    private String cassandraHost;
-    private String cassandraKeyspace;
+
     private TridentColumnMapper<K, V> columnsMapper;
     private TridentTupleMapper<K, V> tupleMapper;
     private CassandraClient<K, V> client;
     private Class<K> columnNameClass;
     private Class<V> columnValueClass;
-    protected Map<String, Object> stormConfig;
+    private String clientConfigKey;
 
-    public TridentCassandraLookupFunction(TridentTupleMapper<K, V> tupleMapper, TridentColumnMapper<K, V> columnMapper,
-            Class<K> columnNameClass, Class<V> columnValueClass) {
+    public TridentCassandraLookupFunction(String clientConfigKey, TridentTupleMapper<K, V> tupleMapper,
+            TridentColumnMapper<K, V> columnMapper, Class<K> columnNameClass, Class<V> columnValueClass) {
         this.columnNameClass = columnNameClass;
         this.columnValueClass = columnValueClass;
         this.columnsMapper = columnMapper;
         this.tupleMapper = tupleMapper;
+        this.clientConfigKey = clientConfigKey;
     }
 
     @Override
     @SuppressWarnings({ "unchecked", "rawtypes" })
     public void prepare(Map stormConf, TridentOperationContext context) {
-        this.stormConfig = stormConf;
-        if (this.cassandraHost == null) {
-            this.cassandraHost = (String) stormConf.get(StormCassandraConstants.CASSANDRA_HOST);
-        }
-        if (this.cassandraKeyspace == null) {
-            this.cassandraKeyspace = (String) stormConf.get(StormCassandraConstants.CASSANDRA_KEYSPACE);
-        }
+        Map<String, Object> config = (Map<String, Object>) stormConf.get(this.clientConfigKey);
 
-        LOG.error("Creating new Cassandra Client @ (" + this.cassandraHost + ":" + this.cassandraKeyspace + ")");
-        client = new AstyanaxClient<K, V>(columnNameClass, columnValueClass);
-        client.start(this.cassandraHost, this.cassandraKeyspace, stormConfig);
+        this.client = new AstyanaxClient<K, V>(columnNameClass, columnValueClass);
+        this.client.start(config);
     }
 
     @Override
     public void cleanup() {
-        // TODO: Come back and fix this.
-
+        this.client.stop();
     }
 
     @Override

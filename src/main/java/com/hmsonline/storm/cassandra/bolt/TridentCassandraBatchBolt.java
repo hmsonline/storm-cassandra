@@ -25,8 +25,9 @@ public class TridentCassandraBatchBolt<K, V> extends TransactionalCassandraBatch
     private static final Logger LOG = LoggerFactory.getLogger(TridentCassandraBatchBolt.class);
     private Object transactionId = null;
 
-    public TridentCassandraBatchBolt(TupleMapper<K, V> tupleMapper, Class<K> columnNameClass, Class<V> columnValueClass) {
-        super(tupleMapper, columnNameClass, columnValueClass);
+    public TridentCassandraBatchBolt(String clientConfigKey, TupleMapper<K, V> tupleMapper, Class<K> columnNameClass,
+            Class<V> columnValueClass) {
+        super(clientConfigKey, tupleMapper, columnNameClass, columnValueClass);
     }
 
     @Override
