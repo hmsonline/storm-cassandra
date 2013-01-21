@@ -3,7 +3,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.hmsonline</groupId>
 	<artifactId>storm-cassandra</artifactId>
-	<version>0.4.0-hmsint-2</version>
+	<version>0.4.0-hmsint-3-SNAPSHOT</version>
 	<name>Storm Cassandra Support</name>
 	<description>Storm Cassandra Support</description>
 
@@ -18,7 +18,7 @@
 		<connection>scm:git:git@plgithub01.hmsonline.com:hms/storm-cassandra.git</connection>
 		<developerConnection>scm:git:git@plgithub01.hmsonline.com:hms/storm-cassandra.git</developerConnection>
 		<url>scm:git@plgithub01.hmsonline.com:hms/storm-cassandra.git</url>
-    <tag>storm-cassandra-0.4.0-hmsint-2</tag>
+    <tag>HEAD</tag>
   </scm>
 
 	<distributionManagement>
