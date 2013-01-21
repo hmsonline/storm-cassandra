@@ -1,0 +1,128 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+	<modelVersion>4.0.0</modelVersion>
+	<groupId>com.hmsonline</groupId>
+	<artifactId>storm-cassandra</artifactId>
+	<version>0.4.0-hmsint-2</version>
+	<name>Storm Cassandra Support</name>
+	<description>Storm Cassandra Support</description>
+
+	<licenses>
+		<license>
+			<name>Eclipse Public License - v 1.0</name>
+			<url>http://www.eclipse.org/legal/epl-v10.html</url>
+			<distribution>repo</distribution>
+		</license>
+	</licenses>
+	<scm>
+		<connection>scm:git:git@plgithub01.hmsonline.com:hms/storm-cassandra.git</connection>
+		<developerConnection>scm:git:git@plgithub01.hmsonline.com:hms/storm-cassandra.git</developerConnection>
+		<url>scm:git@plgithub01.hmsonline.com:hms/storm-cassandra.git</url>
+    <tag>storm-cassandra-0.4.0-hmsint-2</tag>
+  </scm>
+
+	<distributionManagement>
+		<repository>
+			<id>central</id>
+			<name>libs-releases</name>
+			<url>http://plmproxy01:8081/artifactory/libs-releases-local</url>
+		</repository>
+		<snapshotRepository>
+			<id>snapshots</id>
+			<name>libs-snapshots</name>
+			<url>http://plmproxy01:8081/artifactory/libs-snapshots-local</url>
+		</snapshotRepository>
+	</distributionManagement>
+
+	<developers>
+		<developer>
+			<id>ptgoetz</id>
+			<name>P. Taylor Goetz</name>
+			<email>ptgoetz@gmail.com</email>
+		</developer>
+	</developers>
+
+	<repositories>
+		<repository>
+			<id>clojars.org</id>
+			<url>http://clojars.org/repo</url>
+		</repository>
+		<repository>
+			<id>twitter4j</id>
+			<url>http://twitter4j.org/maven2</url>
+		</repository>
+	</repositories>
+
+	<properties>
+		<storm.version>0.8.1</storm.version>
+		<cassandra.version>1.1.2</cassandra.version>
+	</properties>
+
+	<dependencies>
+		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+			<version>4.10</version>
+		</dependency>
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-log4j12</artifactId>
+			<version>1.6.4</version>
+		</dependency>
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-api</artifactId>
+			<version>1.6.4</version>
+		</dependency>
+		<dependency>
+			<groupId>storm</groupId>
+			<artifactId>storm</artifactId>
+			<version>${storm.version}</version>
+			<!-- keep storm out of the jar-with-dependencies -->
+			<scope>provided</scope>
+			<exclusions>
+				<exclusion>
+					<artifactId>slf4j-api</artifactId>
+					<groupId>org.slf4j</groupId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+		<dependency>
+			<groupId>com.netflix.astyanax</groupId>
+			<artifactId>astyanax</artifactId>
+			<version>1.0.6</version>
+			<exclusions>
+				<exclusion>
+					<artifactId>commons-lang</artifactId>
+					<groupId>commons-lang</groupId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+
+
+	</dependencies>
+	<build>
+
+		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<version>2.5.1</version>
+				<configuration>
+					<source>1.6</source>
+					<target>1.6</target>
+				</configuration>
+			</plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-release-plugin</artifactId>
+        <version>2.3.2</version>
+        <configuration>
+          <pomFileName>pom-int.xml</pomFileName>
+          <pushChanges>false</pushChanges>
+        </configuration>
+      </plugin>
+    </plugins>
+
+	</build>
+</project>
