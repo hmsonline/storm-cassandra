@@ -9,6 +9,7 @@ public class AstyanaxColumn<K, V> implements com.hmsonline.storm.cassandra.bolt.
 
     public AstyanaxColumn(Column<K> column, Serializer<V> serializer) {
         this.column = column;
+        this.serializer = serializer;
     }
 
     @Override
