@@ -66,13 +66,6 @@ public class TridentCassandraWriteFunction<K, V> implements Function {
     }
 
     public void writeTuple(TridentTuple input) throws Exception {
-        getClient().writeTuple(input, this.tupleMapper);
-    }
-
-    public synchronized CassandraClient<K, V> getClient() {
-        if (client == null) {
-
-        }
-        return client;
+        this.client.writeTuple(input, this.tupleMapper);
     }
 }

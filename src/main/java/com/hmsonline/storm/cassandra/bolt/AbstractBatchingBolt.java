@@ -123,7 +123,7 @@ public abstract class AbstractBatchingBolt<K, V> extends CassandraBolt<K, V> imp
             }
         }
 
-        synchronized void stopRunning() {
+        void stopRunning() {
             this.stopRequested = true;
         }
     }
