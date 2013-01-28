@@ -44,13 +44,13 @@ public class TridentCassandraLookupFunction<K, V> implements Function {
         this.tupleMapper = tupleMapper;
         this.clientConfigKey = clientConfigKey;
     }
-    
+
     public TridentCassandraLookupFunction(String clientConfigKey, TridentTupleMapper<K, V> tupleMapper,
             TridentColumnMapper<K, V> columnMapper, Class<K> columnNameClass, Class<V> columnValueClass, boolean emitEmptyOnFailure) {
         this(clientConfigKey, tupleMapper, columnMapper, columnNameClass, columnValueClass);
         this.emitEmptyOnFailure = emitEmptyOnFailure;
     }
-    
+
     public void setFilter(Filter filter) {
         this.tupleFilter = filter;
     }
@@ -86,15 +86,32 @@ public class TridentCassandraLookupFunction<K, V> implements Function {
         Object start = tupleMapper.mapToStartKey(input);
         Object end = tupleMapper.mapToEndKey(input);
 
-        try {
-            Columns<K, V> colMap = null;
-            if (start == null || end == null) {
-                colMap = client.lookup(columnFamily, rowKey);
-            } else {
-                colMap = client.lookup(columnFamily, rowKey, start, end);
-            }
+        List<Object> startList = tupleMapper.mapToStartKeyList(input);
+        List<Object> endList = tupleMapper.mapToEndKeyList(input);
 
-            List<Values> valuesToEmit = columnsMapper.mapToValues(rowKey, colMap, input);
+        try {
+            List<Values> valuesToEmit;
+
+            if (startList != null && endList != null && startList.size() == endList.size()) {
+                List<Columns<K, V>> colMapList = new ArrayList<Columns<K, V>>();
+                for (int i = 0; i < startList.size(); i++) {
+                    Columns<K, V> colMap = client.lookup(columnFamily, rowKey, startList.get(i), endList.get(i));
+                    if (colMap != null) {
+                        colMapList.add(colMap);
+                    }
+                }
+                valuesToEmit = columnsMapper.mapToValues(rowKey, colMapList, input);
+            }
+            else {
+                Columns<K, V> colMap = null;
+
+                if (start == null || end == null) {
+                    colMap = client.lookup(columnFamily, rowKey);
+                } else {
+                    colMap = client.lookup(columnFamily, rowKey, start, end);
+                }
+                valuesToEmit = columnsMapper.mapToValues(rowKey, colMap, input);
+            }
             for (Values values : valuesToEmit) {
                 collector.emit(values);
             }

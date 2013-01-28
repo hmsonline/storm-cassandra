@@ -10,9 +10,11 @@ public interface TridentColumnMapper<K, V> extends Serializable {
 
     /**
      * Given a set of columns, maps to values to emit.
-     * 
+     *
      * @param columns
      * @return
      */
     public List<Values> mapToValues(String rowKey, Columns<K, V> columns, TridentTuple input);
+
+    public List<Values> mapToValues(String rowKey, List<Columns<K, V>> columns, TridentTuple input);
 }

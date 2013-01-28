@@ -1,6 +1,7 @@
 package com.hmsonline.storm.cassandra.bolt.mapper;
 
 import java.io.Serializable;
+import java.util.List;
 import java.util.Map;
 
 import storm.trident.tuple.TridentTuple;
@@ -10,7 +11,7 @@ public interface TridentTupleMapper<K, V> extends Serializable {
     /**
      * Given a <code>backtype.storm.tuple.Tuple</code> object, map the column
      * family to write to.
-     * 
+     *
      * @param tuple
      * @return
      */
@@ -19,7 +20,7 @@ public interface TridentTupleMapper<K, V> extends Serializable {
     /**
      * Given a <code>backtype.storm.tuple.Tuple</code> generate a Cassandra row
      * key.
-     * 
+     *
      * @param tuple
      * @return
      */
@@ -30,6 +31,10 @@ public interface TridentTupleMapper<K, V> extends Serializable {
     Object mapToEndKey(TridentTuple tuple) throws TupleMappingException;
 
     Object mapToStartKey(TridentTuple tuple) throws TupleMappingException;
+
+    List<Object> mapToEndKeyList(TridentTuple tuple) throws TupleMappingException;
+
+    List<Object> mapToStartKeyList(TridentTuple tuple) throws TupleMappingException;
 
     boolean shouldDelete(TridentTuple tuple);
 }
