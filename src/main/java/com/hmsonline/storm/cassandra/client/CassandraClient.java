@@ -51,8 +51,4 @@ public abstract class CassandraClient<K, V> implements Serializable {
 
     public abstract void incrementCountColumns(List<Tuple> inputs, TupleCounterMapper tupleMapper) throws Exception;
 
-    public abstract void write(String columnFamilyName, String rowKey, Map<K, String> columns);
-
-    public abstract String getClientKeySpace();
-
 }
