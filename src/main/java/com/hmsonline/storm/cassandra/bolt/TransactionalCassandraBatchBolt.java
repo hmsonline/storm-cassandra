@@ -18,14 +18,13 @@ import backtype.storm.tuple.Tuple;
 import com.hmsonline.storm.cassandra.bolt.mapper.TupleMapper;
 
 @SuppressWarnings({ "serial", "rawtypes" })
-public class TransactionalCassandraBatchBolt<K, V> extends CassandraBatchingBolt<K, V> implements IBatchBolt,
+public class TransactionalCassandraBatchBolt<K, C, V> extends CassandraBatchingBolt<K, C, V> implements IBatchBolt,
         ICommitter {
     private static final Logger LOG = LoggerFactory.getLogger(TransactionalCassandraBatchBolt.class);
     private Object transactionId = null;
 
-    public TransactionalCassandraBatchBolt(String clientConfigKey, TupleMapper<K, V> tupleMapper, Class<K> columnNameClass,
-            Class<V> columnValueClass) {
-        super(clientConfigKey, tupleMapper, columnNameClass, columnValueClass);
+    public TransactionalCassandraBatchBolt(String clientConfigKey, TupleMapper<K, C, V> tupleMapper) {
+        super(clientConfigKey, tupleMapper);
     }
 
     @SuppressWarnings("unchecked")

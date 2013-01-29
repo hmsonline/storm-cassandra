@@ -90,10 +90,9 @@ public class CassandraBoltTest {
 
     @Test
     public void testBolt() throws Exception {
-        TupleMapper<String, String> tupleMapper = new DefaultTupleMapper("users", "VALUE");
+        TupleMapper<String, String, String> tupleMapper = new DefaultTupleMapper("users", "VALUE");
         String configKey = "cassandra-config";
-        CassandraBatchingBolt<String, String> bolt = new CassandraBatchingBolt<String, String>(configKey, tupleMapper,
-                String.class, String.class);
+        CassandraBatchingBolt<String, String, String> bolt = new CassandraBatchingBolt<String, String, String>(configKey, tupleMapper);
         TopologyBuilder builder = new TopologyBuilder();
         builder.setBolt("TEST_BOLT", bolt);
 
@@ -139,8 +138,7 @@ public class CassandraBoltTest {
     @Test
     public void testCounterBolt() throws Exception {
         String configKey = "cassandra-config";
-        CassandraCounterBatchingBolt<String, String> bolt = new CassandraCounterBatchingBolt<String, String>(configKey, "Counts", "Timestamp", "IncrementAmount",
-                String.class, String.class);
+        CassandraCounterBatchingBolt<String, String, String> bolt = new CassandraCounterBatchingBolt<String, String, String>(configKey, "Counts", "Timestamp", "IncrementAmount");
         TopologyBuilder builder = new TopologyBuilder();
         builder.setBolt("TEST__COUNTER_BOLT", bolt);
 
@@ -182,6 +180,5 @@ public class CassandraBoltTest {
                         new ColumnFamily<String, String>("Counts", StringSerializer.get(), StringSerializer.get()))
                 .getKey("1").getColumn("MyCountColumn").execute().getResult();
         assertEquals(1L, result.getLongValue());
-
     }
 }

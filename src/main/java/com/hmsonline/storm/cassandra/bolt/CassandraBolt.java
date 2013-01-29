@@ -13,26 +13,24 @@ import backtype.storm.tuple.Tuple;
 import com.hmsonline.storm.cassandra.bolt.mapper.TupleCounterMapper;
 import com.hmsonline.storm.cassandra.bolt.mapper.TupleMapper;
 import com.hmsonline.storm.cassandra.client.AstyanaxClient;
-import com.hmsonline.storm.cassandra.client.CassandraClient;
 
 @SuppressWarnings("serial")
-public abstract class CassandraBolt<K, V> implements Serializable {
+public abstract class CassandraBolt<K, C, V> implements Serializable {
     private static final Logger LOG = LoggerFactory.getLogger(CassandraBolt.class);
 
-    private Class<K> columnNameClass;
-    private Class<V> columnValueClass;
+//    private Class<K> columnNameClass;
+//    private Class<V> columnValueClass;
     private String clientConfigKey;
 
-    protected CassandraClient<K, V> client;
+    protected AstyanaxClient<K, C, V> client;
 
-    protected TupleMapper<K, V> tupleMapper;
+    protected TupleMapper<K, C, V> tupleMapper;
     protected Map<String, Object> stormConfig;
 
-    public CassandraBolt(String clientConfigKey, TupleMapper<K, V> tupleMapper, Class<K> columnNameClass,
-            Class<V> columnValueClass) {
+    public CassandraBolt(String clientConfigKey, TupleMapper<K, C, V> tupleMapper) {
         this.tupleMapper = tupleMapper;
-        this.columnNameClass = columnNameClass;
-        this.columnValueClass = columnValueClass;
+//        this.columnNameClass = columnNameClass;
+//        this.columnValueClass = columnValueClass;
         this.clientConfigKey = clientConfigKey;
 
         LOG.debug("Creating Cassandra Bolt (" + this + ")");
@@ -41,7 +39,7 @@ public abstract class CassandraBolt<K, V> implements Serializable {
     @SuppressWarnings("unchecked")
     public void prepare(Map<String, Object> stormConf, TopologyContext context) {
         Map<String, Object> config = (Map<String, Object>) stormConf.get(this.clientConfigKey);
-        this.client = new AstyanaxClient<K, V>(columnNameClass, columnValueClass);
+        this.client = new AstyanaxClient<K, C, V>();
         this.client.start(config);
     }
 
@@ -49,11 +47,11 @@ public abstract class CassandraBolt<K, V> implements Serializable {
         this.client.stop();
     }
 
-    public void writeTuple(Tuple input, TupleMapper<K, V> tupleMapper) throws Exception {
+    public void writeTuple(Tuple input, TupleMapper<K, C, V> tupleMapper) throws Exception {
         this.client.writeTuple(input, tupleMapper);
     }
 
-    public void writeTuples(List<Tuple> inputs, TupleMapper<K, V> tupleMapper) throws Exception {
+    public void writeTuples(List<Tuple> inputs, TupleMapper<K, C, V> tupleMapper) throws Exception {
         this.client.writeTuples(inputs, tupleMapper);
     }
 

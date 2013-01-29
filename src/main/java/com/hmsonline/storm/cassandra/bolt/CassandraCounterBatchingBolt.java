@@ -11,22 +11,19 @@ import backtype.storm.tuple.Tuple;
 import com.hmsonline.storm.cassandra.bolt.mapper.DefaultTupleCounterMapper;
 import com.hmsonline.storm.cassandra.bolt.mapper.TupleCounterMapper;
 
-public class CassandraCounterBatchingBolt<K, V> extends AbstractBatchingBolt<K, V> {
+public class CassandraCounterBatchingBolt<K, C, V> extends AbstractBatchingBolt<K, C, V> {
     private static final long serialVersionUID = 1L;
     private static final Logger LOG = LoggerFactory.getLogger(CassandraCounterBatchingBolt.class);
 
     private TupleCounterMapper tupleMapper;
 
-    public CassandraCounterBatchingBolt(String clientConfigKey, TupleCounterMapper tupleMapper, Class<K> columnNameClass,
-            Class<V> columnValueClass) {
-        super(clientConfigKey, null, columnNameClass, columnValueClass);
+    public CassandraCounterBatchingBolt(String clientConfigKey, TupleCounterMapper tupleMapper) {
+        super(clientConfigKey, null);
         this.tupleMapper = tupleMapper;
     }
 
-    public CassandraCounterBatchingBolt(String clientConfigKey, String columnFamily, String rowKeyField, String incrementAmountField,
-            Class<K> columnNameClass, Class<V> columnValueClass) {
-        this(clientConfigKey, new DefaultTupleCounterMapper(columnFamily, rowKeyField, incrementAmountField), columnNameClass,
-                columnValueClass);
+    public CassandraCounterBatchingBolt(String clientConfigKey, String columnFamily, String rowKeyField, String incrementAmountField) {
+        this(clientConfigKey, new DefaultTupleCounterMapper(columnFamily, rowKeyField, incrementAmountField));
     }
 
     @Override

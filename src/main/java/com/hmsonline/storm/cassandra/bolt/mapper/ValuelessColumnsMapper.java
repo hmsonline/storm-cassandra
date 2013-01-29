@@ -3,6 +3,8 @@ package com.hmsonline.storm.cassandra.bolt.mapper;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.tuple.Fields;
@@ -55,7 +57,7 @@ import backtype.storm.tuple.Values;
  * @author boneill42
  */
 @SuppressWarnings("serial")
-public class ValuelessColumnsMapper implements ColumnsMapper<String, String>, Serializable {
+public class ValuelessColumnsMapper implements ColumnMapper<String, String, String>, Serializable {
     private String emitFieldForRowKey;
     private String emitFieldForColumnName;
     private boolean isDrpc;
@@ -98,11 +100,11 @@ public class ValuelessColumnsMapper implements ColumnsMapper<String, String>, Se
      * @return
      */
     @Override
-    public List<Values> mapToValues(String rowKey, Columns<String, String> columns, Tuple input) {
+    public List<Values> mapToValues(String rowKey, Map<String, String> columns, Tuple input) {
         List<Values> values = new ArrayList<Values>();
-        for (Column<String, String> column : columns) {
-            String columnName = column.getKey();
-            if (this.isDrpc) {
+        Set<String> vals = columns.keySet();
+        for(String columnName : vals){
+            if(this.isDrpc){
                 values.add(new Values(input.getValue(0), rowKey, columnName));
             } else {
                 values.add(new Values(rowKey, columnName));

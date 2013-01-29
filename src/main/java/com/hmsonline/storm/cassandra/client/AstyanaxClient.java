@@ -7,6 +7,8 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -20,7 +22,6 @@ import backtype.storm.tuple.Tuple;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.hmsonline.storm.cassandra.StormCassandraConstants;
-import com.hmsonline.storm.cassandra.bolt.mapper.Columns;
 import com.hmsonline.storm.cassandra.bolt.mapper.TridentTupleMapper;
 import com.hmsonline.storm.cassandra.bolt.mapper.TupleCounterMapper;
 import com.hmsonline.storm.cassandra.bolt.mapper.TupleMapper;
@@ -39,6 +40,7 @@ import com.netflix.astyanax.connectionpool.impl.ConnectionPoolConfigurationImpl;
 import com.netflix.astyanax.connectionpool.impl.CountingConnectionPoolMonitor;
 import com.netflix.astyanax.impl.AstyanaxConfigurationImpl;
 import com.netflix.astyanax.model.ByteBufferRange;
+import com.netflix.astyanax.model.Column;
 import com.netflix.astyanax.model.ColumnFamily;
 import com.netflix.astyanax.model.ColumnList;
 import com.netflix.astyanax.serializers.AnnotatedCompositeSerializer;
@@ -64,7 +66,7 @@ import com.netflix.astyanax.util.RangeBuilder;
  * @author tgoetz
  * 
  */
-public class AstyanaxClient<K, V> extends CassandraClient<K, V> {
+public class AstyanaxClient<K, C, V> {
     private static final long serialVersionUID = 1L;
     private static final Logger LOG = LoggerFactory.getLogger(AstyanaxClient.class);
     public static final String CASSANDRA_CLUSTER_NAME = "cassandra.clusterName";
@@ -85,9 +87,9 @@ public class AstyanaxClient<K, V> extends CassandraClient<K, V> {
                     new ConnectionPoolConfigurationImpl("MyConnectionPool").setMaxConnsPerHost(1))
             .put(ASTYANAX_CONNECTION_POOL_MONITOR, new CountingConnectionPoolMonitor()).build();
 
-    public AstyanaxClient(Class<K> columnNameClass, Class<V> columnValueClass) {
-        super(columnNameClass, columnValueClass);
-    }
+//    public AstyanaxClient(Class<K> columnNameClass, Class<V> columnValueClass) {
+//        super(columnNameClass, columnValueClass);
+//    }
 
     protected AstyanaxContext<Keyspace> createContext(Map<String, Object> config) {
         Map<String, Object> settings = Maps.newHashMap();
@@ -116,7 +118,6 @@ public class AstyanaxClient<K, V> extends CassandraClient<K, V> {
                 .buildKeyspace(ThriftFamilyFactory.getInstance());
     }
 
-    @Override
     public void start(Map<String, Object> config) {
         try {
             this.astyanaxContext = createContext(config);
@@ -131,107 +132,177 @@ public class AstyanaxClient<K, V> extends CassandraClient<K, V> {
         }
     }
 
-    @Override
     public void stop() {
         this.astyanaxContext.shutdown();
     }
 
-    @Override
-    public Columns<K, V> lookup(String columnFamilyName, String rowKey) throws Exception {
-        ColumnFamily<String, K> columnFamily = new ColumnFamily<String, K>(columnFamilyName, StringSerializer.get(),
-                getColumnNameSerializer());
-        OperationResult<ColumnList<K>> result;
+    public Map<C, V> lookup(TupleMapper<K, C, V> tupleMapper, Tuple input) throws Exception {
+        String cf = tupleMapper.mapToColumnFamily(input);
+        K rowKey = tupleMapper.mapToRowKey(input);
+        Class<K> keyClass = tupleMapper.getKeyClass();
+        Class<C> colClass = tupleMapper.getColumnNameClass();
+        
+        ColumnFamily<K, C> columnFamily = new ColumnFamily<K, C>(cf, (Serializer<K>)serializerFor(keyClass),
+                (Serializer<C>)serializerFor(colClass));
+        OperationResult<ColumnList<C>> result;
         result = this.keyspace.prepareQuery(columnFamily).getKey(rowKey).execute();
-        ColumnList<K> columns = (ColumnList<K>) result.getResult();
-        return new AstyanaxColumns<K, V>(columns, getColumnValueSerializer());
+        ColumnList<C> columns = (ColumnList<C>) result.getResult();
+        HashMap<C, V> retval = new HashMap<C, V>();
+        Iterator<Column<C>> it = columns.iterator();
+        while(it.hasNext()){
+            Column<C> col= it.next();
+            retval.put(col.getName(), col.getValue((Serializer<V>)serializerFor(tupleMapper.getColumnValueClass())));
+        }
+        return retval;
+    }
+    
+    
+    public Map<C, V> lookup(TridentTupleMapper<K, C, V> tupleMapper, TridentTuple input) throws Exception {
+        String cf = tupleMapper.mapToColumnFamily(input);
+        K rowKey = tupleMapper.mapToRowKey(input);
+        Class<K> keyClass = tupleMapper.getKeyClass();
+        Class<C> colClass = tupleMapper.getColumnNameClass();
+        
+        ColumnFamily<K, C> columnFamily = new ColumnFamily<K, C>(cf, (Serializer<K>)serializerFor(keyClass),
+                (Serializer<C>)serializerFor(colClass));
+        OperationResult<ColumnList<C>> result;
+        result = this.keyspace.prepareQuery(columnFamily).getKey(rowKey).execute();
+        ColumnList<C> columns = (ColumnList<C>) result.getResult();
+        HashMap<C, V> retval = new HashMap<C, V>();
+        Iterator<Column<C>> it = columns.iterator();
+        while(it.hasNext()){
+            Column<C> col= it.next();
+            retval.put(col.getName(), col.getValue((Serializer<V>)serializerFor(tupleMapper.getColumnValueClass())));
+        }
+        return retval;
+    }
+    
+    
+    public Map<C, V> lookup(TupleMapper<K, C, V> tupleMapper, Tuple input, List<C> slice) throws Exception {
+        String cf = tupleMapper.mapToColumnFamily(input);
+        K rowKey = tupleMapper.mapToRowKey(input);
+        Class<K> keyClass = tupleMapper.getKeyClass();
+        Class<C> colClass = tupleMapper.getColumnNameClass();
+        
+        ColumnFamily<K, C> columnFamily = new ColumnFamily<K, C>(cf, (Serializer<K>)serializerFor(keyClass),
+                (Serializer<C>)serializerFor(colClass));
+        OperationResult<ColumnList<C>> result;
+        result = this.keyspace.prepareQuery(columnFamily).getKey(rowKey).withColumnSlice((Collection<C>) slice).execute();
+        ColumnList<C> columns = (ColumnList<C>) result.getResult();
+        HashMap<C, V> retval = new HashMap<C, V>();
+        Iterator<Column<C>> it = columns.iterator();
+        while(it.hasNext()){
+            Column<C> col= it.next();
+            retval.put(col.getName(), col.getValue((Serializer<V>)serializerFor(tupleMapper.getColumnValueClass())));
+        }
+        return retval;        
     }
 
-    @Override
-    public Columns<K, V> lookup(String columnFamilyName, String rowKey, List<K> columns) throws Exception {
-        ColumnFamily<String, K> columnFamily = new ColumnFamily<String, K>(columnFamilyName, StringSerializer.get(),
-                getColumnNameSerializer());
-        OperationResult<ColumnList<K>> result;
-        result = this.keyspace.prepareQuery(columnFamily).getKey(rowKey).withColumnSlice((Collection<K>) columns)
-                .execute();
-        ColumnList<K> resultColumns = (ColumnList<K>) result.getResult();
-        return new AstyanaxColumns<K, V>(resultColumns, getColumnValueSerializer());
-    }
-
-    @Override
-    public Columns<K, V> lookup(String columnFamilyName, String rowKey, Object start, Object end) throws Exception {
+    public Map<C, V> lookup(TupleMapper<K, C, V> tupleMapper, Tuple input, C start, C end) throws Exception {
         if (start == null || end == null) {
             return null;
         }
-        Serializer<K> serializer = getColumnNameSerializer();
-        ColumnFamily<String, K> columnFamily = new ColumnFamily<String, K>(columnFamilyName, StringSerializer.get(),
-                serializer);
-        OperationResult<ColumnList<K>> result;
-        result = this.keyspace.prepareQuery(columnFamily).getKey(rowKey)
-                .withColumnRange(getRangeBuilder(start, end, serializer)).execute();
-        ColumnList<K> columns = (ColumnList<K>) result.getResult();
-        return new AstyanaxColumns<K, V>(columns, getColumnValueSerializer());
+        
+        String cf = tupleMapper.mapToColumnFamily(input);
+        K rowKey = tupleMapper.mapToRowKey(input);
+        Class<K> keyClass = tupleMapper.getKeyClass();
+        Class<C> colClass = tupleMapper.getColumnNameClass();
+        ColumnFamily<K, C> columnFamily = new ColumnFamily<K, C>(cf, (Serializer<K>)serializerFor(keyClass),
+                (Serializer<C>)serializerFor(colClass));
+        OperationResult<ColumnList<C>> result= this.keyspace.prepareQuery(columnFamily).getKey(rowKey)
+                .withColumnRange(getRangeBuilder(start, end, (Serializer<C>)serializerFor(colClass))).execute();
+        ColumnList<C> columns = (ColumnList<C>) result.getResult();
+        HashMap<C, V> retval = new HashMap<C, V>();
+        Iterator<Column<C>> it = columns.iterator();
+        while(it.hasNext()){
+            Column<C> col= it.next();
+            retval.put(col.getName(), col.getValue((Serializer<V>)serializerFor(tupleMapper.getColumnValueClass())));
+        }
+        return retval;        
     }
 
-    @Override
-    public void writeTuple(Tuple input, TupleMapper<K, V> tupleMapper) throws Exception {
+    
+    public Map<C, V> lookup(TridentTupleMapper<K, C, V> tupleMapper, TridentTuple input, C start, C end) throws Exception {
+        if (start == null || end == null) {
+            return null;
+        }
+        
+        String cf = tupleMapper.mapToColumnFamily(input);
+        K rowKey = tupleMapper.mapToRowKey(input);
+        Class<K> keyClass = tupleMapper.getKeyClass();
+        Class<C> colClass = tupleMapper.getColumnNameClass();
+        ColumnFamily<K, C> columnFamily = new ColumnFamily<K, C>(cf, (Serializer<K>)serializerFor(keyClass),
+                (Serializer<C>)serializerFor(colClass));
+        OperationResult<ColumnList<C>> result= this.keyspace.prepareQuery(columnFamily).getKey(rowKey)
+                .withColumnRange(getRangeBuilder(start, end, (Serializer<C>)serializerFor(colClass))).execute();
+        ColumnList<C> columns = (ColumnList<C>) result.getResult();
+        HashMap<C, V> retval = new HashMap<C, V>();
+        Iterator<Column<C>> it = columns.iterator();
+        while(it.hasNext()){
+            Column<C> col= it.next();
+            retval.put(col.getName(), col.getValue((Serializer<V>)serializerFor(tupleMapper.getColumnValueClass())));
+        }
+        return retval;        
+    }
+
+    
+    
+    public void writeTuple(Tuple input, TupleMapper<K, C, V> tupleMapper) throws Exception {
         String columnFamilyName = tupleMapper.mapToColumnFamily(input);
-        String rowKey = (String) tupleMapper.mapToRowKey(input);
+        K rowKey = tupleMapper.mapToRowKey(input);
         MutationBatch mutation = keyspace.prepareMutationBatch();
-        ColumnFamily<String, K> columnFamily = new ColumnFamily<String, K>(columnFamilyName, StringSerializer.get(),
-                this.getColumnNameSerializer());
+        ColumnFamily<K, C> columnFamily = new ColumnFamily<K, C>(columnFamilyName, (Serializer<K>)serializerFor(tupleMapper.getKeyClass()),
+                (Serializer<C>)serializerFor(tupleMapper.getColumnNameClass()));
         this.addTupleToMutation(input, columnFamily, rowKey, mutation, tupleMapper);
         mutation.execute();
     }
 
-    @Override
-    public void writeTuple(TridentTuple input, TridentTupleMapper<K, V> tupleMapper) throws Exception {
+    public void writeTuple(TridentTuple input, TridentTupleMapper<K, C, V> tupleMapper) throws Exception {
         String columnFamilyName = tupleMapper.mapToColumnFamily(input);
-        String rowKey = (String) tupleMapper.mapToRowKey(input);
+        K rowKey = tupleMapper.mapToRowKey(input);
         MutationBatch mutation = keyspace.prepareMutationBatch();
-        ColumnFamily<String, K> columnFamily = new ColumnFamily<String, K>(columnFamilyName, StringSerializer.get(),
-                this.getColumnNameSerializer());
+        ColumnFamily<K, C> columnFamily = new ColumnFamily<K, C>(columnFamilyName, (Serializer<K>)serializerFor(tupleMapper.getKeyClass()),
+                (Serializer<C>)serializerFor(tupleMapper.getColumnNameClass()));
         this.addTupleToMutation(input, columnFamily, rowKey, mutation, tupleMapper);
         mutation.execute();
     }
 
-    @Override
-    public void writeTuples(List<Tuple> inputs, TupleMapper<K, V> tupleMapper) throws Exception {
+    public void writeTuples(List<Tuple> inputs, TupleMapper<K, C, V> tupleMapper) throws Exception {
         MutationBatch mutation = keyspace.prepareMutationBatch();
         for (Tuple input : inputs) {
             String columnFamilyName = tupleMapper.mapToColumnFamily(input);
-            String rowKey = (String) tupleMapper.mapToRowKey(input);
-            ColumnFamily<String, K> columnFamily = new ColumnFamily<String, K>(columnFamilyName,
-                    StringSerializer.get(), this.getColumnNameSerializer());
+            K rowKey = tupleMapper.mapToRowKey(input);
+            ColumnFamily<K, C> columnFamily = new ColumnFamily<K,C>(columnFamilyName,
+                    (Serializer<K>)serializerFor(tupleMapper.getKeyClass()), (Serializer<C>)this.serializerFor(tupleMapper.getColumnNameClass()));
             this.addTupleToMutation(input, columnFamily, rowKey, mutation, tupleMapper);
         }
         mutation.execute();
     }
 
-    private void addTupleToMutation(Tuple input, ColumnFamily<String, K> columnFamily, String rowKey,
-            MutationBatch mutation, TupleMapper<K, V> tupleMapper) {
-        Map<K, V> columns = tupleMapper.mapToColumns(input);
-        for (Map.Entry<K, V> entry : columns.entrySet()) {
+    private void addTupleToMutation(Tuple input, ColumnFamily<K, C> columnFamily, K rowKey,
+            MutationBatch mutation, TupleMapper<K, C, V> tupleMapper) {
+        Map<C, V> columns = tupleMapper.mapToColumns(input);
+        for (Map.Entry<C, V> entry : columns.entrySet()) {
             mutation.withRow(columnFamily, rowKey).putColumn(entry.getKey(), entry.getValue(),
-                    getColumnValueSerializer(), null);
+                    (Serializer<V>)this.serializerFor(tupleMapper.getColumnValueClass()), null);
         }
     }
 
-    private void addTupleToMutation(TridentTuple input, ColumnFamily<String, K> columnFamily, String rowKey,
-            MutationBatch mutation, TridentTupleMapper<K, V> tupleMapper) {
-        Map<K, V> columns = tupleMapper.mapToColumns(input);
+    private void addTupleToMutation(TridentTuple input, ColumnFamily<K, C> columnFamily, K rowKey,
+            MutationBatch mutation, TridentTupleMapper<K, C, V> tupleMapper) {
+        Map<C, V> columns = tupleMapper.mapToColumns(input);
         if (tupleMapper.shouldDelete(input)) {
-            for (Map.Entry<K, V> entry : columns.entrySet()) {
+            for (Map.Entry<C, V> entry : columns.entrySet()) {
                 mutation.withRow(columnFamily, rowKey).deleteColumn(entry.getKey());
             }
         } else {
-            for (Map.Entry<K, V> entry : columns.entrySet()) {
+            for (Map.Entry<C, V> entry : columns.entrySet()) {
                 mutation.withRow(columnFamily, rowKey).putColumn(entry.getKey(), entry.getValue(),
-                        getColumnValueSerializer(), null);
+                        serializerFor(tupleMapper.getColumnNameClass()), null);
             }
         }
     }
 
-    @Override
     public void incrementCountColumn(Tuple input, TupleCounterMapper tupleMapper) throws Exception {
         String columnFamilyName = tupleMapper.mapToColumnFamily(input);
         String rowKey = (String) tupleMapper.mapToRowKey(input);
@@ -245,7 +316,6 @@ public class AstyanaxClient<K, V> extends CassandraClient<K, V> {
         mutation.execute();
     }
 
-    @Override
     public void incrementCountColumns(List<Tuple> inputs, TupleCounterMapper tupleMapper) throws Exception {
         MutationBatch mutation = keyspace.prepareMutationBatch();
         for (Tuple input : inputs) {
@@ -261,19 +331,19 @@ public class AstyanaxClient<K, V> extends CassandraClient<K, V> {
         mutation.execute();
     }
 
-    private Serializer<K> getColumnNameSerializer() {
-            return getSerializer(this.getColumnNameClass());
-    }
+//    private Serializer<K> getColumnNameSerializer() {
+//            return getSerializer(this.getColumnNameClass());
+//    }
+//
+//    private Serializer<V> getColumnValueSerializer() {
+//            return serializerFor(this.getColumnValueClass());
+//    }
 
-    private Serializer<V> getColumnValueSerializer() {
-            return getSerializer(this.getColumnValueClass());
-    }
-
-    private ByteBufferRange getRangeBuilder(Object start, Object end, Serializer<K> serializer) {
+    private ByteBufferRange getRangeBuilder(C start, C end, Serializer<C> serializer) {
         if (!(serializer instanceof AnnotatedCompositeSerializer)) {
-            return new RangeBuilder().setStart(start, getSerializer(start.getClass())).setEnd(end, getSerializer(end.getClass())).build();
+            return new RangeBuilder().setStart(start, serializerFor(start.getClass())).setEnd(end, serializerFor(end.getClass())).build();
         } else {
-            return ((AnnotatedCompositeSerializer<K>) serializer).buildRange().greaterThanEquals(start)
+            return ((AnnotatedCompositeSerializer<C>) serializer).buildRange().greaterThanEquals(start)
                     .lessThanEquals(end).build();
         }
     }
@@ -305,7 +375,7 @@ public class AstyanaxClient<K, V> extends CassandraClient<K, V> {
     }
 
     @SuppressWarnings({ "rawtypes", "unchecked" })
-    private static <T> Serializer<T> getSerializer(Class<?> valueClass) {
+    private static <T> Serializer<T> serializerFor(Class<?> valueClass) {
         Serializer serializer = null;
         if (valueClass.equals(UUID.class)) {
             serializer = UUIDSerializer.get();
