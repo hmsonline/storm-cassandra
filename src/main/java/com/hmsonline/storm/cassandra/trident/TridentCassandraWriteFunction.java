@@ -35,9 +35,9 @@ public class TridentCassandraWriteFunction<K, C, V> implements Function {
         this.clientConfigKey = clientConfigKey;
         this.valueToEmit = null;
     }
-    public TridentCassandraWriteFunction(String clientConfigKey, TridentTupleMapper<K, V> tupleMapper,
-            Class<K> columnNameClass, Class<V> columnValueClass, Object valueToEmit) {
-        this(clientConfigKey, tupleMapper, columnNameClass, columnValueClass);
+    public TridentCassandraWriteFunction(String clientConfigKey, TridentTupleMapper<K, C, V> tupleMapper,
+            Object valueToEmit) {
+        this(clientConfigKey, tupleMapper);
         this.valueToEmit = valueToEmit;
     }
 
