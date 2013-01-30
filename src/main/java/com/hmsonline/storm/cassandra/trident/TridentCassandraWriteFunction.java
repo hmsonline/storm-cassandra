@@ -10,6 +10,7 @@ import storm.trident.operation.TridentCollector;
 import storm.trident.operation.TridentOperationContext;
 import storm.trident.tuple.TridentTuple;
 import backtype.storm.topology.FailedException;
+import backtype.storm.tuple.Values;
 
 import com.hmsonline.storm.cassandra.bolt.mapper.TridentTupleMapper;
 import com.hmsonline.storm.cassandra.client.AstyanaxClient;
@@ -25,6 +26,11 @@ public class TridentCassandraWriteFunction<K, V> implements Function {
     private Class<K> columnNameClass;
     private Class<V> columnValueClass;
     private String clientConfigKey;
+    private Object valueToEmit;
+    
+    public void setValueToEmitAfterWrite(Object valueToEmit) {
+        this.valueToEmit = valueToEmit;
+    }
 
     public TridentCassandraWriteFunction(String clientConfigKey, TridentTupleMapper<K, V> tupleMapper,
             Class<K> columnNameClass, Class<V> columnValueClass) {
@@ -32,6 +38,12 @@ public class TridentCassandraWriteFunction<K, V> implements Function {
         this.columnNameClass = columnNameClass;
         this.columnValueClass = columnValueClass;
         this.clientConfigKey = clientConfigKey;
+        this.valueToEmit = null;
+    }
+    public TridentCassandraWriteFunction(String clientConfigKey, TridentTupleMapper<K, V> tupleMapper,
+            Class<K> columnNameClass, Class<V> columnValueClass, Object valueToEmit) {
+        this(clientConfigKey, tupleMapper, columnNameClass, columnValueClass);
+        this.valueToEmit = valueToEmit;
     }
 
     @Override
@@ -51,6 +63,9 @@ public class TridentCassandraWriteFunction<K, V> implements Function {
     public void execute(TridentTuple tuple, TridentCollector collector) {
         try {
             writeTuple(tuple);
+            if (this.valueToEmit != null) {
+                collector.emit(new Values(this.valueToEmit));
+            }
         } catch (TupleMappingException e) {
             LOG.error("Skipping tuple: " + tuple, e);
         } catch (StormCassandraException e) {
