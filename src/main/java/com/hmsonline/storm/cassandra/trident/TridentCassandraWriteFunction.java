@@ -14,17 +14,15 @@ import backtype.storm.tuple.Values;
 
 import com.hmsonline.storm.cassandra.bolt.mapper.TridentTupleMapper;
 import com.hmsonline.storm.cassandra.client.AstyanaxClient;
-import com.hmsonline.storm.cassandra.client.CassandraClient;
 import com.hmsonline.storm.cassandra.exceptions.StormCassandraException;
 import com.hmsonline.storm.cassandra.exceptions.TupleMappingException;
 
-public class TridentCassandraWriteFunction<K, V> implements Function {
+public class TridentCassandraWriteFunction<K, C, V> implements Function {
     private static final long serialVersionUID = 1L;
     private static final Logger LOG = LoggerFactory.getLogger(TridentCassandraWriteFunction.class);
-    protected TridentTupleMapper<K, V> tupleMapper;
-    private CassandraClient<K, V> client;
-    private Class<K> columnNameClass;
-    private Class<V> columnValueClass;
+    protected TridentTupleMapper<K, C, V> tupleMapper;
+    private AstyanaxClient<K, C, V> client;
+
     private String clientConfigKey;
     private Object valueToEmit;
     
@@ -32,11 +30,8 @@ public class TridentCassandraWriteFunction<K, V> implements Function {
         this.valueToEmit = valueToEmit;
     }
 
-    public TridentCassandraWriteFunction(String clientConfigKey, TridentTupleMapper<K, V> tupleMapper,
-            Class<K> columnNameClass, Class<V> columnValueClass) {
+    public TridentCassandraWriteFunction(String clientConfigKey, TridentTupleMapper<K, C, V> tupleMapper) {
         this.tupleMapper = tupleMapper;
-        this.columnNameClass = columnNameClass;
-        this.columnValueClass = columnValueClass;
         this.clientConfigKey = clientConfigKey;
         this.valueToEmit = null;
     }
@@ -50,7 +45,7 @@ public class TridentCassandraWriteFunction<K, V> implements Function {
     @SuppressWarnings({ "rawtypes", "unchecked" })
     public void prepare(Map stormConf, TridentOperationContext context) {
         Map<String, Object> config = (Map<String, Object>) stormConf.get(this.clientConfigKey);
-        client = new AstyanaxClient<K, V>(columnNameClass, columnValueClass);
+        client = new AstyanaxClient<K, C, V>();
         client.start(config);
     }
 
@@ -81,13 +76,6 @@ public class TridentCassandraWriteFunction<K, V> implements Function {
     }
 
     public void writeTuple(TridentTuple input) throws Exception {
-        getClient().writeTuple(input, this.tupleMapper);
-    }
-
-    public synchronized CassandraClient<K, V> getClient() {
-        if (client == null) {
-
-        }
-        return client;
+        this.client.writeTuple(input, this.tupleMapper);
     }
 }

@@ -21,13 +21,12 @@ import com.hmsonline.storm.cassandra.bolt.mapper.TupleMapper;
  * @author boneill42
  */
 @SuppressWarnings({ "serial", "rawtypes", "unchecked" })
-public class TridentCassandraBatchBolt<K, V> extends TransactionalCassandraBatchBolt implements ITridentBatchBolt {
+public class TridentCassandraBatchBolt<K, C, V> extends TransactionalCassandraBatchBolt implements ITridentBatchBolt {
     private static final Logger LOG = LoggerFactory.getLogger(TridentCassandraBatchBolt.class);
     private Object transactionId = null;
 
-    public TridentCassandraBatchBolt(String clientConfigKey, TupleMapper<K, V> tupleMapper, Class<K> columnNameClass,
-            Class<V> columnValueClass) {
-        super(clientConfigKey, tupleMapper, columnNameClass, columnValueClass);
+    public TridentCassandraBatchBolt(String clientConfigKey, TupleMapper<K, C, V> tupleMapper) {
+        super(clientConfigKey, tupleMapper);
     }
 
     @Override

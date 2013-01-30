@@ -3,6 +3,7 @@ package com.hmsonline.storm.cassandra.bolt.mapper;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.tuple.Fields;
@@ -55,7 +56,7 @@ import backtype.storm.tuple.Values;
  * @author boneill42
  */
 @SuppressWarnings("serial")
-public class DelimitedColumnsMapper implements ColumnsMapper<String, String>, Serializable {
+public class DelimitedColumnsMapper implements ColumnMapper<String, String, String>, Serializable {
     private String columnKeyField;
     private String emitIdFieldName;
     private String emitValueFieldName;
@@ -92,9 +93,9 @@ public class DelimitedColumnsMapper implements ColumnsMapper<String, String>, Se
      * @return
      */
     @Override
-    public List<Values> mapToValues(String rowKey, Columns<String, String> columns, Tuple input) {
+    public List<Values> mapToValues(String rowKey, Map<String, String> columns, Tuple input) {
         List<Values> values = new ArrayList<Values>();
-        String delimVal = columns.getColumnByName(this.columnKeyField);
+        String delimVal = columns.get(this.columnKeyField);
         if (delimVal != null) {
             String[] vals = delimVal.split(this.delimiter);
             for (String val : vals) {
