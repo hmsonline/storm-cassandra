@@ -12,28 +12,22 @@ import storm.trident.operation.TridentOperationContext;
 import storm.trident.tuple.TridentTuple;
 import backtype.storm.tuple.Values;
 
-import com.hmsonline.storm.cassandra.bolt.mapper.Columns;
 import com.hmsonline.storm.cassandra.bolt.mapper.TridentColumnMapper;
 import com.hmsonline.storm.cassandra.bolt.mapper.TridentTupleMapper;
 import com.hmsonline.storm.cassandra.client.AstyanaxClient;
-import com.hmsonline.storm.cassandra.client.CassandraClient;
 
-public class TridentCassandraLookupFunction<K, V> implements Function {
+public class TridentCassandraLookupFunction<K, C, V> implements Function {
     private static final long serialVersionUID = 12132012L;
 
     private static final Logger LOG = LoggerFactory.getLogger(TridentCassandraLookupFunction.class);
 
-    private TridentColumnMapper<K, V> columnsMapper;
-    private TridentTupleMapper<K, V> tupleMapper;
-    private CassandraClient<K, V> client;
-    private Class<K> columnNameClass;
-    private Class<V> columnValueClass;
+    private TridentColumnMapper<K, C, V> columnsMapper;
+    private TridentTupleMapper<K, C, V> tupleMapper;
+    private AstyanaxClient<K, C, V> client;
     private String clientConfigKey;
 
-    public TridentCassandraLookupFunction(String clientConfigKey, TridentTupleMapper<K, V> tupleMapper,
-            TridentColumnMapper<K, V> columnMapper, Class<K> columnNameClass, Class<V> columnValueClass) {
-        this.columnNameClass = columnNameClass;
-        this.columnValueClass = columnValueClass;
+    public TridentCassandraLookupFunction(String clientConfigKey, TridentTupleMapper<K, C, V> tupleMapper,
+            TridentColumnMapper<K, C, V> columnMapper) {
         this.columnsMapper = columnMapper;
         this.tupleMapper = tupleMapper;
         this.clientConfigKey = clientConfigKey;
@@ -44,7 +38,7 @@ public class TridentCassandraLookupFunction<K, V> implements Function {
     public void prepare(Map stormConf, TridentOperationContext context) {
         Map<String, Object> config = (Map<String, Object>) stormConf.get(this.clientConfigKey);
 
-        this.client = new AstyanaxClient<K, V>(columnNameClass, columnValueClass);
+        this.client = new AstyanaxClient<K, C, V>();
         this.client.start(config);
     }
 
@@ -56,16 +50,16 @@ public class TridentCassandraLookupFunction<K, V> implements Function {
     @Override
     public void execute(TridentTuple input, TridentCollector collector) {
         String columnFamily = tupleMapper.mapToColumnFamily(input);
-        String rowKey = tupleMapper.mapToRowKey(input);
-        Object start = tupleMapper.mapToStartKey(input);
-        Object end = tupleMapper.mapToEndKey(input);
+        K rowKey = tupleMapper.mapToRowKey(input);
+        C start = tupleMapper.mapToStartKey(input);
+        C end = tupleMapper.mapToEndKey(input);
 
         try {
-            Columns<K, V> colMap = null;
+            Map<C, V> colMap = null;
             if (start == null || end == null) {
-                colMap = client.lookup(columnFamily, rowKey);
+                colMap = client.lookup(tupleMapper, input);
             } else {
-                colMap = client.lookup(columnFamily, rowKey, start, end);
+                colMap = client.lookup(tupleMapper, input, start, end);
             }
 
             List<Values> valuesToEmit = columnsMapper.mapToValues(rowKey, colMap, input);
