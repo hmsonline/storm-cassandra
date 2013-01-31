@@ -10,6 +10,7 @@ import storm.trident.operation.TridentCollector;
 import storm.trident.operation.TridentOperationContext;
 import storm.trident.tuple.TridentTuple;
 import backtype.storm.topology.FailedException;
+import backtype.storm.tuple.Values;
 
 import com.hmsonline.storm.cassandra.bolt.mapper.TridentTupleMapper;
 import com.hmsonline.storm.cassandra.client.AstyanaxClient;
@@ -23,10 +24,21 @@ public class TridentCassandraWriteFunction<K, C, V> implements Function {
     private AstyanaxClient<K, C, V> client;
 
     private String clientConfigKey;
+    private Object valueToEmit;
+    
+    public void setValueToEmitAfterWrite(Object valueToEmit) {
+        this.valueToEmit = valueToEmit;
+    }
 
     public TridentCassandraWriteFunction(String clientConfigKey, TridentTupleMapper<K, C, V> tupleMapper) {
         this.tupleMapper = tupleMapper;
         this.clientConfigKey = clientConfigKey;
+        this.valueToEmit = null;
+    }
+    public TridentCassandraWriteFunction(String clientConfigKey, TridentTupleMapper<K, C, V> tupleMapper,
+            Object valueToEmit) {
+        this(clientConfigKey, tupleMapper);
+        this.valueToEmit = valueToEmit;
     }
 
     @Override
@@ -46,6 +58,9 @@ public class TridentCassandraWriteFunction<K, C, V> implements Function {
     public void execute(TridentTuple tuple, TridentCollector collector) {
         try {
             writeTuple(tuple);
+            if (this.valueToEmit != null) {
+                collector.emit(new Values(this.valueToEmit));
+            }
         } catch (TupleMappingException e) {
             LOG.error("Skipping tuple: " + tuple, e);
         } catch (StormCassandraException e) {

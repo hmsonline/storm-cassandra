@@ -25,12 +25,17 @@ Maven artifacts for releases will be available on maven central.
 
 **Basic Usage**
 
-`CassandraBolt` expects that a Cassandra hostname, port, and keyspace be set in the Storm topology configuration:
+`CassandraBolt`, `TridentCassandraLookupFunction`, and `TridentCassandraWriteFunction` expects that a Cassandra hostname, 
+port, and keyspace be set in the Storm topology configuration.  To allow for multiple instances of these in a topology
+and not require that they all connect to the same Cassandra instance the values are added to the Storm configuration
+using a key and a map.  The key to indicate which map to use is set in the constructor of these classes when instantiating
+them.
 
+		Map<String, Object> cassandraConfig = new HashMap<String, Object>();
+		cassandraConfig.put(CassandraBolt.CASSANDRA_HOST, "localhost:9160");
+		cassandraConfig.put(CassandraBolt.CASSANDRA_KEYSPACE, "testKeyspace");
 		Config config = new Config();
-		config.put(CassandraBolt.CASSANDRA_HOST, "localhost:9160");
-		config.put(CassandraBolt.CASSANDRA_KEYSPACE, "testKeyspace");
-		
+		config.put("CassandraLocal", cassandraConfig);
 		
 The `CassandraBolt` class provides a convenience constructor that takes a column family name, and row key field value as arguments:
 
@@ -50,6 +55,14 @@ Would yield the following Cassandra row (as seen from `cassandra-cli`):
 		RowKey: 12345
 		=> (column=field1, value=foo, timestamp=1321938505071001)
 		=> (column=field2, value=bar, timestamp=1321938505072000)
+		
+**Cassandra Write Function**
+Storm Trident filters out the original Tuple if a function doesn't emit anything.  To allow for additional processing after
+writing to Cassandra the `TridentCassandraWriteFunction` can emit a static Object value.  The main purpose for this emit is
+to simply allow the Tuple to continue as opposed to filtering it out.  The static value can be set in either the constructor
+or by calling the setValueToEmitAfterWrite method.  Setting the emit value to NULL will cause the function to not emit anything
+and Storm will filter the Tuple out.  Default behavior is to not emit.
+If the function will emit a value don't forget to declare the output field when building the topology.
 		
 **Cassandra Counter Columns**
 
