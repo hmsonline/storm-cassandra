@@ -298,7 +298,7 @@ public class AstyanaxClient<K, C, V> {
         } else {
             for (Map.Entry<C, V> entry : columns.entrySet()) {
                 mutation.withRow(columnFamily, rowKey).putColumn(entry.getKey(), entry.getValue(),
-                        serializerFor(tupleMapper.getColumnNameClass()), null);
+                        serializerFor(tupleMapper.getColumnValueClass()), null);
             }
         }
     }
