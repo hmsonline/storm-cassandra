@@ -40,22 +40,23 @@ import com.netflix.astyanax.thrift.ThriftFamilyFactory;
 
 public class CassandraBoltTest {
     private static Logger LOG = LoggerFactory.getLogger(CassandraBoltTest.class);
-    private static EmbeddedCassandra cassandra;
+
 
     @BeforeClass
     public static void setupCassandra() throws TTransportException, IOException, InterruptedException,
             ConfigurationException, Exception {
+        SingletonEmbeddedCassandra.getInstance();
         try {
-            cassandra = new EmbeddedCassandra(9171);
-            cassandra.start();
-            Thread.sleep(2000);
+//            cassandra = new EmbeddedCassandra(9171);
+//            cassandra.start();
+//            Thread.sleep(2000);
 
             AstyanaxContext<Cluster> clusterContext = new AstyanaxContext.Builder()
                     .forCluster("ClusterName")
                     .withAstyanaxConfiguration(new AstyanaxConfigurationImpl().setDiscoveryType(NodeDiscoveryType.NONE))
                     .withConnectionPoolConfiguration(
                             new ConnectionPoolConfigurationImpl("MyConnectionPool").setMaxConnsPerHost(1).setSeeds(
-                                    "localhost:9171")).withConnectionPoolMonitor(new CountingConnectionPoolMonitor())
+                                    "localhost:9160")).withConnectionPoolMonitor(new CountingConnectionPoolMonitor())
                     .buildCluster(ThriftFamilyFactory.getInstance());
 
             clusterContext.start();
@@ -83,10 +84,11 @@ public class CassandraBoltTest {
         }
     }
 
-    @AfterClass
-    public static void teardownCassandra() {
-        cassandra.stop();
-    }
+
+//    public static void teardownCassandra() throws InterruptedException {
+//        cassandra.stop();
+//        Thread.sleep(4000);
+//    }
 
     @Test
     public void testBolt() throws Exception {
@@ -103,7 +105,7 @@ public class CassandraBoltTest {
         config.put(Config.TOPOLOGY_MAX_SPOUT_PENDING, 5000);
         
         Map<String, Object> clientConfig = new HashMap<String, Object>();
-        clientConfig.put(StormCassandraConstants.CASSANDRA_HOST, "localhost:9171");
+        clientConfig.put(StormCassandraConstants.CASSANDRA_HOST, "localhost:9160");
         clientConfig.put(StormCassandraConstants.CASSANDRA_KEYSPACE, "TestKeyspace");
         config.put(configKey, clientConfig);
 
@@ -123,7 +125,7 @@ public class CassandraBoltTest {
                 .withAstyanaxConfiguration(new AstyanaxConfigurationImpl().setDiscoveryType(NodeDiscoveryType.NONE))
                 .withConnectionPoolConfiguration(
                         new ConnectionPoolConfigurationImpl("MyConnectionPool").setMaxConnsPerHost(1).setSeeds(
-                                "localhost:9171")).withConnectionPoolMonitor(new CountingConnectionPoolMonitor())
+                                "localhost:9160")).withConnectionPoolMonitor(new CountingConnectionPoolMonitor())
                 .buildKeyspace(ThriftFamilyFactory.getInstance());
         astyContext.start();
         Keyspace ks = astyContext.getEntity();
@@ -149,7 +151,7 @@ public class CassandraBoltTest {
         config.put(Config.TOPOLOGY_MAX_SPOUT_PENDING, 5000);
         
         Map<String, Object> clientConfig = new HashMap<String, Object>();
-        clientConfig.put(StormCassandraConstants.CASSANDRA_HOST, "localhost:9171");
+        clientConfig.put(StormCassandraConstants.CASSANDRA_HOST, "localhost:9160");
         clientConfig.put(StormCassandraConstants.CASSANDRA_KEYSPACE, "TestKeyspace");
         config.put(configKey, clientConfig);
         
@@ -170,7 +172,7 @@ public class CassandraBoltTest {
                 .withAstyanaxConfiguration(new AstyanaxConfigurationImpl().setDiscoveryType(NodeDiscoveryType.NONE))
                 .withConnectionPoolConfiguration(
                         new ConnectionPoolConfigurationImpl("MyConnectionPool").setMaxConnsPerHost(1).setSeeds(
-                                "localhost:9171")).withConnectionPoolMonitor(new CountingConnectionPoolMonitor())
+                                "localhost:9160")).withConnectionPoolMonitor(new CountingConnectionPoolMonitor())
                 .buildKeyspace(ThriftFamilyFactory.getInstance());
         astyContext.start();
         Keyspace ks = astyContext.getEntity();
