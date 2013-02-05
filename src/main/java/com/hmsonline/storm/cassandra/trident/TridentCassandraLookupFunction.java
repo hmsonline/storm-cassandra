@@ -90,8 +90,10 @@ public class TridentCassandraLookupFunction<K, C, V> implements Function {
             }
 
             List<Values> valuesToEmit = columnsMapper.mapToValues(rowKey, colMap, input);
-            for (Values values : valuesToEmit) {
-                collector.emit(values);
+            if(valuesToEmit != null){
+                for (Values values : valuesToEmit) {
+                    collector.emit(values);
+                }
             }
 
         } catch (Exception e) {

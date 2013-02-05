@@ -1,5 +1,9 @@
 package com.hmsonline.storm.cassandra.bolt;
 
+import static com.hmsonline.storm.cassandra.bolt.AstyanaxUtil.createColumnFamily;
+import static com.hmsonline.storm.cassandra.bolt.AstyanaxUtil.createCounterColumnFamily;
+import static com.hmsonline.storm.cassandra.bolt.AstyanaxUtil.newClusterContext;
+import static com.hmsonline.storm.cassandra.bolt.AstyanaxUtil.newContext;
 import static org.junit.Assert.assertEquals;
 
 import java.io.IOException;
@@ -8,7 +12,6 @@ import java.util.Map;
 
 import org.apache.cassandra.config.ConfigurationException;
 import org.apache.thrift.transport.TTransportException;
-import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -28,54 +31,24 @@ import com.hmsonline.storm.cassandra.bolt.mapper.TupleMapper;
 import com.netflix.astyanax.AstyanaxContext;
 import com.netflix.astyanax.Cluster;
 import com.netflix.astyanax.Keyspace;
-import com.netflix.astyanax.connectionpool.NodeDiscoveryType;
-import com.netflix.astyanax.connectionpool.impl.ConnectionPoolConfigurationImpl;
-import com.netflix.astyanax.connectionpool.impl.CountingConnectionPoolMonitor;
-import com.netflix.astyanax.ddl.KeyspaceDefinition;
-import com.netflix.astyanax.impl.AstyanaxConfigurationImpl;
 import com.netflix.astyanax.model.Column;
 import com.netflix.astyanax.model.ColumnFamily;
 import com.netflix.astyanax.serializers.StringSerializer;
-import com.netflix.astyanax.thrift.ThriftFamilyFactory;
 
 public class CassandraBoltTest {
     private static Logger LOG = LoggerFactory.getLogger(CassandraBoltTest.class);
-    private static EmbeddedCassandra cassandra;
+    private static String KEYSPACE = CassandraBoltTest.class.getSimpleName();
+
 
     @BeforeClass
     public static void setupCassandra() throws TTransportException, IOException, InterruptedException,
             ConfigurationException, Exception {
+        SingletonEmbeddedCassandra.getInstance();
         try {
-            cassandra = new EmbeddedCassandra(9171);
-            cassandra.start();
-            Thread.sleep(2000);
 
-            AstyanaxContext<Cluster> clusterContext = new AstyanaxContext.Builder()
-                    .forCluster("ClusterName")
-                    .withAstyanaxConfiguration(new AstyanaxConfigurationImpl().setDiscoveryType(NodeDiscoveryType.NONE))
-                    .withConnectionPoolConfiguration(
-                            new ConnectionPoolConfigurationImpl("MyConnectionPool").setMaxConnsPerHost(1).setSeeds(
-                                    "localhost:9171")).withConnectionPoolMonitor(new CountingConnectionPoolMonitor())
-                    .buildCluster(ThriftFamilyFactory.getInstance());
-
-            clusterContext.start();
-            Cluster cluster = clusterContext.getEntity();
-            KeyspaceDefinition ksDef = cluster.makeKeyspaceDefinition();
-
-            Map<String, String> stratOptions = new HashMap<String, String>();
-            stratOptions.put("replication_factor", "1");
-            ksDef.setName("TestKeyspace")
-                    .setStrategyClass("SimpleStrategy")
-                    .setStrategyOptions(stratOptions)
-                    .addColumnFamily(
-                            cluster.makeColumnFamilyDefinition().setName("users").setComparatorType("UTF8Type")
-                                    .setKeyValidationClass("UTF8Type").setDefaultValidationClass("UTF8Type"))
-                    .addColumnFamily(
-                            cluster.makeColumnFamilyDefinition().setName("Counts").setComparatorType("UTF8Type")
-                                    .setKeyValidationClass("UTF8Type").setDefaultValidationClass("CounterColumnType"));
-
-            cluster.addKeyspace(ksDef);
-            Thread.sleep(2000);
+            AstyanaxContext<Cluster> clusterContext = newClusterContext("localhost:9160");
+            createColumnFamily(clusterContext, KEYSPACE, "users","UTF8Type", "UTF8Type", "UTF8Type");
+            createColumnFamily(clusterContext, KEYSPACE, "Counts", "UTF8Type", "UTF8Type", "CounterColumnType");
 
         } catch (Exception e) {
             LOG.warn("Couldn't setup cassandra.", e);
@@ -83,10 +56,6 @@ public class CassandraBoltTest {
         }
     }
 
-    @AfterClass
-    public static void teardownCassandra() {
-        cassandra.stop();
-    }
 
     @Test
     public void testBolt() throws Exception {
@@ -103,8 +72,8 @@ public class CassandraBoltTest {
         config.put(Config.TOPOLOGY_MAX_SPOUT_PENDING, 5000);
         
         Map<String, Object> clientConfig = new HashMap<String, Object>();
-        clientConfig.put(StormCassandraConstants.CASSANDRA_HOST, "localhost:9171");
-        clientConfig.put(StormCassandraConstants.CASSANDRA_KEYSPACE, "TestKeyspace");
+        clientConfig.put(StormCassandraConstants.CASSANDRA_HOST, "localhost:9160");
+        clientConfig.put(StormCassandraConstants.CASSANDRA_KEYSPACE, KEYSPACE);
         config.put(configKey, clientConfig);
 
         bolt.prepare(config, context, null);
@@ -117,15 +86,7 @@ public class CassandraBoltTest {
         // wait very briefly for the batch to complete
         Thread.sleep(250);
 
-        AstyanaxContext<Keyspace> astyContext = new AstyanaxContext.Builder()
-                .forCluster("ClusterName")
-                .forKeyspace("TestKeyspace")
-                .withAstyanaxConfiguration(new AstyanaxConfigurationImpl().setDiscoveryType(NodeDiscoveryType.NONE))
-                .withConnectionPoolConfiguration(
-                        new ConnectionPoolConfigurationImpl("MyConnectionPool").setMaxConnsPerHost(1).setSeeds(
-                                "localhost:9171")).withConnectionPoolMonitor(new CountingConnectionPoolMonitor())
-                .buildKeyspace(ThriftFamilyFactory.getInstance());
-        astyContext.start();
+        AstyanaxContext<Keyspace> astyContext = newContext("localhost:9160", KEYSPACE);
         Keyspace ks = astyContext.getEntity();
 
         Column<String> result = ks
@@ -149,8 +110,8 @@ public class CassandraBoltTest {
         config.put(Config.TOPOLOGY_MAX_SPOUT_PENDING, 5000);
         
         Map<String, Object> clientConfig = new HashMap<String, Object>();
-        clientConfig.put(StormCassandraConstants.CASSANDRA_HOST, "localhost:9171");
-        clientConfig.put(StormCassandraConstants.CASSANDRA_KEYSPACE, "TestKeyspace");
+        clientConfig.put(StormCassandraConstants.CASSANDRA_HOST, "localhost:9160");
+        clientConfig.put(StormCassandraConstants.CASSANDRA_KEYSPACE, KEYSPACE);
         config.put(configKey, clientConfig);
         
 
@@ -164,15 +125,7 @@ public class CassandraBoltTest {
         // wait very briefly for the batch to complete
         Thread.sleep(250);
 
-        AstyanaxContext<Keyspace> astyContext = new AstyanaxContext.Builder()
-                .forCluster("ClusterName")
-                .forKeyspace("TestKeyspace")
-                .withAstyanaxConfiguration(new AstyanaxConfigurationImpl().setDiscoveryType(NodeDiscoveryType.NONE))
-                .withConnectionPoolConfiguration(
-                        new ConnectionPoolConfigurationImpl("MyConnectionPool").setMaxConnsPerHost(1).setSeeds(
-                                "localhost:9171")).withConnectionPoolMonitor(new CountingConnectionPoolMonitor())
-                .buildKeyspace(ThriftFamilyFactory.getInstance());
-        astyContext.start();
+        AstyanaxContext<Keyspace> astyContext = newContext("localhost:9160", KEYSPACE);
         Keyspace ks = astyContext.getEntity();
 
         Column<String> result = ks

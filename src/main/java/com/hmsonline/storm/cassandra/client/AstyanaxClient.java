@@ -6,6 +6,7 @@ import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -49,6 +50,7 @@ import com.netflix.astyanax.serializers.BooleanSerializer;
 import com.netflix.astyanax.serializers.ByteBufferSerializer;
 import com.netflix.astyanax.serializers.ByteSerializer;
 import com.netflix.astyanax.serializers.BytesArraySerializer;
+import com.netflix.astyanax.serializers.CompositeRangeBuilder;
 import com.netflix.astyanax.serializers.DateSerializer;
 import com.netflix.astyanax.serializers.DoubleSerializer;
 import com.netflix.astyanax.serializers.FloatSerializer;
@@ -87,9 +89,6 @@ public class AstyanaxClient<K, C, V> {
                     new ConnectionPoolConfigurationImpl("MyConnectionPool").setMaxConnsPerHost(1))
             .put(ASTYANAX_CONNECTION_POOL_MONITOR, new CountingConnectionPoolMonitor()).build();
 
-//    public AstyanaxClient(Class<K> columnNameClass, Class<V> columnValueClass) {
-//        super(columnNameClass, columnValueClass);
-//    }
 
     protected AstyanaxContext<Keyspace> createContext(Map<String, Object> config) {
         Map<String, Object> settings = Maps.newHashMap();
@@ -222,7 +221,7 @@ public class AstyanaxClient<K, C, V> {
     }
 
     
-    public Map<C, V> lookup(TridentTupleMapper<K, C, V> tupleMapper, TridentTuple input, C start, C end) throws Exception {
+    public Map<C, V> lookup(TridentTupleMapper<K, C, V> tupleMapper, TridentTuple input, Object start, Object end) throws Exception {
         if (start == null || end == null) {
             return null;
         }
@@ -331,23 +330,74 @@ public class AstyanaxClient<K, C, V> {
         mutation.execute();
     }
 
-//    private Serializer<K> getColumnNameSerializer() {
-//            return getSerializer(this.getColumnNameClass());
-//    }
-//
-//    private Serializer<V> getColumnValueSerializer() {
-//            return serializerFor(this.getColumnValueClass());
-//    }
 
-    private ByteBufferRange getRangeBuilder(C start, C end, Serializer<C> serializer) {
+    private ByteBufferRange getRangeBuilder(Object start, Object end, Serializer<C> serializer) {
         if (!(serializer instanceof AnnotatedCompositeSerializer)) {
             return new RangeBuilder().setStart(start, serializerFor(start.getClass())).setEnd(end, serializerFor(end.getClass())).build();
         } else {
             return ((AnnotatedCompositeSerializer<C>) serializer).buildRange().greaterThanEquals(start)
                     .lessThanEquals(end).build();
+// TODO come back to this
+//            CompositeRangeBuilder builder = ((AnnotatedCompositeSerializer<C>) serializer).buildRange();
+//            try {
+//                builder = buildRangeFromAnnotatedStartEnd(builder, start, end);
+//            } catch (IllegalAccessException e) {
+//                LOG.error("Unable to introspect annotattiions for range query.", e);
+//            }
+//            return builder.build();
         }
     }
+    /*
+    // TODO revisit pending Astayanax cleanup of composites.
+    private CompositeRangeBuilder buildRangeFromAnnotatedStartEnd(CompositeRangeBuilder rangeBuilder, C start, C end) throws IllegalAccessException {
+        CompositeRangeBuilder retval = rangeBuilder;
+        List<ComponentField> componentFields = componentFieldsForClass(start.getClass());
 
+        retval = retval.withPrefix(componentFields.get(0).getField().get(start));
+        for(ComponentField cf : componentFields){
+            LOG.debug("Processing ordinal {}, type={}", cf.ordinal, cf.field.getType());
+            LOG.debug("Start={}, End={}", cf.getField().get(start), cf.getField().get(end));
+//            retval = retval.withPrefix(cf.getField().get(start));
+            retval = retval.greaterThanEquals(cf.getField().get(start));
+            retval = retval.lessThanEquals(cf.getField().get(end));
+            break;
+        }
+        return retval;
+    }
+    
+    static class ComponentField implements Comparable<ComponentField>{
+        private Field field;
+        private int ordinal;
+        
+        ComponentField(Field field, int ordinal){
+            this.field = field;
+            this.ordinal = ordinal;
+        }
+        
+        Field getField(){
+            return this.field;
+        }
+        
+        @Override
+        public int compareTo(ComponentField other){
+            return this.ordinal - other.ordinal;
+        }
+    }
+    
+    private static List<ComponentField> componentFieldsForClass(Class<?> c){
+        ArrayList<ComponentField> retval = new ArrayList<ComponentField>();
+        
+        List<Field> fields = getInheritedFields(c);
+        for(Field field : fields){
+            Component comp = field.getAnnotation(Component.class);
+            if(comp != null){
+                retval.add(new ComponentField(field, comp.ordinal()));
+            }
+        }
+        Collections.sort(retval);
+        return retval;
+    }
+    */
     private static boolean containsComponentAnnotation(Class<?> c) {
         List<Field> fields = getInheritedFields(c);
         for (Field field : fields) {
@@ -413,6 +463,7 @@ public class AstyanaxClient<K, C, V> {
                 serializer = ObjectSerializer.get();
             }
         }
+        LOG.debug("Inferred serializer type: {}", serializer.getClass().getName());
         return serializer;
     }
 
