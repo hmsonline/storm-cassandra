@@ -17,5 +17,6 @@ public interface TridentColumnMapper<K, C, V> extends Serializable {
      */
     public List<Values> mapToValues(K rowKey, Map<C, V> columns, TridentTuple input);
 
+    @Deprecated
     public List<Values> mapToValues(K rowKey, List<Map<C, V>> columns, TridentTuple input);
 }

@@ -31,8 +31,10 @@ public interface TridentTupleMapper<K, C, V> extends Serializable {
 
     C mapToStartKey(TridentTuple tuple) throws TupleMappingException;
 
+    @Deprecated
     Map<Object, Object> mapToEndKeyMap(TridentTuple tuple) throws TupleMappingException;
 
+    @Deprecated
     Map<Object, Object> mapToStartKeyMap(TridentTuple tuple) throws TupleMappingException;
 
     boolean shouldDelete(TridentTuple tuple);

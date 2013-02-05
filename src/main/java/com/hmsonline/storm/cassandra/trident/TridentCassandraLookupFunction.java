@@ -71,6 +71,8 @@ public class TridentCassandraLookupFunction<K, C, V> implements Function {
     }
 
     @Override
+    // TODO come back and fix this once composite range queries are sorted out
+    // we should not have to execute multiple queries.
     public void execute(TridentTuple input, TridentCollector collector) {
         if (tupleFilter != null && !tupleFilter.isKeep(input)) {
             collector.emit(createEmptyValues());
