@@ -5,9 +5,9 @@ import com.netflix.astyanax.annotations.Component;
 public class Composite2<A, B> {
 
     @Component(ordinal = 0)
-    private A a;
+    public A a;
     @Component(ordinal = 1)
-    private B b;
+    public B b;
     
     public Composite2(){
         

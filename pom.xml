@@ -78,7 +78,7 @@
 		<dependency>
 			<groupId>com.netflix.astyanax</groupId>
 			<artifactId>astyanax</artifactId>
-			<version>1.56.23</version>
+			<version>1.56.25-SNAPSHOT</version>
 			<exclusions>
 				<exclusion>
 					<artifactId>commons-lang</artifactId>
