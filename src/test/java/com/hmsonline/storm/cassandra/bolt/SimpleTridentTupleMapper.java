@@ -13,9 +13,9 @@ import com.hmsonline.storm.cassandra.exceptions.TupleMappingException;
 public class SimpleTridentTupleMapper implements TridentTupleMapper<String, String, String> {
 
     private static final long serialVersionUID = 6362052836181968031L;
-    
+
     private Fields fields;
-    
+
     public SimpleTridentTupleMapper(Fields fields){
         this.fields = fields;
     }
@@ -70,6 +70,18 @@ public class SimpleTridentTupleMapper implements TridentTupleMapper<String, Stri
     @Override
     public Class<String> getColumnValueClass() {
         return String.class;
+    }
+
+    @Override
+    public Map<Object, Object> mapToEndKeyMap(TridentTuple tuple) throws TupleMappingException {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public Map<Object, Object> mapToStartKeyMap(TridentTuple tuple) throws TupleMappingException {
+        // TODO Auto-generated method stub
+        return null;
     }
 
 }

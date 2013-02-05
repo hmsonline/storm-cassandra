@@ -60,4 +60,16 @@ public class CompositeColumnTridentTupleMapper implements TridentTupleMapper<Str
         return String.class;
     }
 
+    @Override
+    public Map<Object, Object> mapToEndKeyMap(TridentTuple tuple) throws TupleMappingException {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public Map<Object, Object> mapToStartKeyMap(TridentTuple tuple) throws TupleMappingException {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
 }
