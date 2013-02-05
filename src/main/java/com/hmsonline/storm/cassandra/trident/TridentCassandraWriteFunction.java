@@ -10,35 +10,42 @@ import storm.trident.operation.TridentCollector;
 import storm.trident.operation.TridentOperationContext;
 import storm.trident.tuple.TridentTuple;
 import backtype.storm.topology.FailedException;
+import backtype.storm.tuple.Values;
 
 import com.hmsonline.storm.cassandra.bolt.mapper.TridentTupleMapper;
 import com.hmsonline.storm.cassandra.client.AstyanaxClient;
-import com.hmsonline.storm.cassandra.client.CassandraClient;
 import com.hmsonline.storm.cassandra.exceptions.StormCassandraException;
 import com.hmsonline.storm.cassandra.exceptions.TupleMappingException;
 
-public class TridentCassandraWriteFunction<K, V> implements Function {
+public class TridentCassandraWriteFunction<K, C, V> implements Function {
     private static final long serialVersionUID = 1L;
     private static final Logger LOG = LoggerFactory.getLogger(TridentCassandraWriteFunction.class);
-    protected TridentTupleMapper<K, V> tupleMapper;
-    private CassandraClient<K, V> client;
-    private Class<K> columnNameClass;
-    private Class<V> columnValueClass;
-    private String clientConfigKey;
+    protected TridentTupleMapper<K, C, V> tupleMapper;
+    private AstyanaxClient<K, C, V> client;
 
-    public TridentCassandraWriteFunction(String clientConfigKey, TridentTupleMapper<K, V> tupleMapper,
-            Class<K> columnNameClass, Class<V> columnValueClass) {
+    private String clientConfigKey;
+    private Object valueToEmit;
+    
+    public void setValueToEmitAfterWrite(Object valueToEmit) {
+        this.valueToEmit = valueToEmit;
+    }
+
+    public TridentCassandraWriteFunction(String clientConfigKey, TridentTupleMapper<K, C, V> tupleMapper) {
         this.tupleMapper = tupleMapper;
-        this.columnNameClass = columnNameClass;
-        this.columnValueClass = columnValueClass;
         this.clientConfigKey = clientConfigKey;
+        this.valueToEmit = null;
+    }
+    public TridentCassandraWriteFunction(String clientConfigKey, TridentTupleMapper<K, C, V> tupleMapper,
+            Object valueToEmit) {
+        this(clientConfigKey, tupleMapper);
+        this.valueToEmit = valueToEmit;
     }
 
     @Override
     @SuppressWarnings({ "rawtypes", "unchecked" })
     public void prepare(Map stormConf, TridentOperationContext context) {
         Map<String, Object> config = (Map<String, Object>) stormConf.get(this.clientConfigKey);
-        client = new AstyanaxClient<K, V>(columnNameClass, columnValueClass);
+        client = new AstyanaxClient<K, C, V>();
         client.start(config);
     }
 
@@ -51,6 +58,9 @@ public class TridentCassandraWriteFunction<K, V> implements Function {
     public void execute(TridentTuple tuple, TridentCollector collector) {
         try {
             writeTuple(tuple);
+            if (this.valueToEmit != null) {
+                collector.emit(new Values(this.valueToEmit));
+            }
         } catch (TupleMappingException e) {
             LOG.error("Skipping tuple: " + tuple, e);
         } catch (StormCassandraException e) {
@@ -66,13 +76,6 @@ public class TridentCassandraWriteFunction<K, V> implements Function {
     }
 
     public void writeTuple(TridentTuple input) throws Exception {
-        getClient().writeTuple(input, this.tupleMapper);
-    }
-
-    public synchronized CassandraClient<K, V> getClient() {
-        if (client == null) {
-
-        }
-        return client;
+        this.client.writeTuple(input, this.tupleMapper);
     }
 }

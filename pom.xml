@@ -39,10 +39,6 @@
 			<id>clojars.org</id>
 			<url>http://clojars.org/repo</url>
 		</repository>
-		<repository>
-			<id>twitter4j</id>
-			<url>http://twitter4j.org/maven2</url>
-		</repository>
 	</repositories>
 
 	<properties>
@@ -82,7 +78,7 @@
 		<dependency>
 			<groupId>com.netflix.astyanax</groupId>
 			<artifactId>astyanax</artifactId>
-			<version>1.0.6</version>
+			<version>1.56.24</version>
 			<exclusions>
 				<exclusion>
 					<artifactId>commons-lang</artifactId>

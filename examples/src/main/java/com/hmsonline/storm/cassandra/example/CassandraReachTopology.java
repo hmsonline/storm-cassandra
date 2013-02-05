@@ -24,7 +24,9 @@ import backtype.storm.tuple.Values;
 
 import com.hmsonline.storm.cassandra.StormCassandraConstants;
 import com.hmsonline.storm.cassandra.bolt.CassandraLookupBolt;
+import com.hmsonline.storm.cassandra.bolt.mapper.ColumnMapper;
 import com.hmsonline.storm.cassandra.bolt.mapper.DefaultTupleMapper;
+import com.hmsonline.storm.cassandra.bolt.mapper.TupleMapper;
 import com.hmsonline.storm.cassandra.bolt.mapper.ValuelessColumnsMapper;
 
 @SuppressWarnings("deprecation")
@@ -49,18 +51,18 @@ public class CassandraReachTopology {
         // "followers", ":", "rowKey", "follower", true);
 
         // cf = "tweeters", rowkey = tuple["url"]
-        DefaultTupleMapper tweetersTupleMapper = new DefaultTupleMapper("tweeters", "url");
+        TupleMapper<String, String, String> tweetersTupleMapper = new DefaultTupleMapper("tweeters", "url");
         // cf (url -> tweeters) -> emit(url, follower)
-        ValuelessColumnsMapper tweetersColumnsMapper = new ValuelessColumnsMapper("url", "tweeter", true);
-        CassandraLookupBolt<String, String> tweetersBolt = new CassandraLookupBolt<String, String>(configKey,
-                tweetersTupleMapper, tweetersColumnsMapper, String.class, String.class);
+        ColumnMapper<String, String, String> tweetersColumnsMapper = new ValuelessColumnsMapper("url", "tweeter", true);
+        CassandraLookupBolt<String, String, String> tweetersBolt = new CassandraLookupBolt<String, String, String>(configKey,
+                tweetersTupleMapper, tweetersColumnsMapper);
 
         // cf = "followers", rowkey = tuple["tweeter"]
-        DefaultTupleMapper followersTupleMapper = new DefaultTupleMapper("followers", "tweeter");
+        TupleMapper<String, String, String> followersTupleMapper = new DefaultTupleMapper("followers", "tweeter");
         // cf (tweeter -> followers) ==> emit(url, follower)
         ValuelessColumnsMapper followersColumnsMapper = new ValuelessColumnsMapper("url", "follower", true);
-        CassandraLookupBolt<String, String> followersBolt = new CassandraLookupBolt<String, String>(configKey,
-                followersTupleMapper, followersColumnsMapper, String.class, String.class);
+        CassandraLookupBolt<String, String, String> followersBolt = new CassandraLookupBolt<String, String, String>(configKey,
+                followersTupleMapper, followersColumnsMapper);
 
         builder.addBolt(new InitBolt());
         builder.addBolt(tweetersBolt).shuffleGrouping();

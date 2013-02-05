@@ -32,8 +32,8 @@ public class PersistentWordCount {
 
         // create a CassandraBolt that writes to the "stormcf" column
         // family and uses the Tuple field "word" as the row key
-        CassandraBatchingBolt<String, String> cassandraBolt = new CassandraBatchingBolt<String, String>(configKey,
-                new DefaultTupleMapper("stormcf", "word"), String.class, String.class);
+        CassandraBatchingBolt<String, String, String> cassandraBolt = new CassandraBatchingBolt<String, String, String>(configKey,
+                new DefaultTupleMapper("stormcf", "word"));
         cassandraBolt.setAckStrategy(AckStrategy.ACK_ON_WRITE);
 
         // setup topology:

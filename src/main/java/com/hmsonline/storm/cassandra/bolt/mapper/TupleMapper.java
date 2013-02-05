@@ -5,7 +5,7 @@ import java.util.Map;
 
 import backtype.storm.tuple.Tuple;
 
-public interface TupleMapper<K, V> extends Serializable {
+public interface TupleMapper<K, C, V> extends Serializable {
 
     /**
      * Given a <code>backtype.storm.tuple.Tuple</code> object, map the column
@@ -23,7 +23,7 @@ public interface TupleMapper<K, V> extends Serializable {
      * @param tuple
      * @return
      */
-    String mapToRowKey(Tuple tuple);
+    K mapToRowKey(Tuple tuple);
 
     /**
      * Given a <code>backtype.storm.tuple.Tuple</code> object, map the columns
@@ -32,5 +32,11 @@ public interface TupleMapper<K, V> extends Serializable {
      * @param tuple
      * @return
      */
-    Map<K, V> mapToColumns(Tuple tuple);
+    Map<C, V> mapToColumns(Tuple tuple);
+    
+    Class<K> getKeyClass();
+    
+    Class<C> getColumnNameClass();
+    
+    Class<V> getColumnValueClass();
 }

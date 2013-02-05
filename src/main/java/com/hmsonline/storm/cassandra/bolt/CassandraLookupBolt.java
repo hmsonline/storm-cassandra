@@ -15,8 +15,7 @@ import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.tuple.Tuple;
 import backtype.storm.tuple.Values;
 
-import com.hmsonline.storm.cassandra.bolt.mapper.Columns;
-import com.hmsonline.storm.cassandra.bolt.mapper.ColumnsMapper;
+import com.hmsonline.storm.cassandra.bolt.mapper.ColumnMapper;
 import com.hmsonline.storm.cassandra.bolt.mapper.RangeQueryTupleMapper;
 import com.hmsonline.storm.cassandra.bolt.mapper.TupleMapper;
 
@@ -28,20 +27,20 @@ import com.hmsonline.storm.cassandra.bolt.mapper.TupleMapper;
  * @author tgoetz
  */
 @SuppressWarnings("serial")
-public class CassandraLookupBolt<K, V> extends CassandraBolt<K, V> implements IBasicBolt {
+public class CassandraLookupBolt<K, C, V> extends CassandraBolt<K, C, V> implements IBasicBolt {
     private static final Logger LOG = LoggerFactory.getLogger(CassandraLookupBolt.class);
-    private ColumnsMapper<K, V> columnsMapper;
-    private RangeQueryTupleMapper<K, V> queryTupleMapper = null;
+    private ColumnMapper<K, C, V> columnsMapper;
+    private RangeQueryTupleMapper<K, C, V> queryTupleMapper = null;
 
-    public CassandraLookupBolt(String clientConfigKey, TupleMapper<K, V> tupleMapper,
-            ColumnsMapper<K, V> columnsMapper, Class<K> columnNameClass, Class<V> columnValueClass) {
-        super(clientConfigKey, tupleMapper, columnNameClass, columnValueClass);
+    public CassandraLookupBolt(String clientConfigKey, TupleMapper<K, C, V> tupleMapper,
+            ColumnMapper<K, C, V> columnsMapper) {
+        super(clientConfigKey, tupleMapper);
         this.columnsMapper = columnsMapper;
     }
 
-    public CassandraLookupBolt(String clientConfigKey, RangeQueryTupleMapper<K, V> queryMapper,
-            ColumnsMapper<K, V> columnsMapper, Class<K> columnNameClass, Class<V> columnValueClass) {
-        super(clientConfigKey, queryMapper, columnNameClass, columnValueClass);
+    public CassandraLookupBolt(String clientConfigKey, RangeQueryTupleMapper<K, C, V> queryMapper,
+            ColumnMapper<K, C, V> columnsMapper) {
+        super(clientConfigKey, queryMapper);
         this.queryTupleMapper = queryMapper;
         this.columnsMapper = columnsMapper;
     }
@@ -54,16 +53,16 @@ public class CassandraLookupBolt<K, V> extends CassandraBolt<K, V> implements IB
 
     @Override
     public void execute(Tuple input, BasicOutputCollector collector) {
-        String columnFamily = tupleMapper.mapToColumnFamily(input);
-        String rowKey = tupleMapper.mapToRowKey(input);
+//        String columnFamily = tupleMapper.mapToColumnFamily(input);
+        K rowKey = tupleMapper.mapToRowKey(input);
         try {
-            Columns<K, V> colMap = null;
+            Map<C, V> colMap = null;
             if (queryTupleMapper != null) {
-                String start = queryTupleMapper.mapToStartkey(input);
-                String end = queryTupleMapper.mapToEndkey(input);
-                colMap = this.client.lookup(columnFamily, rowKey, start, end);
+                C start = queryTupleMapper.mapToStartkey(input);
+                C end = queryTupleMapper.mapToEndkey(input);
+                colMap = this.client.lookup(this.queryTupleMapper, input, start, end);
             } else {
-                colMap = this.client.lookup(columnFamily, rowKey);
+                colMap = this.client.lookup(this.tupleMapper, input);
             }
 
             List<Values> valuesToEmit = columnsMapper.mapToValues(rowKey, colMap, input);

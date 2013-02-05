@@ -1,13 +1,12 @@
 package com.hmsonline.storm.cassandra.bolt.mapper;
 
 import java.io.Serializable;
-import java.util.List;
 import java.util.Map;
 
 import storm.trident.tuple.TridentTuple;
 import com.hmsonline.storm.cassandra.exceptions.TupleMappingException;
 
-public interface TridentTupleMapper<K, V> extends Serializable {
+public interface TridentTupleMapper<K, C, V> extends Serializable {
     /**
      * Given a <code>backtype.storm.tuple.Tuple</code> object, map the column
      * family to write to.
@@ -24,17 +23,23 @@ public interface TridentTupleMapper<K, V> extends Serializable {
      * @param tuple
      * @return
      */
-    String mapToRowKey(TridentTuple tuple) throws TupleMappingException;
+    K mapToRowKey(TridentTuple tuple) throws TupleMappingException;
 
-    Map<K, V> mapToColumns(TridentTuple tuple) throws TupleMappingException;
+    Map<C, V> mapToColumns(TridentTuple tuple) throws TupleMappingException;
 
-    Object mapToEndKey(TridentTuple tuple) throws TupleMappingException;
+    C mapToEndKey(TridentTuple tuple) throws TupleMappingException;
 
-    Object mapToStartKey(TridentTuple tuple) throws TupleMappingException;
+    C mapToStartKey(TridentTuple tuple) throws TupleMappingException;
 
-    List<Object> mapToEndKeyList(TridentTuple tuple) throws TupleMappingException;
+    Map<Object, Object> mapToEndKeyMap(TridentTuple tuple) throws TupleMappingException;
 
-    List<Object> mapToStartKeyList(TridentTuple tuple) throws TupleMappingException;
+    Map<Object, Object> mapToStartKeyMap(TridentTuple tuple) throws TupleMappingException;
 
     boolean shouldDelete(TridentTuple tuple);
+
+    Class<K> getKeyClass();
+
+    Class<C> getColumnNameClass();
+
+    Class<V> getColumnValueClass();
 }
