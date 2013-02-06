@@ -142,7 +142,8 @@ public class CompositeTest {
     // TODO come back to this -- there seem to be issues with Astyanax and composite columns.
     // see https://github.com/Netflix/astyanax/issues/80
     // see https://github.com/Netflix/astyanax/issues/42
-    public void testCompositeRangeQuery() throws Exception {
+    public void testCompositeRangeQuery() {
+        try{
         AstyanaxClient client = new AstyanaxClient();
         Map<String, Object> clientConfig = new HashMap<String, Object>();
         clientConfig.put(StormCassandraConstants.CASSANDRA_HOST, "localhost:9160");
@@ -174,6 +175,10 @@ public class CompositeTest {
         assertNotNull(map.get(new SimpleComposite("c", "c")));
         assertNull(map.get(new SimpleComposite("d", "d")));
         client.stop();
+        } catch (Exception e){
+            e.printStackTrace();
+            fail();
+        }
     }
     
     //@Test

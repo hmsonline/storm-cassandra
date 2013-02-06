@@ -91,10 +91,10 @@ public class TridentCassandraLookupFunction<K, C, V> implements Function {
             if (startMap != null && endMap != null && startMap.size() == endMap.size()) {
                 List<Map<C, V>> colMapList = new ArrayList<Map<C, V>>();
                 for (Object key: startMap.keySet()) {
-                    Map<C, V> colMap = client.lookup(tupleMapper, input, startMap.get(key), endMap.get(key));
-                    if (colMap != null) {
-                        colMapList.add(colMap);
-                    }
+//                    Map<C, V> colMap = client.lookup(tupleMapper, input, startMap.get(key), endMap.get(key));
+//                    if (colMap != null) {
+//                        colMapList.add(colMap);
+//                    }
                 }
                 valuesToEmit = columnsMapper.mapToValues(rowKey, colMapList, input);
             }

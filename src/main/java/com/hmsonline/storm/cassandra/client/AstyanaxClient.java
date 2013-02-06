@@ -221,7 +221,7 @@ public class AstyanaxClient<K, C, V> {
     }
 
     
-    public Map<C, V> lookup(TridentTupleMapper<K, C, V> tupleMapper, TridentTuple input, Object start, Object end) throws Exception {
+    public Map<C, V> lookup(TridentTupleMapper<K, C, V> tupleMapper, TridentTuple input, C start, C end) throws Exception {
         if (start == null || end == null) {
             return null;
         }
@@ -331,36 +331,36 @@ public class AstyanaxClient<K, C, V> {
     }
 
 
-    private ByteBufferRange getRangeBuilder(Object start, Object end, Serializer<C> serializer) {
+    private ByteBufferRange getRangeBuilder(C start, C end, Serializer<C> serializer) {
         if (!(serializer instanceof AnnotatedCompositeSerializer)) {
             return new RangeBuilder().setStart(start, serializerFor(start.getClass())).setEnd(end, serializerFor(end.getClass())).build();
         } else {
-            return ((AnnotatedCompositeSerializer<C>) serializer).buildRange().greaterThanEquals(start)
-                    .lessThanEquals(end).build();
+//            return ((AnnotatedCompositeSerializer<C>) serializer).buildRange().greaterThanEquals(start)
+//                    .lessThanEquals(end).build();
 // TODO come back to this
-//            CompositeRangeBuilder builder = ((AnnotatedCompositeSerializer<C>) serializer).buildRange();
-//            try {
-//                builder = buildRangeFromAnnotatedStartEnd(builder, start, end);
-//            } catch (IllegalAccessException e) {
-//                LOG.error("Unable to introspect annotattiions for range query.", e);
-//            }
-//            return builder.build();
+            CompositeRangeBuilder builder = ((AnnotatedCompositeSerializer<C>) serializer).buildRange();
+            try {
+                builder = buildRangeFromAnnotatedStartEnd(builder, start, end);
+            } catch (IllegalAccessException e) {
+                LOG.error("Unable to introspect annotattiions for range query.", e);
+            }
+            return builder.build();
         }
     }
-    /*
+
     // TODO revisit pending Astayanax cleanup of composites.
     private CompositeRangeBuilder buildRangeFromAnnotatedStartEnd(CompositeRangeBuilder rangeBuilder, C start, C end) throws IllegalAccessException {
         CompositeRangeBuilder retval = rangeBuilder;
         List<ComponentField> componentFields = componentFieldsForClass(start.getClass());
 
-        retval = retval.withPrefix(componentFields.get(0).getField().get(start));
+//        retval = retval.withPrefix(componentFields.get(0).getField().get(start));
         for(ComponentField cf : componentFields){
             LOG.debug("Processing ordinal {}, type={}", cf.ordinal, cf.field.getType());
             LOG.debug("Start={}, End={}", cf.getField().get(start), cf.getField().get(end));
 //            retval = retval.withPrefix(cf.getField().get(start));
             retval = retval.greaterThanEquals(cf.getField().get(start));
             retval = retval.lessThanEquals(cf.getField().get(end));
-            break;
+            retval.nextComponent();
         }
         return retval;
     }
@@ -397,7 +397,7 @@ public class AstyanaxClient<K, C, V> {
         Collections.sort(retval);
         return retval;
     }
-    */
+
     private static boolean containsComponentAnnotation(Class<?> c) {
         List<Field> fields = getInheritedFields(c);
         for (Field field : fields) {
