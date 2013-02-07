@@ -72,16 +72,4 @@ public class SimpleTridentTupleMapper implements TridentTupleMapper<String, Stri
         return String.class;
     }
 
-    @Override
-    public Map<Object, Object> mapToEndKeyMap(TridentTuple tuple) throws TupleMappingException {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    @Override
-    public Map<Object, Object> mapToStartKeyMap(TridentTuple tuple) throws TupleMappingException {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
 }

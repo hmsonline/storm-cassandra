@@ -7,6 +7,8 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.fail;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.apache.cassandra.config.ConfigurationException;
 import org.apache.thrift.transport.TTransportException;
@@ -40,8 +42,10 @@ public class AstyanaxComposites {
 
             AstyanaxContext<Cluster> clusterContext = newClusterContext("localhost:9160");
 
-            createColumnFamily(clusterContext, KEYSPACE, "composite", "CompositeType(UTF8Type, UTF8Type)", "UTF8Type", "UTF8Type");
-            createColumnFamily(clusterContext, KEYSPACE, "composite2", "CompositeType(UTF8Type, UTF8Type, UTF8Type)", "UTF8Type", "UTF8Type");
+            createColumnFamily(clusterContext, KEYSPACE, "composite", "CompositeType(UTF8Type, UTF8Type)", "UTF8Type",
+                    "UTF8Type");
+            createColumnFamily(clusterContext, KEYSPACE, "composite2", "CompositeType(UTF8Type, UTF8Type, UTF8Type)",
+                    "UTF8Type", "UTF8Type");
 
         } catch (Exception e) {
             LOG.warn("Couldn't setup cassandra.", e);
@@ -49,7 +53,7 @@ public class AstyanaxComposites {
         }
     }
 
-//    @Test
+    // @Test
     public void simpleReadWriteCompositeTest() {
         boolean fail = false;
         try {
@@ -60,7 +64,8 @@ public class AstyanaxComposites {
 
             MutationBatch mutation = ks.prepareMutationBatch();
 
-            mutation.withRow(cf, "mykey").putColumn(makeStringComposite("foo", "bar"), "Hello Composite Column Range Query");
+            mutation.withRow(cf, "mykey").putColumn(makeStringComposite("foo", "bar"),
+                    "Hello Composite Column Range Query");
             mutation.withRow(cf, "mykey").putColumn(makeStringComposite("foo", "baz"), "My dog has fleas");
             mutation.withRow(cf, "mykey").putColumn(makeStringComposite("fzz", "baz"), "It is snowing");
 
@@ -68,15 +73,19 @@ public class AstyanaxComposites {
 
             // simple column fetch
             ColumnFamilyQuery<String, Composite> query = ks.prepareQuery(cf);
-            Column<Composite> result = query.getKey("mykey").getColumn(makeStringComposite("foo", "bar")).execute().getResult();
+            Column<Composite> result = query.getKey("mykey").getColumn(makeStringComposite("foo", "bar")).execute()
+                    .getResult();
             LOG.debug(result.getStringValue());
 
             // build up a composite range query
-            Composite start = makeStringEqualityComposite(new String[]{"foo"}, new ComponentEquality[]{ComponentEquality.EQUAL});
+            Composite start = makeStringEqualityComposite(new String[] { "foo" },
+                    new ComponentEquality[] { ComponentEquality.EQUAL });
 
-//            Composite end = new Composite();
-//            end.addComponent("fyy", StringSerializer.get(), ComponentEquality.GREATER_THAN_EQUAL);
-            Composite end = makeStringEqualityComposite(new String[]{"fyy"}, new ComponentEquality[]{ComponentEquality.GREATER_THAN_EQUAL});
+            // Composite end = new Composite();
+            // end.addComponent("fyy", StringSerializer.get(),
+            // ComponentEquality.GREATER_THAN_EQUAL);
+            Composite end = makeStringEqualityComposite(new String[] { "fyy" },
+                    new ComponentEquality[] { ComponentEquality.GREATER_THAN_EQUAL });
 
             ColumnList<Composite> results = query.getKey("mykey")
                     .withColumnRange(start.serialize(), end.serialize(), false, 100).execute().getResult();
@@ -95,9 +104,7 @@ public class AstyanaxComposites {
         }
         assertFalse("unexpected result", fail);
     }
-    
-    
-    
+
     @Test
     public void twoDimensionalCompositeRangeTest() {
         boolean fail = false;
@@ -109,30 +116,30 @@ public class AstyanaxComposites {
                     StringSerializer.get(), CompositeSerializer.get());
 
             MutationBatch mutation = ks.prepareMutationBatch();
-
-            mutation.withRow(cf, rowkey).putColumn(makeStringComposite("a", "a", "a"), "aaa");
-            mutation.withRow(cf, rowkey).putColumn(makeStringComposite("b", "b", "b"), "bbb");
-            mutation.withRow(cf, rowkey).putColumn(makeStringComposite("c", "c", "c"), "ccc");
-            mutation.withRow(cf, rowkey).putColumn(makeStringComposite("d", "d", "d"), "ddd");
-            mutation.withRow(cf, rowkey).putColumn(makeStringComposite("a", "a", "b"), "aab");
-            mutation.withRow(cf, rowkey).putColumn(makeStringComposite("a", "a", "c"), "aac");
-            mutation.withRow(cf, rowkey).putColumn(makeStringComposite("a", "a", "d"), "aad");
-            mutation.withRow(cf, rowkey).putColumn(makeStringComposite("a", "b", "c"), "abc");
-            mutation.execute();
             
-            // build up a composite range query
-            Composite start = makeStringEqualityComposite(new String[]{"a", "a"}, new ComponentEquality[]{ComponentEquality.EQUAL, ComponentEquality.EQUAL});
+            List<String> combinations = combinationsWithRepitition("abcdef", 3);
+            
+            for(String str : combinations){
+                LOG.debug("Will insert '{}'", str);
+                mutation.withRow(cf, rowkey).putColumn(makeStringComposite(str.substring(0,1), str.substring(1,2), str.substring(2,3)), str);
+            }
 
-            Composite end = makeStringEqualityComposite(new String[]{"b", "b"}, new ComponentEquality[]{ComponentEquality.GREATER_THAN_EQUAL, ComponentEquality.GREATER_THAN_EQUAL});
+            mutation.execute();
+
+            // build up a composite range query
+            Composite start = makeStringEqualityComposite(new String[] { "a", "a", "a"}, new ComponentEquality[] {
+                    ComponentEquality.EQUAL,ComponentEquality.EQUAL, ComponentEquality.EQUAL });
+            Composite end = makeStringEqualityComposite(new String[] { "a", "a", "b"}, new ComponentEquality[] {
+                    ComponentEquality.EQUAL,ComponentEquality.EQUAL, ComponentEquality.EQUAL });
 
             ColumnFamilyQuery<String, Composite> query = ks.prepareQuery(cf);
             ColumnList<Composite> results = query.getKey(rowkey)
                     .withColumnRange(start.serialize(), end.serialize(), false, 100).execute().getResult();
             LOG.debug("Query matched {} results.", results.size());
             for (Composite columnKey : results.getColumnNames()) {
-                LOG.debug("Component(0): {}", columnKey.getComponent(0).getValue(StringSerializer.get()));
-                LOG.debug("Component(1): {}", columnKey.getComponent(1).getValue(StringSerializer.get()));
-                LOG.debug("Component(2): {}", columnKey.getComponent(2).getValue(StringSerializer.get()));
+//                LOG.debug("Component(0): {}", columnKey.getComponent(0).getValue(StringSerializer.get()));
+//                LOG.debug("Component(1): {}", columnKey.getComponent(1).getValue(StringSerializer.get()));
+//                LOG.debug("Component(2): {}", columnKey.getComponent(2).getValue(StringSerializer.get()));
                 LOG.debug("Value: {}", results.getValue(columnKey, StringSerializer.get(), ""));
             }
         } catch (Exception e) {
@@ -149,16 +156,62 @@ public class AstyanaxComposites {
         }
         return comp;
     }
-    
-    
+
     public static Composite makeStringEqualityComposite(String[] values, ComponentEquality[] equalities) {
-        if(values.length != equalities.length){
+        if (values.length != equalities.length) {
             throw new IllegalArgumentException("Number of values and equalities must match.");
         }
         Composite comp = new Composite();
-        for (int i = 0;i<values.length;i++) {
+        for (int i = 0; i < values.length; i++) {
             comp.addComponent(values[i], StringSerializer.get(), equalities[i]);
         }
         return comp;
+    }
+
+    public static void main(String[] args) throws Exception {
+        List<String> perms = permutaions("aaa");
+        System.out.println("Found " + perms.size() + " permutatons.");
+        for(String perm : perms){
+            System.out.println(perm);
+        }
+    }
+    
+    
+    
+    public static List<String> combinationsWithRepitition(String input){
+        return combinationsWithRepitition(input, input.length());
+    }
+    
+    public static List<String> combinationsWithRepitition(String input, int depth){
+        return combinationWithRepitition(new ArrayList<String>(), input, depth, new StringBuffer());
+    }
+    
+    static List<String> combinationWithRepitition(List<String> result, String input, int depth, StringBuffer output) {
+        if (depth == 0) {
+            result.add(output.toString());
+        } else {
+            for (int i = 0; i < input.length(); i++) {
+                output.append(input.charAt(i));
+                combinationWithRepitition(result, input, depth - 1, output);
+                output.deleteCharAt(output.length() - 1);
+            }
+        }
+        return result;
+    }
+
+    public static List<String> permutaions(String input) {
+        return permutaions("", input, new ArrayList<String>());
+    }
+
+    public static List<String> permutaions(String prefix, String input, List<String> result) {
+        int n = input.length();
+        if (n == 0) {
+            result.add(prefix);
+        } else {
+            for (int i = 0; i < n; i++){
+                permutaions(prefix + input.charAt(i), input.substring(0, i) + input.substring(i + 1, n), result);
+            }
+        }
+        return result;
     }
 }

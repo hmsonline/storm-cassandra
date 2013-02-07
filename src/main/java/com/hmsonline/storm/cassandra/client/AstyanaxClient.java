@@ -23,6 +23,7 @@ import backtype.storm.tuple.Tuple;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.hmsonline.storm.cassandra.StormCassandraConstants;
+import com.hmsonline.storm.cassandra.bolt.mapper.Equality;
 import com.hmsonline.storm.cassandra.bolt.mapper.TridentTupleMapper;
 import com.hmsonline.storm.cassandra.bolt.mapper.TupleCounterMapper;
 import com.hmsonline.storm.cassandra.bolt.mapper.TupleMapper;
@@ -44,6 +45,9 @@ import com.netflix.astyanax.model.ByteBufferRange;
 import com.netflix.astyanax.model.Column;
 import com.netflix.astyanax.model.ColumnFamily;
 import com.netflix.astyanax.model.ColumnList;
+import com.netflix.astyanax.model.Composite;
+import com.netflix.astyanax.model.AbstractComposite.ComponentEquality;
+import com.netflix.astyanax.query.RowQuery;
 import com.netflix.astyanax.serializers.AnnotatedCompositeSerializer;
 import com.netflix.astyanax.serializers.BigIntegerSerializer;
 import com.netflix.astyanax.serializers.BooleanSerializer;
@@ -197,7 +201,7 @@ public class AstyanaxClient<K, C, V> {
         return retval;        
     }
 
-    public Map<C, V> lookup(TupleMapper<K, C, V> tupleMapper, Tuple input, C start, C end) throws Exception {
+    public Map<C, V> lookup(TupleMapper<K, C, V> tupleMapper, Tuple input, C start, C end,Equality equality) throws Exception {
         if (start == null || end == null) {
             return null;
         }
@@ -209,7 +213,7 @@ public class AstyanaxClient<K, C, V> {
         ColumnFamily<K, C> columnFamily = new ColumnFamily<K, C>(cf, (Serializer<K>)serializerFor(keyClass),
                 (Serializer<C>)serializerFor(colClass));
         OperationResult<ColumnList<C>> result= this.keyspace.prepareQuery(columnFamily).getKey(rowKey)
-                .withColumnRange(getRangeBuilder(start, end, (Serializer<C>)serializerFor(colClass))).execute();
+                .withColumnRange(getRangeBuilder(start, end, equality, (Serializer<C>)serializerFor(colClass))).execute();
         ColumnList<C> columns = (ColumnList<C>) result.getResult();
         HashMap<C, V> retval = new HashMap<C, V>();
         Iterator<Column<C>> it = columns.iterator();
@@ -221,7 +225,7 @@ public class AstyanaxClient<K, C, V> {
     }
 
     
-    public Map<C, V> lookup(TridentTupleMapper<K, C, V> tupleMapper, TridentTuple input, C start, C end) throws Exception {
+    public Map<C, V> lookup(TridentTupleMapper<K, C, V> tupleMapper, TridentTuple input, C start, C end, Equality equality) throws Exception {
         if (start == null || end == null) {
             return null;
         }
@@ -232,8 +236,12 @@ public class AstyanaxClient<K, C, V> {
         Class<C> colClass = tupleMapper.getColumnNameClass();
         ColumnFamily<K, C> columnFamily = new ColumnFamily<K, C>(cf, (Serializer<K>)serializerFor(keyClass),
                 (Serializer<C>)serializerFor(colClass));
-        OperationResult<ColumnList<C>> result= this.keyspace.prepareQuery(columnFamily).getKey(rowKey)
-                .withColumnRange(getRangeBuilder(start, end, (Serializer<C>)serializerFor(colClass))).execute();
+        
+        RowQuery<K, C> query = this.keyspace.prepareQuery(columnFamily).getKey(rowKey);
+        Serializer<C> colSerializer = (Serializer<C>)serializerFor(colClass);
+            query = query.withColumnRange(getRangeBuilder(start, end, equality, (Serializer<C>)serializerFor(colClass)));
+
+        OperationResult<ColumnList<C>> result= query.execute();
         ColumnList<C> columns = (ColumnList<C>) result.getResult();
         HashMap<C, V> retval = new HashMap<C, V>();
         Iterator<Column<C>> it = columns.iterator();
@@ -330,24 +338,128 @@ public class AstyanaxClient<K, C, V> {
         mutation.execute();
     }
 
-
-    private ByteBufferRange getRangeBuilder(C start, C end, Serializer<C> serializer) {
+    private ByteBufferRange getRangeBuilder(C start, C end, Equality equality, Serializer<C> serializer) throws IllegalArgumentException, IllegalAccessException {
         if (!(serializer instanceof AnnotatedCompositeSerializer)) {
             return new RangeBuilder().setStart(start, serializerFor(start.getClass())).setEnd(end, serializerFor(end.getClass())).build();
         } else {
-//            return ((AnnotatedCompositeSerializer<C>) serializer).buildRange().greaterThanEquals(start)
-//                    .lessThanEquals(end).build();
-// TODO come back to this
-            CompositeRangeBuilder builder = ((AnnotatedCompositeSerializer<C>) serializer).buildRange();
-            try {
-                builder = buildRangeFromAnnotatedStartEnd(builder, start, end);
-            } catch (IllegalAccessException e) {
-                LOG.error("Unable to introspect annotattiions for range query.", e);
+            List<ComponentField> componentFields = componentFieldsForClass(start.getClass());
+            List<ComponentField> nonNullFields = new ArrayList<ComponentField>();
+            for(ComponentField field : componentFields){
+                if((field.getField().get(start) != null) && field.getField().get(end) != null){
+                    nonNullFields.add(field);
+                }
             }
-            return builder.build();
+            final Composite cStart = new Composite();
+            final Composite cEnd = new Composite();
+            for(int i = 0; i < nonNullFields.size();i++){
+                Object objStart = nonNullFields.get(i).getField().get(start);
+                Object objEnd = nonNullFields.get(i).getField().get(end);
+                Serializer compSerializer = serializerFor(objStart.getClass());
+                if(i+1 != nonNullFields.size()){
+                    cStart.addComponent(objStart, compSerializer, ComponentEquality.EQUAL);
+                    cEnd.addComponent(objEnd, compSerializer, ComponentEquality.EQUAL);
+                } else{
+                    cStart.addComponent(objStart, compSerializer, ComponentEquality.EQUAL);
+                    cEnd.addComponent(objEnd, compSerializer, ComponentEquality.EQUAL);
+                }
+            }
+            
+            return new ByteBufferRange() {
+                
+                @Override
+                public boolean isReversed() {
+                    return false;
+                }
+                
+                @Override
+                public ByteBuffer getStart() {
+                    // TODO Auto-generated method stub
+                    return cStart.serialize();
+                }
+                
+                @Override
+                public int getLimit() {
+                    return Integer.MAX_VALUE;
+                }
+                
+                @Override
+                public ByteBuffer getEnd() {
+                    // TODO Auto-generated method stub
+                    return cEnd.serialize();
+                }
+            };
         }
     }
 
+    private ByteBufferRange getRangeBuilder2(C start, C end, Equality equality, Serializer<C> serializer) {
+        if (!(serializer instanceof AnnotatedCompositeSerializer)) {
+            return new RangeBuilder().setStart(start, serializerFor(start.getClass())).setEnd(end, serializerFor(end.getClass())).build();
+        } else {
+            AnnotatedCompositeSerializer<C> acs = (AnnotatedCompositeSerializer<C>)serializer;
+            List<ComponentField> componentFields = componentFieldsForClass(start.getClass());
+            CompositeRangeBuilder rangeBuilder = acs.buildRange();
+            List<ComponentField> componentValues = new ArrayList<ComponentField>();
+            
+            for(ComponentField field : componentFields){
+                try {
+                    Object value = field.getField().get(start);
+                    if(value != null){
+                        componentValues.add(field);
+                    } else{
+                        break;
+                    }
+                } catch (Exception e){
+                    throw new IllegalArgumentException("Unable to reflect annotated component field value on class: " + start.getClass().getName(), e);
+                }
+            }
+            
+            for(int i = 0; i < componentValues.size();i++){
+                System.out.println(i + " " + componentValues.size());
+                if(i+1 != componentValues.size()){
+                    System.out.println("prefix");
+                    try {
+                        rangeBuilder = rangeBuilder.withPrefix(componentValues.get(i).getField().get(start));
+                    } catch (IllegalArgumentException e) {
+                        // TODO Auto-generated catch block
+                        e.printStackTrace();
+                    } catch (IllegalAccessException e) {
+                        // TODO Auto-generated catch block
+                        e.printStackTrace();
+                    }
+                } else{
+                    System.out.println("equality");
+                    try {
+                        rangeBuilder.greaterThanEquals(componentValues.get(i).getField().get(start)).lessThanEquals(componentValues.get(i).getField().get(end));
+                    } catch (IllegalArgumentException e) {
+                        // TODO Auto-generated catch block
+                        e.printStackTrace();
+                    } catch (IllegalAccessException e) {
+                        // TODO Auto-generated catch block
+                        e.printStackTrace();
+                    }
+//                    switch(equality){
+//                    case GREATER_THAN:
+//                        rangeBuilder = rangeBuilder.greaterThan(componentValues.get(i));
+//                        break;
+//                    case GREATER_THAN_EQUAL:
+//                        rangeBuilder = rangeBuilder.greaterThanEquals(componentValues.get(i));
+//                        break;
+//                    case LESS_THAN:
+//                        rangeBuilder = rangeBuilder.lessThan(componentValues.get(i));
+//                        break;
+//                    case LESS_THAN_EQUAL:
+//                        rangeBuilder = rangeBuilder.lessThanEquals(componentValues.get(i));
+//                        break;
+//                    default:
+//                        break;
+//                    }
+                }
+            }
+            return rangeBuilder.build();
+        }
+    }
+    
+    
     // TODO revisit pending Astayanax cleanup of composites.
     private CompositeRangeBuilder buildRangeFromAnnotatedStartEnd(CompositeRangeBuilder rangeBuilder, C start, C end) throws IllegalAccessException {
         CompositeRangeBuilder retval = rangeBuilder;
@@ -360,7 +472,7 @@ public class AstyanaxClient<K, C, V> {
 //            retval = retval.withPrefix(cf.getField().get(start));
             retval = retval.greaterThanEquals(cf.getField().get(start));
             retval = retval.lessThanEquals(cf.getField().get(end));
-            retval.nextComponent();
+//            retval.nextComponent();
         }
         return retval;
     }

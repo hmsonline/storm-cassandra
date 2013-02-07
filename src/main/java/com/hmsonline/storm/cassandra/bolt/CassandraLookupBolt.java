@@ -16,6 +16,7 @@ import backtype.storm.tuple.Tuple;
 import backtype.storm.tuple.Values;
 
 import com.hmsonline.storm.cassandra.bolt.mapper.ColumnMapper;
+import com.hmsonline.storm.cassandra.bolt.mapper.Equality;
 import com.hmsonline.storm.cassandra.bolt.mapper.RangeQueryTupleMapper;
 import com.hmsonline.storm.cassandra.bolt.mapper.TupleMapper;
 
@@ -60,7 +61,7 @@ public class CassandraLookupBolt<K, C, V> extends CassandraBolt<K, C, V> impleme
             if (queryTupleMapper != null) {
                 C start = queryTupleMapper.mapToStartkey(input);
                 C end = queryTupleMapper.mapToEndkey(input);
-                colMap = this.client.lookup(this.queryTupleMapper, input, start, end);
+                colMap = this.client.lookup(this.queryTupleMapper, input, start, end, Equality.EQUAL);
             } else {
                 colMap = this.client.lookup(this.tupleMapper, input);
             }

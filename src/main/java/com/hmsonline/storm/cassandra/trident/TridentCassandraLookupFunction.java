@@ -14,6 +14,7 @@ import storm.trident.operation.TridentOperationContext;
 import storm.trident.tuple.TridentTuple;
 import backtype.storm.tuple.Values;
 
+import com.hmsonline.storm.cassandra.bolt.mapper.Equality;
 import com.hmsonline.storm.cassandra.bolt.mapper.TridentColumnMapper;
 import com.hmsonline.storm.cassandra.bolt.mapper.TridentTupleMapper;
 import com.hmsonline.storm.cassandra.client.AstyanaxClient;
@@ -83,31 +84,17 @@ public class TridentCassandraLookupFunction<K, C, V> implements Function {
         C start = tupleMapper.mapToStartKey(input);
         C end = tupleMapper.mapToEndKey(input);
 
-        Map<Object, Object> startMap = tupleMapper.mapToStartKeyMap(input);
-        Map<Object, Object> endMap = tupleMapper.mapToEndKeyMap(input);
 
         try {
             List<Values> valuesToEmit;
-            if (startMap != null && endMap != null && startMap.size() == endMap.size()) {
-                List<Map<C, V>> colMapList = new ArrayList<Map<C, V>>();
-                for (Object key: startMap.keySet()) {
-//                    Map<C, V> colMap = client.lookup(tupleMapper, input, startMap.get(key), endMap.get(key));
-//                    if (colMap != null) {
-//                        colMapList.add(colMap);
-//                    }
-                }
-                valuesToEmit = columnsMapper.mapToValues(rowKey, colMapList, input);
+            Map<C, V> colMap = null;
+            if (start == null || end == null) {
+                colMap = client.lookup(tupleMapper, input);
+            } else {
+                colMap = client.lookup(tupleMapper, input, start, end, Equality.GREATER_THAN_EQUAL);
             }
-            else {
-                Map<C, V> colMap = null;
-                if (start == null || end == null) {
-                    colMap = client.lookup(tupleMapper, input);
-                } else {
-                    colMap = client.lookup(tupleMapper, input, start, end);
-                }
 
-                valuesToEmit = columnsMapper.mapToValues(rowKey, colMap, input);
-            }
+            valuesToEmit = columnsMapper.mapToValues(rowKey, colMap, input);
             if(valuesToEmit != null){
                 for (Values values : valuesToEmit) {
                     collector.emit(values);
