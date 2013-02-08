@@ -112,24 +112,19 @@ public class DefaultCassandraState<T> implements IBackingMap<T> {
     @SuppressWarnings("serial")
     public static class Options<T> implements Serializable {
 
-        public Options() {
-            this.config = new HashMap<String, Object>();
-            this.config.put(StormCassandraConstants.CASSANDRA_HOST, "localhost:9160");
-            this.config.put(StormCassandraConstants.CASSANDRA_KEYSPACE, "stormks");
-        }
-
         public Serializer<T> serializer = null;
-        public Map<String, Object> config;
         public int localCacheSize = 5000;
         public String globalKey = "globalkey";
         public String columnFamily = "cassandra_state";
         public String rowkey = "default_cassandra_state";
+        public String clientConfigKey = "cassandra.config";
 
     }
 
     @SuppressWarnings("rawtypes")
     public static StateFactory opaque() {
-        return opaque(new Options<OpaqueValue>());
+        Options<OpaqueValue> options = new Options<OpaqueValue>();
+        return opaque(options);
     }
 
     @SuppressWarnings("rawtypes")
@@ -138,9 +133,8 @@ public class DefaultCassandraState<T> implements IBackingMap<T> {
     }
 
     @SuppressWarnings("rawtypes")
-    public static StateFactory transactional(Map<String, Object> clientConfig) {
+    public static StateFactory transactional() {
         Options<TransactionalValue> options = new Options<TransactionalValue>();
-        options.config = clientConfig;
         return transactional(options);
     }
 
@@ -149,8 +143,9 @@ public class DefaultCassandraState<T> implements IBackingMap<T> {
         return new Factory(StateType.TRANSACTIONAL, opts);
     }
 
-    public static StateFactory nonTransactional(Map<String, Object> clientConfig) {
-        return nonTransactional(new Options<Object>());
+    public static StateFactory nonTransactional() {
+        Options<Object> options = new Options<Object>();
+        return nonTransactional(options);
     }
 
     public static StateFactory nonTransactional(Options<Object> opts) {
@@ -160,27 +155,25 @@ public class DefaultCassandraState<T> implements IBackingMap<T> {
     protected static class Factory implements StateFactory {
         private static final long serialVersionUID = -2644278289157792107L;
         private StateType stateType;
-        private Serializer<?> serializer;
         private Options<?> options;
 
-        @SuppressWarnings("rawtypes")
+        @SuppressWarnings({ "rawtypes", "unchecked" })
         public Factory(StateType stateType, Options options) {
             this.stateType = stateType;
             this.options = options;
-            this.serializer = options.serializer;
 
-            if (this.serializer == null) {
-                this.serializer = DEFAULT_SERIALZERS.get(stateType);
+            if (this.options.serializer == null) {
+                this.options.serializer = DEFAULT_SERIALZERS.get(stateType);
             }
 
-            if (this.serializer == null) {
+            if (this.options.serializer == null) {
                 throw new RuntimeException("Serializer should be specified for type: " + stateType);
             }
         }
 
         @SuppressWarnings({ "rawtypes", "unchecked" })
         public State makeState(Map conf, IMetricsContext metrics, int partitionIndex, int numPartitions) {
-            DefaultCassandraState state = new DefaultCassandraState(options, serializer);
+            DefaultCassandraState state = new DefaultCassandraState(options, conf);
 
             CachedMap cachedMap = new CachedMap(state, options.localCacheSize);
 
@@ -200,10 +193,11 @@ public class DefaultCassandraState<T> implements IBackingMap<T> {
 
     }
 
-    public DefaultCassandraState(Options<T> options, Serializer<T> serializer) {
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+    public DefaultCassandraState(Options<T> options, Map conf) {
         this.options = options;
-        this.serializer = serializer;
-        AstyanaxContext<Keyspace> context = createContext(options.config);
+        this.serializer = options.serializer;
+        AstyanaxContext<Keyspace> context = createContext((Map<String, Object>) conf.get(options.clientConfigKey));
         context.start();
         this.keyspace = context.getEntity();
     }
@@ -256,12 +250,10 @@ public class DefaultCassandraState<T> implements IBackingMap<T> {
             byte[] bytes = serializer.serialize(values.get(i));
             mutation.withRow(cf, this.options.rowkey).putColumn(columnName, bytes);
         }
-
         try {
             mutation.execute();
         } catch (ConnectionException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
+            throw new RuntimeException("Batch mutation for state failed.", e);
         }
     }
 
