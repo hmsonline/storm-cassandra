@@ -1,7 +1,6 @@
 package com.hmsonline.storm.cassandra.client;
 
 import java.lang.reflect.Field;
-import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -41,12 +40,12 @@ import com.netflix.astyanax.connectionpool.OperationResult;
 import com.netflix.astyanax.connectionpool.impl.ConnectionPoolConfigurationImpl;
 import com.netflix.astyanax.connectionpool.impl.CountingConnectionPoolMonitor;
 import com.netflix.astyanax.impl.AstyanaxConfigurationImpl;
+import com.netflix.astyanax.model.AbstractComposite.ComponentEquality;
 import com.netflix.astyanax.model.ByteBufferRange;
 import com.netflix.astyanax.model.Column;
 import com.netflix.astyanax.model.ColumnFamily;
 import com.netflix.astyanax.model.ColumnList;
 import com.netflix.astyanax.model.Composite;
-import com.netflix.astyanax.model.AbstractComposite.ComponentEquality;
 import com.netflix.astyanax.query.RowQuery;
 import com.netflix.astyanax.serializers.AnnotatedCompositeSerializer;
 import com.netflix.astyanax.serializers.BigIntegerSerializer;
@@ -73,7 +72,6 @@ import com.netflix.astyanax.util.RangeBuilder;
  * 
  */
 public class AstyanaxClient<K, C, V> {
-    private static final long serialVersionUID = 1L;
     private static final Logger LOG = LoggerFactory.getLogger(AstyanaxClient.class);
     public static final String CASSANDRA_CLUSTER_NAME = "cassandra.clusterName";
     public static final String ASTYANAX_CONFIGURATION = "astyanax.configuration";
@@ -139,6 +137,7 @@ public class AstyanaxClient<K, C, V> {
         this.astyanaxContext.shutdown();
     }
 
+    @SuppressWarnings("unchecked")
     public Map<C, V> lookup(TupleMapper<K, C, V> tupleMapper, Tuple input) throws Exception {
         String cf = tupleMapper.mapToColumnFamily(input);
         K rowKey = tupleMapper.mapToRowKey(input);
@@ -160,6 +159,7 @@ public class AstyanaxClient<K, C, V> {
     }
     
     
+    @SuppressWarnings("unchecked")
     public Map<C, V> lookup(TridentTupleMapper<K, C, V> tupleMapper, TridentTuple input) throws Exception {
         String cf = tupleMapper.mapToColumnFamily(input);
         K rowKey = tupleMapper.mapToRowKey(input);
@@ -181,6 +181,7 @@ public class AstyanaxClient<K, C, V> {
     }
     
     
+    @SuppressWarnings("unchecked")
     public Map<C, V> lookup(TupleMapper<K, C, V> tupleMapper, Tuple input, List<C> slice) throws Exception {
         String cf = tupleMapper.mapToColumnFamily(input);
         K rowKey = tupleMapper.mapToRowKey(input);
@@ -201,6 +202,7 @@ public class AstyanaxClient<K, C, V> {
         return retval;        
     }
 
+    @SuppressWarnings("unchecked")
     public Map<C, V> lookup(TupleMapper<K, C, V> tupleMapper, Tuple input, C start, C end,Equality equality) throws Exception {
         if (start == null || end == null) {
             return null;
@@ -225,6 +227,7 @@ public class AstyanaxClient<K, C, V> {
     }
 
     
+    @SuppressWarnings("unchecked")
     public Map<C, V> lookup(TridentTupleMapper<K, C, V> tupleMapper, TridentTuple input, C start, C end, Equality equality) throws Exception {
         if (start == null || end == null) {
             return null;
@@ -238,7 +241,7 @@ public class AstyanaxClient<K, C, V> {
                 (Serializer<C>)serializerFor(colClass));
         
         RowQuery<K, C> query = this.keyspace.prepareQuery(columnFamily).getKey(rowKey);
-        Serializer<C> colSerializer = (Serializer<C>)serializerFor(colClass);
+        serializerFor(colClass);
             query = query.withColumnRange(getRangeBuilder(start, end, equality, (Serializer<C>)serializerFor(colClass)));
 
         OperationResult<ColumnList<C>> result= query.execute();
@@ -254,6 +257,7 @@ public class AstyanaxClient<K, C, V> {
 
     
     
+    @SuppressWarnings("unchecked")
     public void writeTuple(Tuple input, TupleMapper<K, C, V> tupleMapper) throws Exception {
         String columnFamilyName = tupleMapper.mapToColumnFamily(input);
         K rowKey = tupleMapper.mapToRowKey(input);
@@ -264,6 +268,7 @@ public class AstyanaxClient<K, C, V> {
         mutation.execute();
     }
 
+    @SuppressWarnings("unchecked")
     public void writeTuple(TridentTuple input, TridentTupleMapper<K, C, V> tupleMapper) throws Exception {
         String columnFamilyName = tupleMapper.mapToColumnFamily(input);
         K rowKey = tupleMapper.mapToRowKey(input);
@@ -274,6 +279,7 @@ public class AstyanaxClient<K, C, V> {
         mutation.execute();
     }
 
+    @SuppressWarnings({ "static-access", "unchecked" })
     public void writeTuples(List<Tuple> inputs, TupleMapper<K, C, V> tupleMapper) throws Exception {
         MutationBatch mutation = keyspace.prepareMutationBatch();
         for (Tuple input : inputs) {
@@ -286,6 +292,7 @@ public class AstyanaxClient<K, C, V> {
         mutation.execute();
     }
 
+    @SuppressWarnings({ "static-access", "unchecked" })
     private void addTupleToMutation(Tuple input, ColumnFamily<K, C> columnFamily, K rowKey,
             MutationBatch mutation, TupleMapper<K, C, V> tupleMapper) {
         Map<C, V> columns = tupleMapper.mapToColumns(input);
@@ -338,6 +345,7 @@ public class AstyanaxClient<K, C, V> {
         mutation.execute();
     }
 
+    @SuppressWarnings({ "unchecked", "rawtypes" })
     private ByteBufferRange getRangeBuilder(C start, C end, Equality equality, Serializer<C> serializer) throws IllegalArgumentException, IllegalAccessException {
         if (!(serializer instanceof AnnotatedCompositeSerializer)) {
             return new RangeBuilder().setStart(start, serializerFor(start.getClass())).setEnd(end, serializerFor(end.getClass())).build();
@@ -391,6 +399,7 @@ public class AstyanaxClient<K, C, V> {
         }
     }
 
+    @SuppressWarnings("unused")
     private ByteBufferRange getRangeBuilder2(C start, C end, Equality equality, Serializer<C> serializer) {
         if (!(serializer instanceof AnnotatedCompositeSerializer)) {
             return new RangeBuilder().setStart(start, serializerFor(start.getClass())).setEnd(end, serializerFor(end.getClass())).build();
@@ -461,6 +470,7 @@ public class AstyanaxClient<K, C, V> {
     
     
     // TODO revisit pending Astayanax cleanup of composites.
+    @SuppressWarnings("unused")
     private CompositeRangeBuilder buildRangeFromAnnotatedStartEnd(CompositeRangeBuilder rangeBuilder, C start, C end) throws IllegalAccessException {
         CompositeRangeBuilder retval = rangeBuilder;
         List<ComponentField> componentFields = componentFieldsForClass(start.getClass());
