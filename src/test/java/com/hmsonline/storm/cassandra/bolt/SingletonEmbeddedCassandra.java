@@ -12,7 +12,7 @@ public class SingletonEmbeddedCassandra {
 
     private SingletonEmbeddedCassandra() {
         try {
-            cassandra = new EmbeddedCassandra();
+            cassandra = new EmbeddedCassandra("target/cassandra-data");
             cassandra.start();
         } catch (Exception e) {
             throw new RuntimeException("Failed to start embedded cassandra", e);

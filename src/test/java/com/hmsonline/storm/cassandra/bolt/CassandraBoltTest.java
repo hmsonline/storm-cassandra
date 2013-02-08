@@ -36,7 +36,7 @@ import com.netflix.astyanax.serializers.StringSerializer;
 
 public class CassandraBoltTest {
     private static Logger LOG = LoggerFactory.getLogger(CassandraBoltTest.class);
-    private static String KEYSPACE = CassandraBoltTest.class.getSimpleName();
+    private static String KEYSPACE = CassandraBoltTest.class.getSimpleName().toLowerCase();
 
 
     @BeforeClass

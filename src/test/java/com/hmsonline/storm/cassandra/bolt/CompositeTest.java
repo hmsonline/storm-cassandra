@@ -42,7 +42,7 @@ import com.netflix.astyanax.serializers.StringSerializer;
 
 public class CompositeTest {
     private static Logger LOG = LoggerFactory.getLogger(CompositeTest.class);
-    private static String KEYSPACE = CompositeTest.class.getSimpleName();
+    private static String KEYSPACE = CompositeTest.class.getSimpleName().toLowerCase();
 
     @BeforeClass
     public static void setupCassandra() throws TTransportException, IOException, InterruptedException,
