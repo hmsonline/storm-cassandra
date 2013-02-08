@@ -1,6 +1,7 @@
 package com.hmsonline.storm.cassandra.bolt;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import storm.trident.tuple.TridentTuple;
@@ -37,6 +38,11 @@ public class SimpleTridentTupleMapper implements TridentTupleMapper<String, Stri
             retval.put(field, tuple.getStringByField(field));
         }
         return retval;
+    }
+    
+    @Override
+    public List<String> mapToColumnsForLookup(TridentTuple tuplex) {
+        throw new RuntimeException("Should not be called since this mapper is not used to read data.");
     }
 
     @Override

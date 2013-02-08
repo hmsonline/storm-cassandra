@@ -29,10 +29,11 @@ public class TridentCassandraLookupFunction<K, C, V> implements Function {
     private AstyanaxClient<K, C, V> client;
     private String clientConfigKey;
 
-    private Filter tupleFilter = null;      // used to prevent processing for tuples that should be skipped by the lookup
-    private int numberOfOutputFields = 1;   // used to emit when the incoming tuple doesn't pass the filter check
+    private Filter tupleFilter = null; // used to prevent processing for tuples
+                                       // that should be skipped by the lookup
+    private int numberOfOutputFields = 1; // used to emit when the incoming
+                                          // tuple doesn't pass the filter check
     private boolean emitEmptyOnFailure = false;
-
 
     public TridentCassandraLookupFunction(String clientConfigKey, TridentTupleMapper<K, C, V> tupleMapper,
             TridentColumnMapper<K, C, V> columnMapper) {
@@ -50,9 +51,11 @@ public class TridentCassandraLookupFunction<K, C, V> implements Function {
     public void setFilter(Filter filter) {
         this.tupleFilter = filter;
     }
+
     public void setNumberOfOutputFields(int numberOfFields) {
         this.numberOfOutputFields = numberOfFields;
     }
+
     public void setEmitEmptyOnFailure(boolean emitEmptyOnFailure) {
         this.emitEmptyOnFailure = emitEmptyOnFailure;
     }
@@ -83,15 +86,18 @@ public class TridentCassandraLookupFunction<K, C, V> implements Function {
         K rowKey = tupleMapper.mapToRowKey(input);
         C start = tupleMapper.mapToStartKey(input);
         C end = tupleMapper.mapToEndKey(input);
-
+        List<C> list = tupleMapper.mapToColumnsForLookup(input);
 
         try {
             List<Values> valuesToEmit;
             Map<C, V> colMap = null;
-            if (start == null || end == null) {
-                colMap = client.lookup(tupleMapper, input);
-            } else {
+            
+            if (list != null){
+                colMap = client.lookup(tupleMapper, input, list);
+            } else if (start != null && end != null){
                 colMap = client.lookup(tupleMapper, input, start, end, Equality.GREATER_THAN_EQUAL);
+            } else {
+                    colMap = client.lookup(tupleMapper, input);                
             }
 
             valuesToEmit = columnsMapper.mapToValues(rowKey, colMap, input);
@@ -112,7 +118,7 @@ public class TridentCassandraLookupFunction<K, C, V> implements Function {
 
     private Values createEmptyValues() {
         ArrayList<Object> emptyValues = new ArrayList<Object>();
-        for (int evc=0;evc<this.numberOfOutputFields;evc++) {
+        for (int evc = 0; evc < this.numberOfOutputFields; evc++) {
             emptyValues.add("");
         }
         return new Values(emptyValues.toArray());

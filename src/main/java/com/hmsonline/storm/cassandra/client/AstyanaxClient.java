@@ -67,11 +67,6 @@ import com.netflix.astyanax.serializers.UUIDSerializer;
 import com.netflix.astyanax.thrift.ThriftFamilyFactory;
 import com.netflix.astyanax.util.RangeBuilder;
 
-/**
- * 
- * @author tgoetz
- * 
- */
 public class AstyanaxClient<K, C, V> {
     private static final long serialVersionUID = 1L;
     private static final Logger LOG = LoggerFactory.getLogger(AstyanaxClient.class);
@@ -201,6 +196,26 @@ public class AstyanaxClient<K, C, V> {
         return retval;        
     }
 
+    public Map<C, V> lookup(TridentTupleMapper<K, C, V> tupleMapper, TridentTuple input, List<C> slice) throws Exception {
+        String cf = tupleMapper.mapToColumnFamily(input);
+        K rowKey = tupleMapper.mapToRowKey(input);
+        Class<K> keyClass = tupleMapper.getKeyClass();
+        Class<C> colClass = tupleMapper.getColumnNameClass();
+        
+        ColumnFamily<K, C> columnFamily = new ColumnFamily<K, C>(cf, (Serializer<K>)serializerFor(keyClass),
+                (Serializer<C>)serializerFor(colClass));
+        OperationResult<ColumnList<C>> result;
+        result = this.keyspace.prepareQuery(columnFamily).getKey(rowKey).withColumnSlice((Collection<C>) slice).execute();
+        ColumnList<C> columns = (ColumnList<C>) result.getResult();
+        HashMap<C, V> retval = new HashMap<C, V>();
+        Iterator<Column<C>> it = columns.iterator();
+        while(it.hasNext()){
+            Column<C> col= it.next();
+            retval.put(col.getName(), col.getValue((Serializer<V>)serializerFor(tupleMapper.getColumnValueClass())));
+        }
+        return retval;        
+    }
+    
     public Map<C, V> lookup(TupleMapper<K, C, V> tupleMapper, Tuple input, C start, C end,Equality equality) throws Exception {
         if (start == null || end == null) {
             return null;
@@ -239,7 +254,8 @@ public class AstyanaxClient<K, C, V> {
         
         RowQuery<K, C> query = this.keyspace.prepareQuery(columnFamily).getKey(rowKey);
         Serializer<C> colSerializer = (Serializer<C>)serializerFor(colClass);
-            query = query.withColumnRange(getRangeBuilder(start, end, equality, (Serializer<C>)serializerFor(colClass)));
+        
+        query = query.withColumnRange(getRangeBuilder(start, end, equality, (Serializer<C>)serializerFor(colClass)));
 
         OperationResult<ColumnList<C>> result= query.execute();
         ColumnList<C> columns = (ColumnList<C>) result.getResult();
@@ -342,123 +358,36 @@ public class AstyanaxClient<K, C, V> {
         if (!(serializer instanceof AnnotatedCompositeSerializer)) {
             return new RangeBuilder().setStart(start, serializerFor(start.getClass())).setEnd(end, serializerFor(end.getClass())).build();
         } else {
+        	AnnotatedCompositeSerializer compositeSerializer = (AnnotatedCompositeSerializer)serializer;
+        	CompositeRangeBuilder rangeBuilder = compositeSerializer.buildRange();
             List<ComponentField> componentFields = componentFieldsForClass(start.getClass());
             List<ComponentField> nonNullFields = new ArrayList<ComponentField>();
             for(ComponentField field : componentFields){
                 if((field.getField().get(start) != null) && field.getField().get(end) != null){
                     nonNullFields.add(field);
+//                    LOG.debug("Adding field [" + field.getField().getName() + "]");
                 }
             }
             final Composite cStart = new Composite();
             final Composite cEnd = new Composite();
+            
             for(int i = 0; i < nonNullFields.size();i++){
                 Object objStart = nonNullFields.get(i).getField().get(start);
                 Object objEnd = nonNullFields.get(i).getField().get(end);
                 Serializer compSerializer = serializerFor(objStart.getClass());
                 if(i+1 != nonNullFields.size()){
-                    cStart.addComponent(objStart, compSerializer, ComponentEquality.EQUAL);
-                    cEnd.addComponent(objEnd, compSerializer, ComponentEquality.EQUAL);
+                	rangeBuilder.withPrefix(objStart);
+//                	LOG.debug("withPrefix(" + objStart + ")");
                 } else{
-                    cStart.addComponent(objStart, compSerializer, ComponentEquality.EQUAL);
-                    cEnd.addComponent(objEnd, compSerializer, ComponentEquality.EQUAL);
+                	rangeBuilder.greaterThanEquals(objStart);
+//                	LOG.debug("greaterThanEquals(" + objStart + ")");
+                	rangeBuilder.lessThanEquals(objEnd);
+//                	LOG.debug("lessThanEquals(" + objEnd + ")");
                 }
             }
-            
-            return new ByteBufferRange() {
-                
-                @Override
-                public boolean isReversed() {
-                    return false;
-                }
-                
-                @Override
-                public ByteBuffer getStart() {
-                    // TODO Auto-generated method stub
-                    return cStart.serialize();
-                }
-                
-                @Override
-                public int getLimit() {
-                    return Integer.MAX_VALUE;
-                }
-                
-                @Override
-                public ByteBuffer getEnd() {
-                    // TODO Auto-generated method stub
-                    return cEnd.serialize();
-                }
-            };
+            return rangeBuilder;
         }
     }
-
-    private ByteBufferRange getRangeBuilder2(C start, C end, Equality equality, Serializer<C> serializer) {
-        if (!(serializer instanceof AnnotatedCompositeSerializer)) {
-            return new RangeBuilder().setStart(start, serializerFor(start.getClass())).setEnd(end, serializerFor(end.getClass())).build();
-        } else {
-            AnnotatedCompositeSerializer<C> acs = (AnnotatedCompositeSerializer<C>)serializer;
-            List<ComponentField> componentFields = componentFieldsForClass(start.getClass());
-            CompositeRangeBuilder rangeBuilder = acs.buildRange();
-            List<ComponentField> componentValues = new ArrayList<ComponentField>();
-            
-            for(ComponentField field : componentFields){
-                try {
-                    Object value = field.getField().get(start);
-                    if(value != null){
-                        componentValues.add(field);
-                    } else{
-                        break;
-                    }
-                } catch (Exception e){
-                    throw new IllegalArgumentException("Unable to reflect annotated component field value on class: " + start.getClass().getName(), e);
-                }
-            }
-            
-            for(int i = 0; i < componentValues.size();i++){
-                System.out.println(i + " " + componentValues.size());
-                if(i+1 != componentValues.size()){
-                    System.out.println("prefix");
-                    try {
-                        rangeBuilder = rangeBuilder.withPrefix(componentValues.get(i).getField().get(start));
-                    } catch (IllegalArgumentException e) {
-                        // TODO Auto-generated catch block
-                        e.printStackTrace();
-                    } catch (IllegalAccessException e) {
-                        // TODO Auto-generated catch block
-                        e.printStackTrace();
-                    }
-                } else{
-                    System.out.println("equality");
-                    try {
-                        rangeBuilder.greaterThanEquals(componentValues.get(i).getField().get(start)).lessThanEquals(componentValues.get(i).getField().get(end));
-                    } catch (IllegalArgumentException e) {
-                        // TODO Auto-generated catch block
-                        e.printStackTrace();
-                    } catch (IllegalAccessException e) {
-                        // TODO Auto-generated catch block
-                        e.printStackTrace();
-                    }
-//                    switch(equality){
-//                    case GREATER_THAN:
-//                        rangeBuilder = rangeBuilder.greaterThan(componentValues.get(i));
-//                        break;
-//                    case GREATER_THAN_EQUAL:
-//                        rangeBuilder = rangeBuilder.greaterThanEquals(componentValues.get(i));
-//                        break;
-//                    case LESS_THAN:
-//                        rangeBuilder = rangeBuilder.lessThan(componentValues.get(i));
-//                        break;
-//                    case LESS_THAN_EQUAL:
-//                        rangeBuilder = rangeBuilder.lessThanEquals(componentValues.get(i));
-//                        break;
-//                    default:
-//                        break;
-//                    }
-                }
-            }
-            return rangeBuilder.build();
-        }
-    }
-    
     
     // TODO revisit pending Astayanax cleanup of composites.
     private CompositeRangeBuilder buildRangeFromAnnotatedStartEnd(CompositeRangeBuilder rangeBuilder, C start, C end) throws IllegalAccessException {
@@ -504,6 +433,7 @@ public class AstyanaxClient<K, C, V> {
             Component comp = field.getAnnotation(Component.class);
             if(comp != null){
                 retval.add(new ComponentField(field, comp.ordinal()));
+//                LOG.debug("Adding field [" + field + "@" + comp.ordinal() + "]");
             }
         }
         Collections.sort(retval);
@@ -575,7 +505,7 @@ public class AstyanaxClient<K, C, V> {
                 serializer = ObjectSerializer.get();
             }
         }
-        LOG.debug("Inferred serializer type: {}", serializer.getClass().getName());
+//        LOG.debug("Inferred serializer type: {}", serializer.getClass().getName());
         return serializer;
     }
 

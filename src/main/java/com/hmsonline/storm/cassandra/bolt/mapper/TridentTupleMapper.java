@@ -1,9 +1,11 @@
 package com.hmsonline.storm.cassandra.bolt.mapper;
 
 import java.io.Serializable;
+import java.util.List;
 import java.util.Map;
 
 import storm.trident.tuple.TridentTuple;
+
 import com.hmsonline.storm.cassandra.exceptions.TupleMappingException;
 
 public interface TridentTupleMapper<K, C, V> extends Serializable {
@@ -26,6 +28,8 @@ public interface TridentTupleMapper<K, C, V> extends Serializable {
     K mapToRowKey(TridentTuple tuple) throws TupleMappingException;
 
     Map<C, V> mapToColumns(TridentTuple tuple) throws TupleMappingException;
+
+    List<C> mapToColumnsForLookup(TridentTuple tuple) throws TupleMappingException;
 
     C mapToEndKey(TridentTuple tuple) throws TupleMappingException;
 

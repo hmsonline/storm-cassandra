@@ -1,6 +1,7 @@
 package com.hmsonline.storm.cassandra.bolt;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import storm.trident.tuple.TridentTuple;
@@ -27,6 +28,11 @@ public class CompositeColumnTridentTupleMapper implements TridentTupleMapper<Str
         return ret;
     }
 
+    @Override
+    public List<SimpleComposite> mapToColumnsForLookup(TridentTuple tuplex) {
+        throw new RuntimeException("Should not be called since this mapper is not used to read data.");
+    }
+    
     @Override
     public SimpleComposite mapToEndKey(TridentTuple tuple) throws TupleMappingException {
         // TODO Auto-generated method stub

@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import org.apache.cassandra.config.ConfigurationException;
 import org.apache.thrift.transport.TTransportException;
@@ -42,7 +43,7 @@ import com.netflix.astyanax.serializers.StringSerializer;
 
 public class CompositeTest {
     private static Logger LOG = LoggerFactory.getLogger(CompositeTest.class);
-    private static String KEYSPACE = CompositeTest.class.getSimpleName();
+    private static String KEYSPACE = CompositeTest.class.getSimpleName().toLowerCase();
 
     @BeforeClass
     public static void setupCassandra() throws TTransportException, IOException, InterruptedException,
@@ -143,7 +144,7 @@ public class CompositeTest {
     // TODO come back to this -- there seem to be issues with Astyanax and composite columns.
     // see https://github.com/Netflix/astyanax/issues/80
     // see https://github.com/Netflix/astyanax/issues/42
-    public void testCompositeRangeQuery() {
+    public void testCompositeRangeQuery() throws InterruptedException {
         try{
         AstyanaxClient client = new AstyanaxClient();
         Map<String, Object> clientConfig = new HashMap<String, Object>();
@@ -173,10 +174,12 @@ public class CompositeTest {
         
         
         Map<SimpleComposite, String> map = client.lookup(tupleMapper, tuple, new SimpleComposite("a", "a"), new SimpleComposite("a", "c"), Equality.GREATER_THAN_EQUAL);
+        dumpMap(map);
         
         assertNotNull(map.get(new SimpleComposite("a", "a")));
-        assertNotNull(map.get(new SimpleComposite("b", "b")));
-        assertNotNull(map.get(new SimpleComposite("c", "c")));
+        assertNotNull(map.get(new SimpleComposite("a", "b")));
+        assertNull(map.get(new SimpleComposite("b", "b")));
+        assertNull(map.get(new SimpleComposite("c", "c")));
         assertNull(map.get(new SimpleComposite("d", "d")));
         client.stop();
         } catch (Exception e){
@@ -222,5 +225,12 @@ public class CompositeTest {
     private static TridentTuple newTridentTuple(Fields fields, List<Object> values){
         TridentTupleView.FreshOutputFactory fof = new TridentTupleView.FreshOutputFactory(fields);
         return fof.create(values);
+    }
+    
+    private void dumpMap(Map<SimpleComposite, String> values){
+    	for (Entry<SimpleComposite, String> entry: values.entrySet()){
+    		LOG.debug("Entry [" + entry.getKey().part1 + ":" + entry.getKey().part2 + "]");    		
+    	}
+    	
     }
 }
