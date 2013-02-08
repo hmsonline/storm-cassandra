@@ -54,6 +54,7 @@ public class AstyanaxComposites {
     }
 
     // @Test
+    @SuppressWarnings("unchecked")
     public void simpleReadWriteCompositeTest() {
         boolean fail = false;
         try {

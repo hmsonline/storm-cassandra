@@ -1,7 +1,6 @@
 package com.hmsonline.storm.cassandra.bolt;
 
 import static com.hmsonline.storm.cassandra.bolt.AstyanaxUtil.createColumnFamily;
-import static com.hmsonline.storm.cassandra.bolt.AstyanaxUtil.createCounterColumnFamily;
 import static com.hmsonline.storm.cassandra.bolt.AstyanaxUtil.newClusterContext;
 import static com.hmsonline.storm.cassandra.bolt.AstyanaxUtil.newContext;
 import static org.junit.Assert.assertEquals;

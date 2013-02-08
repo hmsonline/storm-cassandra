@@ -8,6 +8,7 @@ import storm.trident.tuple.TridentTuple;
 import com.hmsonline.storm.cassandra.bolt.mapper.TridentTupleMapper;
 import com.hmsonline.storm.cassandra.exceptions.TupleMappingException;
 
+@SuppressWarnings("serial")
 public class CompositeColumnTridentTupleMapper implements TridentTupleMapper<String, SimpleComposite, String>{
 
     @Override

@@ -2,8 +2,6 @@ package com.hmsonline.storm.cassandra.bolt;
 
 import java.util.List;
 
-import storm.trident.tuple.TridentTuple;
-
 import backtype.storm.generated.GlobalStreamId;
 import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.MessageId;

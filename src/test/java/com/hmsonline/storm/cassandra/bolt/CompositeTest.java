@@ -63,7 +63,8 @@ public class CompositeTest {
         }
     }
 
-//    @Test
+    @Test
+    @SuppressWarnings({ "rawtypes", "unchecked" })
     public void testCompositeKey() throws Exception {
         TupleMapper tupleMapper = new SimpleTupleMapper("simple");
         AstyanaxClient client = new AstyanaxClient();
@@ -112,7 +113,8 @@ public class CompositeTest {
 
     }
     
-//    @Test
+    @Test
+    @SuppressWarnings({ "rawtypes", "unchecked" })
     public void testTrident() throws Exception {
         AstyanaxClient client = new AstyanaxClient();
         Map<String, Object> clientConfig = new HashMap<String, Object>();
@@ -139,7 +141,8 @@ public class CompositeTest {
         client.stop();
     }
     
-    @Test
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+//    @Test
     // TODO come back to this -- there seem to be issues with Astyanax and composite columns.
     // see https://github.com/Netflix/astyanax/issues/80
     // see https://github.com/Netflix/astyanax/issues/42
@@ -187,6 +190,7 @@ public class CompositeTest {
     
     //@Test
     // TODO this test depends on https://github.com/Netflix/astyanax/pull/203
+    @SuppressWarnings("rawtypes")
     public void testGenericComposite() throws Exception {
         Composite2<String, String> c2 = new Composite2<String, String>("foo", "bar");
         LOG.warn("A class: {}", c2.a.getClass());
