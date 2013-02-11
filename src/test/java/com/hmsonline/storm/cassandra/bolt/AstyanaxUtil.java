@@ -7,10 +7,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.netflix.astyanax.AstyanaxContext;
+import com.netflix.astyanax.AstyanaxContext.Builder;
 import com.netflix.astyanax.Cluster;
 import com.netflix.astyanax.Keyspace;
-import com.netflix.astyanax.AstyanaxContext.Builder;
 import com.netflix.astyanax.connectionpool.NodeDiscoveryType;
+import com.netflix.astyanax.connectionpool.exceptions.BadRequestException;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 import com.netflix.astyanax.connectionpool.impl.ConnectionPoolConfigurationImpl;
 import com.netflix.astyanax.connectionpool.impl.CountingConnectionPoolMonitor;
@@ -64,8 +65,12 @@ public class AstyanaxUtil {
         }
         
         LOG.warn("Adding column family: '{}'", cf);
+        try {
         cluster.addColumnFamily(cluster.makeColumnFamilyDefinition().setKeyspace(ks).setName(cf).setComparatorType(comparator)
                 .setKeyValidationClass(keyValidator).setDefaultValidationClass(defValidator));
+        } catch (BadRequestException bre){
+        	LOG.warn("Could not create column family [" + bre.getMessage() + "]");
+        }
 
     }
     

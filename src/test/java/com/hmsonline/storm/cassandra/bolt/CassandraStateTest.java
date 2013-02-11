@@ -2,6 +2,7 @@ package com.hmsonline.storm.cassandra.bolt;
 
 import static com.hmsonline.storm.cassandra.bolt.AstyanaxUtil.createColumnFamily;
 import static com.hmsonline.storm.cassandra.bolt.AstyanaxUtil.newClusterContext;
+import static org.junit.Assert.assertEquals;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -10,8 +11,6 @@ import org.apache.cassandra.config.ConfigurationException;
 import org.apache.thrift.transport.TTransportException;
 import org.junit.BeforeClass;
 import org.junit.Test;
-
-import static org.junit.Assert.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,13 +25,11 @@ import storm.trident.state.StateFactory;
 import storm.trident.state.TransactionalValue;
 import storm.trident.testing.FixedBatchSpout;
 import storm.trident.testing.Split;
-
 import backtype.storm.Config;
 import backtype.storm.LocalCluster;
 import backtype.storm.LocalDRPC;
 import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Values;
-import backtype.storm.utils.Utils;
 
 import com.hmsonline.storm.cassandra.StormCassandraConstants;
 import com.hmsonline.storm.cassandra.trident.DefaultCassandraState;
@@ -84,6 +81,7 @@ public class CassandraStateTest {
 
     
     
+    @SuppressWarnings({ "unchecked", "rawtypes" })
     private void testCassandraState(TransactionType txType) throws Exception {
         FixedBatchSpout spout = new FixedBatchSpout(
                 new Fields("sentence"), 3, 

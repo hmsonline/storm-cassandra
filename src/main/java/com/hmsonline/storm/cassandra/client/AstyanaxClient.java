@@ -4,7 +4,6 @@ import java.lang.reflect.Field;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -40,12 +39,10 @@ import com.netflix.astyanax.connectionpool.OperationResult;
 import com.netflix.astyanax.connectionpool.impl.ConnectionPoolConfigurationImpl;
 import com.netflix.astyanax.connectionpool.impl.CountingConnectionPoolMonitor;
 import com.netflix.astyanax.impl.AstyanaxConfigurationImpl;
-import com.netflix.astyanax.model.AbstractComposite.ComponentEquality;
 import com.netflix.astyanax.model.ByteBufferRange;
 import com.netflix.astyanax.model.Column;
 import com.netflix.astyanax.model.ColumnFamily;
 import com.netflix.astyanax.model.ColumnList;
-import com.netflix.astyanax.model.Composite;
 import com.netflix.astyanax.query.RowQuery;
 import com.netflix.astyanax.serializers.AnnotatedCompositeSerializer;
 import com.netflix.astyanax.serializers.BigIntegerSerializer;
@@ -90,7 +87,6 @@ public class AstyanaxClient<K, C, V> {
             .put(ASTYANAX_CONNECTION_POOL_CONFIGURATION,
                     new ConnectionPoolConfigurationImpl("MyConnectionPool").setMaxConnsPerHost(1))
             .put(ASTYANAX_CONNECTION_POOL_MONITOR, new CountingConnectionPoolMonitor()).build();
-
 
     protected AstyanaxContext<Keyspace> createContext(Map<String, Object> config) {
         Map<String, Object> settings = Maps.newHashMap();
@@ -143,127 +139,162 @@ public class AstyanaxClient<K, C, V> {
         K rowKey = tupleMapper.mapToRowKey(input);
         Class<K> keyClass = tupleMapper.getKeyClass();
         Class<C> colClass = tupleMapper.getColumnNameClass();
-        
-        ColumnFamily<K, C> columnFamily = new ColumnFamily<K, C>(cf, (Serializer<K>)serializerFor(keyClass),
-                (Serializer<C>)serializerFor(colClass));
+
+        ColumnFamily<K, C> columnFamily = new ColumnFamily<K, C>(cf, (Serializer<K>) serializerFor(keyClass),
+                (Serializer<C>) serializerFor(colClass));
         OperationResult<ColumnList<C>> result;
         result = this.keyspace.prepareQuery(columnFamily).getKey(rowKey).execute();
         ColumnList<C> columns = (ColumnList<C>) result.getResult();
         HashMap<C, V> retval = new HashMap<C, V>();
         Iterator<Column<C>> it = columns.iterator();
-        while(it.hasNext()){
-            Column<C> col= it.next();
-            retval.put(col.getName(), col.getValue((Serializer<V>)serializerFor(tupleMapper.getColumnValueClass())));
+        while (it.hasNext()) {
+            Column<C> col = it.next();
+            retval.put(col.getName(), col.getValue((Serializer<V>) serializerFor(tupleMapper.getColumnValueClass())));
         }
         return retval;
     }
-    
-    
+
     @SuppressWarnings("unchecked")
     public Map<C, V> lookup(TridentTupleMapper<K, C, V> tupleMapper, TridentTuple input) throws Exception {
         String cf = tupleMapper.mapToColumnFamily(input);
         K rowKey = tupleMapper.mapToRowKey(input);
         Class<K> keyClass = tupleMapper.getKeyClass();
         Class<C> colClass = tupleMapper.getColumnNameClass();
-        
-        ColumnFamily<K, C> columnFamily = new ColumnFamily<K, C>(cf, (Serializer<K>)serializerFor(keyClass),
-                (Serializer<C>)serializerFor(colClass));
+
+        ColumnFamily<K, C> columnFamily = new ColumnFamily<K, C>(cf, (Serializer<K>) serializerFor(keyClass),
+                (Serializer<C>) serializerFor(colClass));
         OperationResult<ColumnList<C>> result;
         result = this.keyspace.prepareQuery(columnFamily).getKey(rowKey).execute();
         ColumnList<C> columns = (ColumnList<C>) result.getResult();
         HashMap<C, V> retval = new HashMap<C, V>();
         Iterator<Column<C>> it = columns.iterator();
-        while(it.hasNext()){
-            Column<C> col= it.next();
-            retval.put(col.getName(), col.getValue((Serializer<V>)serializerFor(tupleMapper.getColumnValueClass())));
+        while (it.hasNext()) {
+            Column<C> col = it.next();
+            retval.put(col.getName(), col.getValue((Serializer<V>) serializerFor(tupleMapper.getColumnValueClass())));
         }
         return retval;
     }
-    
-    
+
     @SuppressWarnings("unchecked")
     public Map<C, V> lookup(TupleMapper<K, C, V> tupleMapper, Tuple input, List<C> slice) throws Exception {
         String cf = tupleMapper.mapToColumnFamily(input);
         K rowKey = tupleMapper.mapToRowKey(input);
         Class<K> keyClass = tupleMapper.getKeyClass();
         Class<C> colClass = tupleMapper.getColumnNameClass();
-        
-        ColumnFamily<K, C> columnFamily = new ColumnFamily<K, C>(cf, (Serializer<K>)serializerFor(keyClass),
-                (Serializer<C>)serializerFor(colClass));
-        OperationResult<ColumnList<C>> result;
-        result = this.keyspace.prepareQuery(columnFamily).getKey(rowKey).withColumnSlice((Collection<C>) slice).execute();
-        ColumnList<C> columns = (ColumnList<C>) result.getResult();
+
+        ColumnFamily<K, C> columnFamily = new ColumnFamily<K, C>(cf, (Serializer<K>) serializerFor(keyClass),
+                (Serializer<C>) serializerFor(colClass));
+
         HashMap<C, V> retval = new HashMap<C, V>();
-        Iterator<Column<C>> it = columns.iterator();
-        while(it.hasNext()){
-            Column<C> col= it.next();
-            retval.put(col.getName(), col.getValue((Serializer<V>)serializerFor(tupleMapper.getColumnValueClass())));
+        for (C c : slice) {
+            RowQuery<K, C> query = this.keyspace.prepareQuery(columnFamily).getKey(rowKey);
+            query = query.withColumnRange(getRangeBuilder(c, c, null, (Serializer<C>) serializerFor(colClass)));
+            OperationResult<ColumnList<C>> result = query.execute();
+            Iterator<Column<C>> it = result.getResult().iterator();
+            while (it.hasNext()) {
+                Column<C> col = it.next();
+                retval.put(col.getName(),
+                        col.getValue((Serializer<V>) serializerFor(tupleMapper.getColumnValueClass())));
+            }
         }
-        return retval;        
+        return retval;
     }
 
     @SuppressWarnings("unchecked")
-    public Map<C, V> lookup(TupleMapper<K, C, V> tupleMapper, Tuple input, C start, C end,Equality equality) throws Exception {
-        if (start == null || end == null) {
-            return null;
-        }
-        
+    public Map<C, V> lookup(TridentTupleMapper<K, C, V> tupleMapper, TridentTuple input, List<C> slice)
+            throws Exception {
         String cf = tupleMapper.mapToColumnFamily(input);
         K rowKey = tupleMapper.mapToRowKey(input);
         Class<K> keyClass = tupleMapper.getKeyClass();
         Class<C> colClass = tupleMapper.getColumnNameClass();
-        ColumnFamily<K, C> columnFamily = new ColumnFamily<K, C>(cf, (Serializer<K>)serializerFor(keyClass),
-                (Serializer<C>)serializerFor(colClass));
-        OperationResult<ColumnList<C>> result= this.keyspace.prepareQuery(columnFamily).getKey(rowKey)
-                .withColumnRange(getRangeBuilder(start, end, equality, (Serializer<C>)serializerFor(colClass))).execute();
-        ColumnList<C> columns = (ColumnList<C>) result.getResult();
+
+        ColumnFamily<K, C> columnFamily = new ColumnFamily<K, C>(cf, (Serializer<K>) serializerFor(keyClass),
+                (Serializer<C>) serializerFor(colClass));
+
         HashMap<C, V> retval = new HashMap<C, V>();
-        Iterator<Column<C>> it = columns.iterator();
-        while(it.hasNext()){
-            Column<C> col= it.next();
-            retval.put(col.getName(), col.getValue((Serializer<V>)serializerFor(tupleMapper.getColumnValueClass())));
+        for (C c : slice) {
+            RowQuery<K, C> query = this.keyspace.prepareQuery(columnFamily).getKey(rowKey);
+            query = query.withColumnRange(getRangeBuilder(c, c, null, (Serializer<C>) serializerFor(colClass)));
+
+            OperationResult<ColumnList<C>> result = query.execute();
+
+            LOG.debug("Selecting [" + c.toString() + "] returned [" + result.getResult().size() + "] results.");
+
+            Iterator<Column<C>> it = result.getResult().iterator();
+            while (it.hasNext()) {
+                Column<C> col = it.next();
+                LOG.debug("Adding [" + col.getName() + "]=>[" + col.getStringValue() + "]");
+                retval.put(col.getName(),
+                        col.getValue((Serializer<V>) serializerFor(tupleMapper.getColumnValueClass())));
+            }
+
         }
-        return retval;        
+        return retval;
     }
 
-    
     @SuppressWarnings("unchecked")
-    public Map<C, V> lookup(TridentTupleMapper<K, C, V> tupleMapper, TridentTuple input, C start, C end, Equality equality) throws Exception {
+    public Map<C, V> lookup(TupleMapper<K, C, V> tupleMapper, Tuple input, C start, C end, Equality equality)
+            throws Exception {
         if (start == null || end == null) {
             return null;
         }
-        
+
         String cf = tupleMapper.mapToColumnFamily(input);
         K rowKey = tupleMapper.mapToRowKey(input);
         Class<K> keyClass = tupleMapper.getKeyClass();
         Class<C> colClass = tupleMapper.getColumnNameClass();
-        ColumnFamily<K, C> columnFamily = new ColumnFamily<K, C>(cf, (Serializer<K>)serializerFor(keyClass),
-                (Serializer<C>)serializerFor(colClass));
-        
+        ColumnFamily<K, C> columnFamily = new ColumnFamily<K, C>(cf, (Serializer<K>) serializerFor(keyClass),
+                (Serializer<C>) serializerFor(colClass));
+        OperationResult<ColumnList<C>> result = this.keyspace.prepareQuery(columnFamily).getKey(rowKey)
+                .withColumnRange(getRangeBuilder(start, end, equality, (Serializer<C>) serializerFor(colClass)))
+                .execute();
+        ColumnList<C> columns = (ColumnList<C>) result.getResult();
+        HashMap<C, V> retval = new HashMap<C, V>();
+        Iterator<Column<C>> it = columns.iterator();
+        while (it.hasNext()) {
+            Column<C> col = it.next();
+            retval.put(col.getName(), col.getValue((Serializer<V>) serializerFor(tupleMapper.getColumnValueClass())));
+        }
+        return retval;
+    }
+
+    @SuppressWarnings("unchecked")
+    public Map<C, V> lookup(TridentTupleMapper<K, C, V> tupleMapper, TridentTuple input, C start, C end,
+            Equality equality) throws Exception {
+        if (start == null || end == null) {
+            return null;
+        }
+
+        String cf = tupleMapper.mapToColumnFamily(input);
+        K rowKey = tupleMapper.mapToRowKey(input);
+        Class<K> keyClass = tupleMapper.getKeyClass();
+        Class<C> colClass = tupleMapper.getColumnNameClass();
+        ColumnFamily<K, C> columnFamily = new ColumnFamily<K, C>(cf, (Serializer<K>) serializerFor(keyClass),
+                (Serializer<C>) serializerFor(colClass));
+
         RowQuery<K, C> query = this.keyspace.prepareQuery(columnFamily).getKey(rowKey);
-        serializerFor(colClass);
-            query = query.withColumnRange(getRangeBuilder(start, end, equality, (Serializer<C>)serializerFor(colClass)));
 
-        OperationResult<ColumnList<C>> result= query.execute();
+        query = query.withColumnRange(getRangeBuilder(start, end, equality, (Serializer<C>) serializerFor(colClass)));
+
+        OperationResult<ColumnList<C>> result = query.execute();
         ColumnList<C> columns = (ColumnList<C>) result.getResult();
         HashMap<C, V> retval = new HashMap<C, V>();
         Iterator<Column<C>> it = columns.iterator();
-        while(it.hasNext()){
-            Column<C> col= it.next();
-            retval.put(col.getName(), col.getValue((Serializer<V>)serializerFor(tupleMapper.getColumnValueClass())));
+        while (it.hasNext()) {
+            Column<C> col = it.next();
+            retval.put(col.getName(), col.getValue((Serializer<V>) serializerFor(tupleMapper.getColumnValueClass())));
         }
-        return retval;        
+        return retval;
     }
 
-    
-    
     @SuppressWarnings("unchecked")
     public void writeTuple(Tuple input, TupleMapper<K, C, V> tupleMapper) throws Exception {
         String columnFamilyName = tupleMapper.mapToColumnFamily(input);
         K rowKey = tupleMapper.mapToRowKey(input);
         MutationBatch mutation = keyspace.prepareMutationBatch();
-        ColumnFamily<K, C> columnFamily = new ColumnFamily<K, C>(columnFamilyName, (Serializer<K>)serializerFor(tupleMapper.getKeyClass()),
-                (Serializer<C>)serializerFor(tupleMapper.getColumnNameClass()));
+        ColumnFamily<K, C> columnFamily = new ColumnFamily<K, C>(columnFamilyName,
+                (Serializer<K>) serializerFor(tupleMapper.getKeyClass()),
+                (Serializer<C>) serializerFor(tupleMapper.getColumnNameClass()));
         this.addTupleToMutation(input, columnFamily, rowKey, mutation, tupleMapper);
         mutation.execute();
     }
@@ -273,8 +304,9 @@ public class AstyanaxClient<K, C, V> {
         String columnFamilyName = tupleMapper.mapToColumnFamily(input);
         K rowKey = tupleMapper.mapToRowKey(input);
         MutationBatch mutation = keyspace.prepareMutationBatch();
-        ColumnFamily<K, C> columnFamily = new ColumnFamily<K, C>(columnFamilyName, (Serializer<K>)serializerFor(tupleMapper.getKeyClass()),
-                (Serializer<C>)serializerFor(tupleMapper.getColumnNameClass()));
+        ColumnFamily<K, C> columnFamily = new ColumnFamily<K, C>(columnFamilyName,
+                (Serializer<K>) serializerFor(tupleMapper.getKeyClass()),
+                (Serializer<C>) serializerFor(tupleMapper.getColumnNameClass()));
         this.addTupleToMutation(input, columnFamily, rowKey, mutation, tupleMapper);
         mutation.execute();
     }
@@ -285,20 +317,21 @@ public class AstyanaxClient<K, C, V> {
         for (Tuple input : inputs) {
             String columnFamilyName = tupleMapper.mapToColumnFamily(input);
             K rowKey = tupleMapper.mapToRowKey(input);
-            ColumnFamily<K, C> columnFamily = new ColumnFamily<K,C>(columnFamilyName,
-                    (Serializer<K>)serializerFor(tupleMapper.getKeyClass()), (Serializer<C>)this.serializerFor(tupleMapper.getColumnNameClass()));
+            ColumnFamily<K, C> columnFamily = new ColumnFamily<K, C>(columnFamilyName,
+                    (Serializer<K>) serializerFor(tupleMapper.getKeyClass()),
+                    (Serializer<C>) this.serializerFor(tupleMapper.getColumnNameClass()));
             this.addTupleToMutation(input, columnFamily, rowKey, mutation, tupleMapper);
         }
         mutation.execute();
     }
 
     @SuppressWarnings({ "static-access", "unchecked" })
-    private void addTupleToMutation(Tuple input, ColumnFamily<K, C> columnFamily, K rowKey,
-            MutationBatch mutation, TupleMapper<K, C, V> tupleMapper) {
+    private void addTupleToMutation(Tuple input, ColumnFamily<K, C> columnFamily, K rowKey, MutationBatch mutation,
+            TupleMapper<K, C, V> tupleMapper) {
         Map<C, V> columns = tupleMapper.mapToColumns(input);
         for (Map.Entry<C, V> entry : columns.entrySet()) {
             mutation.withRow(columnFamily, rowKey).putColumn(entry.getKey(), entry.getValue(),
-                    (Serializer<V>)this.serializerFor(tupleMapper.getColumnValueClass()), null);
+                    (Serializer<V>) this.serializerFor(tupleMapper.getColumnValueClass()), null);
         }
     }
 
@@ -345,174 +378,66 @@ public class AstyanaxClient<K, C, V> {
         mutation.execute();
     }
 
-    @SuppressWarnings({ "unchecked", "rawtypes" })
-    private ByteBufferRange getRangeBuilder(C start, C end, Equality equality, Serializer<C> serializer) throws IllegalArgumentException, IllegalAccessException {
+    @SuppressWarnings({ "rawtypes" })
+    private ByteBufferRange getRangeBuilder(C start, C end, Equality equality, Serializer<C> serializer)
+            throws IllegalArgumentException, IllegalAccessException {
         if (!(serializer instanceof AnnotatedCompositeSerializer)) {
-            return new RangeBuilder().setStart(start, serializerFor(start.getClass())).setEnd(end, serializerFor(end.getClass())).build();
+            return new RangeBuilder().setStart(start, serializerFor(start.getClass()))
+                    .setEnd(end, serializerFor(end.getClass())).build();
         } else {
+            AnnotatedCompositeSerializer compositeSerializer = (AnnotatedCompositeSerializer) serializer;
+            CompositeRangeBuilder rangeBuilder = compositeSerializer.buildRange();
             List<ComponentField> componentFields = componentFieldsForClass(start.getClass());
             List<ComponentField> nonNullFields = new ArrayList<ComponentField>();
-            for(ComponentField field : componentFields){
-                if((field.getField().get(start) != null) && field.getField().get(end) != null){
+            for (ComponentField field : componentFields) {
+                if ((field.getField().get(start) != null) && field.getField().get(end) != null) {
                     nonNullFields.add(field);
                 }
             }
-            final Composite cStart = new Composite();
-            final Composite cEnd = new Composite();
-            for(int i = 0; i < nonNullFields.size();i++){
+
+            for (int i = 0; i < nonNullFields.size(); i++) {
                 Object objStart = nonNullFields.get(i).getField().get(start);
                 Object objEnd = nonNullFields.get(i).getField().get(end);
-                Serializer compSerializer = serializerFor(objStart.getClass());
-                if(i+1 != nonNullFields.size()){
-                    cStart.addComponent(objStart, compSerializer, ComponentEquality.EQUAL);
-                    cEnd.addComponent(objEnd, compSerializer, ComponentEquality.EQUAL);
-                } else{
-                    cStart.addComponent(objStart, compSerializer, ComponentEquality.EQUAL);
-                    cEnd.addComponent(objEnd, compSerializer, ComponentEquality.EQUAL);
+                if (i + 1 != nonNullFields.size()) {
+                    rangeBuilder.withPrefix(objStart);
+                    LOG.debug("withPrefix(" + objStart + ")");
+                } else {
+                    rangeBuilder.greaterThanEquals(objStart);
+                    LOG.debug("greaterThanEquals(" + objStart + ")");
+                    rangeBuilder.lessThanEquals(objEnd);
+                    LOG.debug("lessThanEquals(" + objEnd + ")");
                 }
             }
-            
-            return new ByteBufferRange() {
-                
-                @Override
-                public boolean isReversed() {
-                    return false;
-                }
-                
-                @Override
-                public ByteBuffer getStart() {
-                    // TODO Auto-generated method stub
-                    return cStart.serialize();
-                }
-                
-                @Override
-                public int getLimit() {
-                    return Integer.MAX_VALUE;
-                }
-                
-                @Override
-                public ByteBuffer getEnd() {
-                    // TODO Auto-generated method stub
-                    return cEnd.serialize();
-                }
-            };
+            return rangeBuilder;
         }
     }
 
-    @SuppressWarnings("unused")
-    private ByteBufferRange getRangeBuilder2(C start, C end, Equality equality, Serializer<C> serializer) {
-        if (!(serializer instanceof AnnotatedCompositeSerializer)) {
-            return new RangeBuilder().setStart(start, serializerFor(start.getClass())).setEnd(end, serializerFor(end.getClass())).build();
-        } else {
-            AnnotatedCompositeSerializer<C> acs = (AnnotatedCompositeSerializer<C>)serializer;
-            List<ComponentField> componentFields = componentFieldsForClass(start.getClass());
-            CompositeRangeBuilder rangeBuilder = acs.buildRange();
-            List<ComponentField> componentValues = new ArrayList<ComponentField>();
-            
-            for(ComponentField field : componentFields){
-                try {
-                    Object value = field.getField().get(start);
-                    if(value != null){
-                        componentValues.add(field);
-                    } else{
-                        break;
-                    }
-                } catch (Exception e){
-                    throw new IllegalArgumentException("Unable to reflect annotated component field value on class: " + start.getClass().getName(), e);
-                }
-            }
-            
-            for(int i = 0; i < componentValues.size();i++){
-                System.out.println(i + " " + componentValues.size());
-                if(i+1 != componentValues.size()){
-                    System.out.println("prefix");
-                    try {
-                        rangeBuilder = rangeBuilder.withPrefix(componentValues.get(i).getField().get(start));
-                    } catch (IllegalArgumentException e) {
-                        // TODO Auto-generated catch block
-                        e.printStackTrace();
-                    } catch (IllegalAccessException e) {
-                        // TODO Auto-generated catch block
-                        e.printStackTrace();
-                    }
-                } else{
-                    System.out.println("equality");
-                    try {
-                        rangeBuilder.greaterThanEquals(componentValues.get(i).getField().get(start)).lessThanEquals(componentValues.get(i).getField().get(end));
-                    } catch (IllegalArgumentException e) {
-                        // TODO Auto-generated catch block
-                        e.printStackTrace();
-                    } catch (IllegalAccessException e) {
-                        // TODO Auto-generated catch block
-                        e.printStackTrace();
-                    }
-//                    switch(equality){
-//                    case GREATER_THAN:
-//                        rangeBuilder = rangeBuilder.greaterThan(componentValues.get(i));
-//                        break;
-//                    case GREATER_THAN_EQUAL:
-//                        rangeBuilder = rangeBuilder.greaterThanEquals(componentValues.get(i));
-//                        break;
-//                    case LESS_THAN:
-//                        rangeBuilder = rangeBuilder.lessThan(componentValues.get(i));
-//                        break;
-//                    case LESS_THAN_EQUAL:
-//                        rangeBuilder = rangeBuilder.lessThanEquals(componentValues.get(i));
-//                        break;
-//                    default:
-//                        break;
-//                    }
-                }
-            }
-            return rangeBuilder.build();
-        }
-    }
-    
-    
-    // TODO revisit pending Astayanax cleanup of composites.
-    @SuppressWarnings("unused")
-    private CompositeRangeBuilder buildRangeFromAnnotatedStartEnd(CompositeRangeBuilder rangeBuilder, C start, C end) throws IllegalAccessException {
-        CompositeRangeBuilder retval = rangeBuilder;
-        List<ComponentField> componentFields = componentFieldsForClass(start.getClass());
-
-//        retval = retval.withPrefix(componentFields.get(0).getField().get(start));
-        for(ComponentField cf : componentFields){
-            LOG.debug("Processing ordinal {}, type={}", cf.ordinal, cf.field.getType());
-            LOG.debug("Start={}, End={}", cf.getField().get(start), cf.getField().get(end));
-//            retval = retval.withPrefix(cf.getField().get(start));
-            retval = retval.greaterThanEquals(cf.getField().get(start));
-            retval = retval.lessThanEquals(cf.getField().get(end));
-//            retval.nextComponent();
-        }
-        return retval;
-    }
-    
-    static class ComponentField implements Comparable<ComponentField>{
+    static class ComponentField implements Comparable<ComponentField> {
         private Field field;
         private int ordinal;
-        
-        ComponentField(Field field, int ordinal){
+
+        ComponentField(Field field, int ordinal) {
             this.field = field;
             this.ordinal = ordinal;
         }
-        
-        Field getField(){
+
+        Field getField() {
             return this.field;
         }
-        
+
         @Override
-        public int compareTo(ComponentField other){
+        public int compareTo(ComponentField other) {
             return this.ordinal - other.ordinal;
         }
     }
-    
-    private static List<ComponentField> componentFieldsForClass(Class<?> c){
+
+    private static List<ComponentField> componentFieldsForClass(Class<?> c) {
         ArrayList<ComponentField> retval = new ArrayList<ComponentField>();
-        
+
         List<Field> fields = getInheritedFields(c);
-        for(Field field : fields){
+        for (Field field : fields) {
             Component comp = field.getAnnotation(Component.class);
-            if(comp != null){
+            if (comp != null) {
                 retval.add(new ComponentField(field, comp.ordinal()));
             }
         }
@@ -567,8 +492,8 @@ public class AstyanaxClient<K, C, V> {
             serializer = DoubleSerializer.get();
         } else if (valueClass.equals(BigInteger.class)) {
             serializer = BigIntegerSerializer.get();
-//        } else if (valueClass.equals(BigDecimal.class)) {
-//            serializer = BigDecimalSerializer.get();
+            // } else if (valueClass.equals(BigDecimal.class)) {
+            // serializer = BigDecimalSerializer.get();
         } else if (valueClass.equals(Boolean.class) || valueClass.equals(boolean.class)) {
             serializer = BooleanSerializer.get();
         } else if (valueClass.equals(byte[].class)) {
@@ -579,13 +504,12 @@ public class AstyanaxClient<K, C, V> {
             serializer = DateSerializer.get();
         }
         if (serializer == null) {
-            if(containsComponentAnnotation(valueClass)){
+            if (containsComponentAnnotation(valueClass)) {
                 serializer = new AnnotatedCompositeSerializer(valueClass);
-            } else{
+            } else {
                 serializer = ObjectSerializer.get();
             }
         }
-        LOG.debug("Inferred serializer type: {}", serializer.getClass().getName());
         return serializer;
     }
 
