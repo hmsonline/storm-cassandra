@@ -143,10 +143,7 @@ public class CompositeTest {
     }
     
     @SuppressWarnings({ "rawtypes", "unchecked" })
-//    @Test
-    // TODO come back to this -- there seem to be issues with Astyanax and composite columns.
-    // see https://github.com/Netflix/astyanax/issues/80
-    // see https://github.com/Netflix/astyanax/issues/42
+    @Test
     public void testCompositeRangeQuery() throws InterruptedException {
         try{
         AstyanaxClient client = new AstyanaxClient();
@@ -169,6 +166,12 @@ public class CompositeTest {
         tuple = newTridentTuple(fields, new Values("my_row", "a", "b", "ab"));
         client.writeTuple(tuple, tupleMapper);
         
+        tuple = newTridentTuple(fields, new Values("my_row", "a", "c", "ac"));
+        client.writeTuple(tuple, tupleMapper);
+        
+        tuple = newTridentTuple(fields, new Values("my_row", "a", "d", "ad"));
+        client.writeTuple(tuple, tupleMapper);
+        
         tuple = newTridentTuple(fields, new Values("my_row", "c", "c", "cc"));
         client.writeTuple(tuple, tupleMapper);
         
@@ -181,7 +184,8 @@ public class CompositeTest {
         
         assertNotNull(map.get(new SimpleComposite("a", "a")));
         assertNotNull(map.get(new SimpleComposite("a", "b")));
-        assertNull(map.get(new SimpleComposite("b", "b")));
+        assertNotNull(map.get(new SimpleComposite("a", "c")));
+        assertNull(map.get(new SimpleComposite("a", "d")));
         assertNull(map.get(new SimpleComposite("c", "c")));
         assertNull(map.get(new SimpleComposite("d", "d")));
         client.stop();
