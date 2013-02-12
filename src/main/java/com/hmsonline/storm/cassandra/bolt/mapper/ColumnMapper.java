@@ -8,6 +8,14 @@ import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.tuple.Tuple;
 import backtype.storm.tuple.Values;
 
+/**
+ * 
+ * @author tgoetz
+ *
+ * @param <K>
+ * @param <C>
+ * @param <V>
+ */
 public interface ColumnMapper<K, C, V> extends Serializable {
 
     /**
