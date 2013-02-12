@@ -7,14 +7,14 @@ public interface RangeQueryTupleMapper<K, C, V> extends TupleMapper<K, C, V> {
     /**
      * 
      * @param tuple
-     * @return return String value of column for start range
+     * @return return value of column for start range
      */
     public C mapToStartkey(Tuple tuple);
 
     /**
      * 
      * @param tuple
-     * @return return String value of column for end range
+     * @return return value of column for end range
      */
     public C mapToEndkey(Tuple tuple);
 }

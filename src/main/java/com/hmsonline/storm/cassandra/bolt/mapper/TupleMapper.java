@@ -34,9 +34,24 @@ public interface TupleMapper<K, C, V> extends Serializable {
      */
     Map<C, V> mapToColumns(Tuple tuple);
     
+    /**
+     * Returns the row key class
+     * 
+     * @return
+     */
     Class<K> getKeyClass();
     
+    /**
+     * Returns the column name class
+     * 
+     * @return
+     */
     Class<C> getColumnNameClass();
     
+    /**
+     * Returns the column value class
+     * 
+     * @return
+     */
     Class<V> getColumnValueClass();
 }

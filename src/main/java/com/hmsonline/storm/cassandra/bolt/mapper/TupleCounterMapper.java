@@ -5,6 +5,12 @@ import java.util.List;
 
 import backtype.storm.tuple.Tuple;
 
+/**
+ * Interface for mapping storm Tuples to Cassandra counter columns.
+ * 
+ * @author tgoetz
+ *
+ */
 public interface TupleCounterMapper extends Serializable {
 
     /**
@@ -26,7 +32,7 @@ public interface TupleCounterMapper extends Serializable {
     String mapToRowKey(Tuple tuple);
 
     /**
-     * Given a <code>backtype.storm.tuple.Tuple</code> returns the amount that
+     * Given a <code>backtype.storm.tuple.Tuple</code> return the amount that
      * must be incremented by.
      * 
      * @param tuple
