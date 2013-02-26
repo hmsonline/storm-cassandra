@@ -5,7 +5,6 @@ import java.util.List;
 import java.util.Map;
 
 import storm.trident.tuple.TridentTuple;
-
 import backtype.storm.tuple.Fields;
 
 import com.hmsonline.storm.cassandra.bolt.mapper.TridentTupleMapper;
@@ -16,14 +15,21 @@ public class SimpleTridentTupleMapper implements TridentTupleMapper<String, Stri
     private static final long serialVersionUID = 6362052836181968031L;
 
     private Fields fields;
+    private String keyspace;
 
-    public SimpleTridentTupleMapper(Fields fields){
+    public SimpleTridentTupleMapper(String keyspace, Fields fields){
         this.fields = fields;
+        this.keyspace = keyspace;
     }
 
     @Override
     public String mapToColumnFamily(TridentTuple tuple) throws TupleMappingException {
         return "trident";
+    }
+    
+    @Override
+    public String mapToKeyspace(TridentTuple tuple) {
+        return this.keyspace;
     }
 
     @Override

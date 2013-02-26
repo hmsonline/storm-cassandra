@@ -11,10 +11,20 @@ import com.hmsonline.storm.cassandra.exceptions.TupleMappingException;
 
 @SuppressWarnings("serial")
 public class CompositeColumnTridentTupleMapper implements TridentTupleMapper<String, SimpleComposite, String>{
-
+    
+    private String keyspace;
+    public CompositeColumnTridentTupleMapper(String keyspace) {
+        this.keyspace = keyspace;
+    }
+    
     @Override
     public String mapToColumnFamily(TridentTuple tuple) throws TupleMappingException {
         return "composite";
+    }
+    
+    @Override
+    public String mapToKeyspace(TridentTuple tuple) {
+        return keyspace;        
     }
 
     @Override
