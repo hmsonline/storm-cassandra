@@ -6,6 +6,7 @@ import static com.hmsonline.storm.cassandra.bolt.AstyanaxUtil.newContext;
 import static org.junit.Assert.assertEquals;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -58,7 +59,7 @@ public class CassandraBoltTest {
 
     @Test
     public void testBolt() throws Exception {
-        TupleMapper<String, String, String> tupleMapper = new DefaultTupleMapper("users", "VALUE");
+        TupleMapper<String, String, String> tupleMapper = new DefaultTupleMapper(KEYSPACE, "users", "VALUE");
         String configKey = "cassandra-config";
         CassandraBatchingBolt<String, String, String> bolt = new CassandraBatchingBolt<String, String, String>(configKey, tupleMapper);
         TopologyBuilder builder = new TopologyBuilder();
@@ -72,7 +73,7 @@ public class CassandraBoltTest {
         
         Map<String, Object> clientConfig = new HashMap<String, Object>();
         clientConfig.put(StormCassandraConstants.CASSANDRA_HOST, "localhost:9160");
-        clientConfig.put(StormCassandraConstants.CASSANDRA_KEYSPACE, KEYSPACE);
+        clientConfig.put(StormCassandraConstants.CASSANDRA_KEYSPACE, Arrays.asList(new String [] {KEYSPACE}));
         config.put(configKey, clientConfig);
 
         bolt.prepare(config, context, null);
@@ -98,7 +99,7 @@ public class CassandraBoltTest {
     @Test
     public void testCounterBolt() throws Exception {
         String configKey = "cassandra-config";
-        CassandraCounterBatchingBolt<String, String, String> bolt = new CassandraCounterBatchingBolt<String, String, String>(configKey, "Counts", "Timestamp", "IncrementAmount");
+        CassandraCounterBatchingBolt<String, String, String> bolt = new CassandraCounterBatchingBolt<String, String, String>(KEYSPACE, configKey, "Counts", "Timestamp", "IncrementAmount");
         TopologyBuilder builder = new TopologyBuilder();
         builder.setBolt("TEST__COUNTER_BOLT", bolt);
 
@@ -110,7 +111,7 @@ public class CassandraBoltTest {
         
         Map<String, Object> clientConfig = new HashMap<String, Object>();
         clientConfig.put(StormCassandraConstants.CASSANDRA_HOST, "localhost:9160");
-        clientConfig.put(StormCassandraConstants.CASSANDRA_KEYSPACE, KEYSPACE);
+        clientConfig.put(StormCassandraConstants.CASSANDRA_KEYSPACE, Arrays.asList(new String [] {KEYSPACE}));
         config.put(configKey, clientConfig);
         
 

@@ -17,7 +17,15 @@ public interface TridentTupleMapper<K, C, V> extends Serializable {
      * @return
      */
     String mapToColumnFamily(TridentTuple tuple) throws TupleMappingException;
-
+    
+    /**
+     * Given a <code>backtype.storm.tuple.Tuple</code> object, map the keyspace to write to.
+     * 
+     * @param tuple
+     * @return
+     */
+    String mapToKeyspace(TridentTuple tuple);
+    
     /**
      * Given a <code>backtype.storm.tuple.Tuple</code> generate a Cassandra row
      * key.

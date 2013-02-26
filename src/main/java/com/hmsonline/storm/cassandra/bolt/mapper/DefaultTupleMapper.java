@@ -10,6 +10,7 @@ public class DefaultTupleMapper implements TupleMapper<String, String, String> {
     private static final long serialVersionUID = 1L;
     private String rowKeyField;
     private String columnFamily;
+    private String keyspace;
 
     /**
      * Construct default mapper.
@@ -19,14 +20,20 @@ public class DefaultTupleMapper implements TupleMapper<String, String, String> {
      * @param rowKeyField
      *            tuple field to use as the row key.
      */
-    public DefaultTupleMapper(String columnFamily, String rowKeyField) {
+    public DefaultTupleMapper(String keyspace, String columnFamily, String rowKeyField) {
         this.rowKeyField = rowKeyField;
         this.columnFamily = columnFamily;
+        this.keyspace = keyspace;
     }
 
     @Override
     public String mapToRowKey(Tuple tuple) {
         return tuple.getValueByField(this.rowKeyField).toString();
+    }
+    
+    @Override
+    public String mapToKeyspace(Tuple tuple) {
+        return this.keyspace;
     }
 
     /**

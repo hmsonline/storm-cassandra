@@ -12,15 +12,21 @@ public class SimpleTupleMapper implements TupleMapper<SimpleComposite, String, S
     
     private static final long serialVersionUID = 3535952327132771558L;
     private String columnFamily;
+    private String keyspace;
     
-    public SimpleTupleMapper(String columnFamily){
+    public SimpleTupleMapper(String keyspace, String columnFamily){
         this.columnFamily = columnFamily;
+        this.keyspace = keyspace;
     }
 
     
     @Override
     public String mapToColumnFamily(Tuple tuple) {
         return this.columnFamily;
+    }    
+    @Override
+    public String mapToKeyspace(Tuple tuple) {
+        return this.keyspace;
     }
     @Override
     public SimpleComposite mapToRowKey(Tuple tuple) {

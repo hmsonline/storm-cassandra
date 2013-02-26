@@ -15,6 +15,14 @@ public interface TupleMapper<K, C, V> extends Serializable {
      * @return
      */
     String mapToColumnFamily(Tuple tuple);
+    
+    /**
+     * Given a <code>backtype.storm.tuple.Tuple</code> object, map the keyspace to write to.
+     * 
+     * @param tuple
+     * @return
+     */
+    String mapToKeyspace(Tuple tuple);
 
     /**
      * Given a <code>backtype.storm.tuple.Tuple</code> generate a Cassandra row

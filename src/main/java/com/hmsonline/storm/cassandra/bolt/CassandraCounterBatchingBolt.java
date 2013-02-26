@@ -22,8 +22,8 @@ public class CassandraCounterBatchingBolt<K, C, V> extends AbstractBatchingBolt<
         this.tupleMapper = tupleMapper;
     }
 
-    public CassandraCounterBatchingBolt(String clientConfigKey, String columnFamily, String rowKeyField, String incrementAmountField) {
-        this(clientConfigKey, new DefaultTupleCounterMapper(columnFamily, rowKeyField, incrementAmountField));
+    public CassandraCounterBatchingBolt(String keyspace, String clientConfigKey, String columnFamily, String rowKeyField, String incrementAmountField) {
+        this(clientConfigKey, new DefaultTupleCounterMapper(keyspace, columnFamily, rowKeyField, incrementAmountField));
     }
 
     @Override
