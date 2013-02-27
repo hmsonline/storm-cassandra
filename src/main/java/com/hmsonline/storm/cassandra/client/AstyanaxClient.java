@@ -109,10 +109,9 @@ public class AstyanaxClient<K, C, V> {
         @SuppressWarnings("unchecked")
         Collection<String> keyspaces = (Collection<String>) config.get(StormCassandraConstants.CASSANDRA_KEYSPACE);
         for (String keyspace : keyspaces) {
-            String keyspaceLower = keyspace.toLowerCase();
             returnVal.add(new AstyanaxContext.Builder()
                             .forCluster((String) settings.get(CASSANDRA_CLUSTER_NAME))
-                            .forKeyspace(keyspaceLower)
+                            .forKeyspace(keyspace)
                             .withAstyanaxConfiguration((AstyanaxConfiguration) settings.get(ASTYANAX_CONFIGURATION))
                             .withConnectionPoolConfiguration(
                                             (ConnectionPoolConfiguration) settings
@@ -555,8 +554,7 @@ public class AstyanaxClient<K, C, V> {
     }
     
     public Keyspace getKeyspace(String keyspace) {
-        String keyspaceLower = keyspace.toLowerCase();
-        return this.getAstyanaxContext(keyspaceLower).getEntity();
+        return this.getAstyanaxContext(keyspace).getEntity();
     }
 
     public AstyanaxContext<Keyspace> getAstyanaxContext() {
@@ -568,14 +566,15 @@ public class AstyanaxClient<K, C, V> {
     }
 
     public AstyanaxContext<Keyspace> getAstyanaxContext(String keyspace) {
-        AstyanaxContext<Keyspace> returnVal = astyanaxContext.get(keyspace);
+        String keyspaceLower = keyspace.toLowerCase();
+        AstyanaxContext<Keyspace> returnVal = astyanaxContext.get(keyspaceLower);
         if(returnVal == null) {
-            throw new IllegalArgumentException("Cannnot find client for keyspace: " + keyspace);
+            throw new IllegalArgumentException("Cannnot find client for keyspace: " + keyspaceLower);
         }
         return returnVal;
     }
 
     public void addAstyanaxContext(String keyspace, AstyanaxContext<Keyspace> astyanaxContext) {
-        this.astyanaxContext.put(keyspace, astyanaxContext);
+        this.astyanaxContext.put(keyspace.toLowerCase(), astyanaxContext);
     }
 }
