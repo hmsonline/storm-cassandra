@@ -109,10 +109,10 @@ public class AstyanaxClient<K, C, V> {
         @SuppressWarnings("unchecked")
         Collection<String> keyspaces = (Collection<String>) config.get(StormCassandraConstants.CASSANDRA_KEYSPACE);
         for (String keyspace : keyspaces) {
-
+            String keyspaceLower = keyspace.toLowerCase();
             returnVal.add(new AstyanaxContext.Builder()
                             .forCluster((String) settings.get(CASSANDRA_CLUSTER_NAME))
-                            .forKeyspace(keyspace)
+                            .forKeyspace(keyspaceLower)
                             .withAstyanaxConfiguration((AstyanaxConfiguration) settings.get(ASTYANAX_CONFIGURATION))
                             .withConnectionPoolConfiguration(
                                             (ConnectionPoolConfiguration) settings
@@ -555,7 +555,8 @@ public class AstyanaxClient<K, C, V> {
     }
     
     public Keyspace getKeyspace(String keyspace) {
-        return this.getAstyanaxContext(keyspace).getEntity();
+        String keyspaceLower = keyspace.toLowerCase();
+        return this.getAstyanaxContext(keyspaceLower).getEntity();
     }
 
     public AstyanaxContext<Keyspace> getAstyanaxContext() {
