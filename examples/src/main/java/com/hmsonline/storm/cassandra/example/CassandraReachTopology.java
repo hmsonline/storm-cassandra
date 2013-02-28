@@ -51,14 +51,14 @@ public class CassandraReachTopology {
         // "followers", ":", "rowKey", "follower", true);
 
         // cf = "tweeters", rowkey = tuple["url"]
-        TupleMapper<String, String, String> tweetersTupleMapper = new DefaultTupleMapper("tweeters", "url");
+        TupleMapper<String, String, String> tweetersTupleMapper = new DefaultTupleMapper("stormks", "tweeters", "url");
         // cf (url -> tweeters) -> emit(url, follower)
         ColumnMapper<String, String, String> tweetersColumnsMapper = new ValuelessColumnsMapper("url", "tweeter", true);
         CassandraLookupBolt<String, String, String> tweetersBolt = new CassandraLookupBolt<String, String, String>(configKey,
                 tweetersTupleMapper, tweetersColumnsMapper);
 
         // cf = "followers", rowkey = tuple["tweeter"]
-        TupleMapper<String, String, String> followersTupleMapper = new DefaultTupleMapper("followers", "tweeter");
+        TupleMapper<String, String, String> followersTupleMapper = new DefaultTupleMapper("stormks", "followers", "tweeter");
         // cf (tweeter -> followers) ==> emit(url, follower)
         ValuelessColumnsMapper followersColumnsMapper = new ValuelessColumnsMapper("url", "follower", true);
         CassandraLookupBolt<String, String, String> followersBolt = new CassandraLookupBolt<String, String, String>(configKey,
