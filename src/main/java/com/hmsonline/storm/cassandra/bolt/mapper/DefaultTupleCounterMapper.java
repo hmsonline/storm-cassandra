@@ -18,16 +18,23 @@ public class DefaultTupleCounterMapper implements TupleCounterMapper {
     private String rowKeyField;
     private String columnFamily;
     private String incrementAmountField;
+    private String keyspace;
 
-    public DefaultTupleCounterMapper(String columnFamily, String rowKeyField, String incrementAmountField) {
+    public DefaultTupleCounterMapper(String keyspace, String columnFamily, String rowKeyField, String incrementAmountField) {
         this.columnFamily = columnFamily;
         this.rowKeyField = rowKeyField;
         this.incrementAmountField = incrementAmountField;
+        this.keyspace = keyspace;
     }
 
     @Override
     public String mapToColumnFamily(Tuple tuple) {
         return this.columnFamily;
+    }
+    
+    @Override
+    public String mapToKeyspace(Tuple tuple) {
+        return this.keyspace;
     }
 
     @Override

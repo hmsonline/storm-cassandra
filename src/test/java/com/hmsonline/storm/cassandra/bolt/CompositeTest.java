@@ -8,6 +8,7 @@ import static org.junit.Assert.*;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -67,11 +68,11 @@ public class CompositeTest {
     @Test
     @SuppressWarnings({ "rawtypes", "unchecked" })
     public void testCompositeKey() throws Exception {
-        TupleMapper tupleMapper = new SimpleTupleMapper("simple");
+        TupleMapper tupleMapper = new SimpleTupleMapper(KEYSPACE, "simple");
         AstyanaxClient client = new AstyanaxClient();
         Map<String, Object> clientConfig = new HashMap<String, Object>();
         clientConfig.put(StormCassandraConstants.CASSANDRA_HOST, "localhost:9160");
-        clientConfig.put(StormCassandraConstants.CASSANDRA_KEYSPACE, KEYSPACE);
+        clientConfig.put(StormCassandraConstants.CASSANDRA_KEYSPACE, Arrays.asList(new String [] {KEYSPACE}));
         client.start(clientConfig);
 
         Fields fields = new Fields("key1", "key2", "foo", "bar");
@@ -120,14 +121,14 @@ public class CompositeTest {
         AstyanaxClient client = new AstyanaxClient();
         Map<String, Object> clientConfig = new HashMap<String, Object>();
         clientConfig.put(StormCassandraConstants.CASSANDRA_HOST, "localhost:9160");
-        clientConfig.put(StormCassandraConstants.CASSANDRA_KEYSPACE, KEYSPACE);
+        clientConfig.put(StormCassandraConstants.CASSANDRA_KEYSPACE, Arrays.asList(new String [] {KEYSPACE}));
         client.start(clientConfig);
         
         Fields fields = new Fields("key1", "key2", "foo", "bar");
         Values values = new Values("key1val", "key2val", "fooval", "barval");
         TridentTuple tuple = newTridentTuple(fields, values);
         
-        SimpleTridentTupleMapper tupleMapper = new SimpleTridentTupleMapper(fields);
+        SimpleTridentTupleMapper tupleMapper = new SimpleTridentTupleMapper(KEYSPACE, fields);
         
         client.writeTuple(tuple, tupleMapper);
         
@@ -149,14 +150,14 @@ public class CompositeTest {
         AstyanaxClient client = new AstyanaxClient();
         Map<String, Object> clientConfig = new HashMap<String, Object>();
         clientConfig.put(StormCassandraConstants.CASSANDRA_HOST, "localhost:9160");
-        clientConfig.put(StormCassandraConstants.CASSANDRA_KEYSPACE, KEYSPACE);
+        clientConfig.put(StormCassandraConstants.CASSANDRA_KEYSPACE, Arrays.asList(new String [] {KEYSPACE}));
         client.start(clientConfig);
         
         Fields fields = new Fields("rowkey", "a", "b", "value");
         Values values = new Values("my_row", "a", "a", "aa");
         TridentTuple tuple = newTridentTuple(fields, values);
         
-        CompositeColumnTridentTupleMapper tupleMapper = new CompositeColumnTridentTupleMapper();
+        CompositeColumnTridentTupleMapper tupleMapper = new CompositeColumnTridentTupleMapper(KEYSPACE);
         
         client.writeTuple(tuple, tupleMapper);
         
