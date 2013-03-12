@@ -95,7 +95,7 @@ public class CassandraStateTest {
 
         HashMap<String, Object> clientConfig = new HashMap<String, Object>();
         clientConfig.put(StormCassandraConstants.CASSANDRA_HOST, "localhost:9160");
-        clientConfig.put(StormCassandraConstants.CASSANDRA_KEYSPACE, KEYSPACE);
+        clientConfig.put(StormCassandraConstants.CASSANDRA_STATE_KEYSPACE, KEYSPACE);
         Config config = new Config();
         config.setMaxSpoutPending(25);
         config.put("cassandra.config", clientConfig);

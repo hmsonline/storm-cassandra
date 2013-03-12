@@ -42,6 +42,7 @@ public class TestWordSpout implements IRichSpout {
         final Random rand = new Random();
         final String word = words[rand.nextInt(words.length)];
         this.collector.emit(new Values(word), UUID.randomUUID());
+        Thread.yield();
     }
 
     public void ack(Object msgId) {
