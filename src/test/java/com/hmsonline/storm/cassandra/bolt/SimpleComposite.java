@@ -6,6 +6,7 @@ import com.netflix.astyanax.annotations.Component;
 
 @SuppressWarnings("serial")
 public class SimpleComposite implements Serializable{
+    
     @Component(ordinal = 0)
     public String part1;
     

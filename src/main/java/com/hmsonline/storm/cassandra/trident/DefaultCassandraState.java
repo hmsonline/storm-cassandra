@@ -101,7 +101,7 @@ public class DefaultCassandraState<T> implements IBackingMap<T> {
 
         return new AstyanaxContext.Builder()
                 .forCluster((String) settings.get(CASSANDRA_CLUSTER_NAME))
-                .forKeyspace((String) config.get(StormCassandraConstants.CASSANDRA_KEYSPACE))
+                .forKeyspace((String) config.get(StormCassandraConstants.CASSANDRA_STATE_KEYSPACE))
                 .withAstyanaxConfiguration((AstyanaxConfiguration) settings.get(ASTYANAX_CONFIGURATION))
                 .withConnectionPoolConfiguration(
                         (ConnectionPoolConfiguration) settings.get(ASTYANAX_CONNECTION_POOL_CONFIGURATION))
