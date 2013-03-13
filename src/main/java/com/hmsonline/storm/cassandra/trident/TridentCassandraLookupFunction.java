@@ -83,12 +83,13 @@ public class TridentCassandraLookupFunction<K, C, V> implements Function {
             return;
         }
 
-        K rowKey = tupleMapper.mapToRowKey(input);
-        C start = tupleMapper.mapToStartKey(input);
-        C end = tupleMapper.mapToEndKey(input);
-        List<C> list = tupleMapper.mapToColumnsForLookup(input);
-
+        K rowKey = null;
         try {
+            rowKey = tupleMapper.mapToRowKey(input);
+            C start = tupleMapper.mapToStartKey(input);
+            C end = tupleMapper.mapToEndKey(input);
+            List<C> list = tupleMapper.mapToColumnsForLookup(input);
+
             List<Values> valuesToEmit;
             Map<C, V> colMap = null;
             
