@@ -269,7 +269,10 @@ public class DefaultCassandraState<T> implements IBackingMap<T> {
     private Composite toColumnName(List<Object> key) {
         Composite columnName = new Composite();
         for (Object component : key) {
-            columnName.addComponent((String) component, StringSerializer.get());
+            if (component == null) {
+                component = "[NULL]";
+            }
+            columnName.addComponent(component.toString(), StringSerializer.get());
         }
         return columnName;
     }
