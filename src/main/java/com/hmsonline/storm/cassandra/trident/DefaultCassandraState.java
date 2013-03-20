@@ -214,16 +214,19 @@ public class DefaultCassandraState<T> implements IBackingMap<T> {
         try {
             result = query.execute().getResult();
         } catch (ConnectionException e) {
-            e.printStackTrace();
+            //TODO throw a specific error.
+            throw new RuntimeException(e);
         }
         Map<List<Object>, byte[]> resultMap = new HashMap<List<Object>, byte[]>();
-        Collection<Composite> columns = result.getColumnNames();
-        for (Composite columnName : columns) {
-            List<Object> dimensions = new ArrayList<Object>();
-            for (int i = 0; i < columnName.size(); i++) {
-                dimensions.add(columnName.get(i, StringSerializer.get()));
+        if (result != null) {
+            Collection<Composite> columns = result.getColumnNames();
+            for (Composite columnName : columns) {
+                List<Object> dimensions = new ArrayList<Object>();
+                for (int i = 0; i < columnName.size(); i++) {
+                    dimensions.add(columnName.get(i, StringSerializer.get()));
+                }
+                resultMap.put(dimensions, result.getByteArrayValue(columnName, new byte[0]));
             }
-            resultMap.put(dimensions, result.getByteArrayValue(columnName, new byte[0]));
         }
 
         List<T> values = new ArrayList<T>();
