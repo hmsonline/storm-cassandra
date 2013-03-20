@@ -214,7 +214,8 @@ public class DefaultCassandraState<T> implements IBackingMap<T> {
         try {
             result = query.execute().getResult();
         } catch (ConnectionException e) {
-            e.printStackTrace();
+            //TODO throw a specific error.
+            throw new RuntimeException(e);
         }
         Map<List<Object>, byte[]> resultMap = new HashMap<List<Object>, byte[]>();
         Collection<Composite> columns = result.getColumnNames();
