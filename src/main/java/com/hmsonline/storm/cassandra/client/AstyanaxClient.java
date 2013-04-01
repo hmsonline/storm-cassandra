@@ -1,6 +1,10 @@
 package com.hmsonline.storm.cassandra.client;
 
+import java.beans.IntrospectionException;
+import java.beans.PropertyDescriptor;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -416,7 +420,7 @@ public class AstyanaxClient<K, C, V> {
 
     @SuppressWarnings({ "rawtypes" })
     private ByteBufferRange getRangeBuilder(C start, C end, Equality equality, Serializer<C> serializer)
-            throws IllegalArgumentException, IllegalAccessException {
+            throws IllegalAccessException, IntrospectionException, InvocationTargetException {
         if (!(serializer instanceof AnnotatedCompositeSerializer)) {
             return new RangeBuilder().setStart(start, serializerFor(start.getClass()))
                     .setEnd(end, serializerFor(end.getClass())).build();
@@ -426,14 +430,14 @@ public class AstyanaxClient<K, C, V> {
             List<ComponentField> componentFields = componentFieldsForClass(start.getClass());
             List<ComponentField> nonNullFields = new ArrayList<ComponentField>();
             for (ComponentField field : componentFields) {
-                if ((field.getField().get(start) != null) && field.getField().get(end) != null) {
+                if ((field.getValue(start) != null) && field.getValue(end) != null) {
                     nonNullFields.add(field);
                 }
             }
 
             for (int i = 0; i < nonNullFields.size(); i++) {
-                Object objStart = nonNullFields.get(i).getField().get(start);
-                Object objEnd = nonNullFields.get(i).getField().get(end);
+                Object objStart = nonNullFields.get(i).getValue(start);
+                Object objEnd = nonNullFields.get(i).getValue(end);
                 if (i + 1 != nonNullFields.size()) {
                     rangeBuilder.withPrefix(objStart);
                     LOG.debug("withPrefix(" + objStart + ")");
@@ -449,16 +453,16 @@ public class AstyanaxClient<K, C, V> {
     }
 
     static class ComponentField implements Comparable<ComponentField> {
-        private Field field;
+        private Method getter;
         private int ordinal;
 
-        ComponentField(Field field, int ordinal) {
-            this.field = field;
+        ComponentField(Method getter, int ordinal) {
+            this.getter = getter;
             this.ordinal = ordinal;
         }
 
-        Field getField() {
-            return this.field;
+        Object getValue(Object obj) throws IllegalAccessException, InvocationTargetException {
+            return getter.invoke(obj);
         }
 
         @Override
@@ -467,14 +471,14 @@ public class AstyanaxClient<K, C, V> {
         }
     }
 
-    private static List<ComponentField> componentFieldsForClass(Class<?> c) {
+    private static List<ComponentField> componentFieldsForClass(Class<?> c) throws IntrospectionException {
         ArrayList<ComponentField> retval = new ArrayList<ComponentField>();
 
         List<Field> fields = getInheritedFields(c);
         for (Field field : fields) {
             Component comp = field.getAnnotation(Component.class);
             if (comp != null) {
-                retval.add(new ComponentField(field, comp.ordinal()));
+                retval.add(new ComponentField(new PropertyDescriptor(field.getName(), c).getReadMethod(), comp.ordinal()));
             }
         }
         Collections.sort(retval);

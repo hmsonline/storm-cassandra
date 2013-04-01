@@ -5,20 +5,35 @@ import java.io.Serializable;
 import com.netflix.astyanax.annotations.Component;
 
 @SuppressWarnings("serial")
-public class SimpleComposite implements Serializable{
-    
+public class SimpleComposite implements Serializable {
+
     @Component(ordinal = 0)
-    public String part1;
-    
+    private String part1;
+
     @Component(ordinal = 1)
-    public String part2;
-    
-    public SimpleComposite(){
-        
+    private String part2;
+
+    public SimpleComposite() {
     }
-    
-    public SimpleComposite(String part1, String part2){
+
+    public SimpleComposite(String part1, String part2) {
         this.part1 = part1;
+        this.part2 = part2;
+    }
+
+    public String getPart1() {
+        return part1;
+    }
+
+    public void setPart1(String part1) {
+        this.part1 = part1;
+    }
+
+    public String getPart2() {
+        return part2;
+    }
+
+    public void setPart2(String part2) {
         this.part2 = part2;
     }
 
@@ -59,6 +74,5 @@ public class SimpleComposite implements Serializable{
         }
         return true;
     }
-    
-    
+
 }

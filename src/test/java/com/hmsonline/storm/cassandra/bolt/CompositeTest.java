@@ -238,7 +238,7 @@ public class CompositeTest {
     
     private void dumpMap(Map<SimpleComposite, String> values){
     	for (Entry<SimpleComposite, String> entry: values.entrySet()){
-    		LOG.debug("Entry [" + entry.getKey().part1 + ":" + entry.getKey().part2 + "]");    		
+    		LOG.debug("Entry [" + entry.getKey().getPart1() + ":" + entry.getKey().getPart2() + "]");    		
     	}
     	
     }
