@@ -118,6 +118,7 @@ public class DefaultCassandraState<T> implements IBackingMap<T> {
         public String columnFamily = "cassandra_state";
         public String rowkey = "default_cassandra_state";
         public String clientConfigKey = "cassandra.config";
+        public Integer ttl = 86400; // 1 day
 
     }
 
@@ -251,7 +252,11 @@ public class DefaultCassandraState<T> implements IBackingMap<T> {
         for (int i = 0; i < keys.size(); i++) {
             Composite columnName = toColumnName(keys.get(i));
             byte[] bytes = serializer.serialize(values.get(i));
-            mutation.withRow(cf, this.options.rowkey).putColumn(columnName, bytes);
+            if (options.ttl != null && options.ttl > 0) {
+                mutation.withRow(cf, this.options.rowkey).putColumn(columnName, bytes, options.ttl);
+            } else {
+                mutation.withRow(cf, this.options.rowkey).putColumn(columnName, bytes);
+            }
         }
         try {
             mutation.execute();
