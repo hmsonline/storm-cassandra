@@ -41,7 +41,8 @@ import com.netflix.astyanax.connectionpool.ConnectionPoolMonitor;
 import com.netflix.astyanax.connectionpool.NodeDiscoveryType;
 import com.netflix.astyanax.connectionpool.OperationResult;
 import com.netflix.astyanax.connectionpool.impl.ConnectionPoolConfigurationImpl;
-import com.netflix.astyanax.connectionpool.impl.CountingConnectionPoolMonitor;
+import com.netflix.astyanax.connectionpool.impl.ConnectionPoolType;
+import com.netflix.astyanax.connectionpool.impl.Slf4jConnectionPoolMonitorImpl;
 import com.netflix.astyanax.impl.AstyanaxConfigurationImpl;
 import com.netflix.astyanax.model.ByteBufferRange;
 import com.netflix.astyanax.model.Column;
@@ -87,10 +88,11 @@ public class AstyanaxClient<K, C, V> {
     // between bolts
     private final Map<String, Object> DEFAULTS = new ImmutableMap.Builder<String, Object>()
             .put(CASSANDRA_CLUSTER_NAME, "ClusterName")
-            .put(ASTYANAX_CONFIGURATION, new AstyanaxConfigurationImpl().setDiscoveryType(NodeDiscoveryType.NONE))
+            .put(ASTYANAX_CONFIGURATION, new AstyanaxConfigurationImpl().setDiscoveryType(NodeDiscoveryType.RING_DESCRIBE)
+            		.setConnectionPoolType(ConnectionPoolType.TOKEN_AWARE))
             .put(ASTYANAX_CONNECTION_POOL_CONFIGURATION,
-                    new ConnectionPoolConfigurationImpl("MyConnectionPool").setMaxConnsPerHost(1))
-            .put(ASTYANAX_CONNECTION_POOL_MONITOR, new CountingConnectionPoolMonitor()).build();
+                    new ConnectionPoolConfigurationImpl("MyConnectionPool"))
+            .put(ASTYANAX_CONNECTION_POOL_MONITOR, new Slf4jConnectionPoolMonitorImpl()).build();
 
     protected List<AstyanaxContext<Keyspace>> createContext(Map<String, Object> config) {
         List<AstyanaxContext<Keyspace>> returnVal = new ArrayList<AstyanaxContext<Keyspace>>();
