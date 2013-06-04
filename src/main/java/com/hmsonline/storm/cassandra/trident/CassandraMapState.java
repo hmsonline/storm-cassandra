@@ -53,9 +53,9 @@ import com.netflix.astyanax.serializers.CompositeSerializer;
 import com.netflix.astyanax.serializers.StringSerializer;
 import com.netflix.astyanax.thrift.ThriftFamilyFactory;
 
-public class DefaultCassandraState<T> implements IBackingMap<T> {
+public class CassandraMapState<T> implements IBackingMap<T> {
     @SuppressWarnings("unused")
-    private static final Logger LOG = LoggerFactory.getLogger(DefaultCassandraState.class);
+    private static final Logger LOG = LoggerFactory.getLogger(CassandraMapState.class);
 
     @SuppressWarnings("rawtypes")
     private static final Map<StateType, Serializer> DEFAULT_SERIALZERS = Maps.newHashMap();
@@ -174,7 +174,7 @@ public class DefaultCassandraState<T> implements IBackingMap<T> {
 
         @SuppressWarnings({ "rawtypes", "unchecked" })
         public State makeState(Map conf, IMetricsContext metrics, int partitionIndex, int numPartitions) {
-            DefaultCassandraState state = new DefaultCassandraState(options, conf);
+            CassandraMapState state = new CassandraMapState(options, conf);
 
             CachedMap cachedMap = new CachedMap(state, options.localCacheSize);
 
@@ -195,7 +195,7 @@ public class DefaultCassandraState<T> implements IBackingMap<T> {
     }
 
     @SuppressWarnings({ "rawtypes", "unchecked" })
-    public DefaultCassandraState(Options<T> options, Map conf) {
+    public CassandraMapState(Options<T> options, Map conf) {
         this.options = options;
         this.serializer = options.serializer;
         AstyanaxContext<Keyspace> context = createContext((Map<String, Object>) conf.get(options.clientConfigKey));

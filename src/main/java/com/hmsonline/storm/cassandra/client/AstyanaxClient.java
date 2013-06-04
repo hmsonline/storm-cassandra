@@ -338,6 +338,29 @@ public class AstyanaxClient<K, C, V> {
         this.addTupleToMutation(input, columnFamily, rowKey, mutation, tupleMapper);
         mutation.execute();
     }
+    
+    @SuppressWarnings({ "static-access", "unchecked" })
+    public void writeTuples(List<TridentTuple> inputs, TridentTupleMapper<K, C, V> tupleMapper) throws Exception {
+        Map<String, MutationBatch> mutations = new HashMap<String, MutationBatch>();
+        for (TridentTuple input : inputs) {
+            String keyspace = tupleMapper.mapToKeyspace(input);
+            MutationBatch mutation = mutations.get(keyspace);
+            if(mutation == null) {
+                mutation = getKeyspace(keyspace).prepareMutationBatch();
+                mutations.put(keyspace, mutation);
+            }
+            
+            String columnFamilyName = tupleMapper.mapToColumnFamily(input);
+            K rowKey = tupleMapper.mapToRowKey(input);
+            ColumnFamily<K, C> columnFamily = new ColumnFamily<K, C>(columnFamilyName,
+                    (Serializer<K>) serializerFor(tupleMapper.getKeyClass()),
+                    (Serializer<C>) this.serializerFor(tupleMapper.getColumnNameClass()));
+            this.addTupleToMutation(input, columnFamily, rowKey, mutation, tupleMapper);
+        }
+        for(String key : mutations.keySet()) {
+            mutations.get(key).execute();
+        }
+    }
 
     @SuppressWarnings({ "static-access", "unchecked" })
     public void writeTuples(List<Tuple> inputs, TupleMapper<K, C, V> tupleMapper) throws Exception {
