@@ -4,6 +4,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import storm.trident.tuple.TridentTuple;
 import backtype.storm.tuple.Fields;
 
@@ -11,6 +14,7 @@ import com.hmsonline.storm.cassandra.bolt.mapper.TridentTupleMapper;
 import com.hmsonline.storm.cassandra.exceptions.TupleMappingException;
 
 public class SimpleTridentTupleMapper implements TridentTupleMapper<String, String, String> {
+	private static final Logger LOG = LoggerFactory.getLogger(SimpleTridentTupleMapper.class);
 
     private static final long serialVersionUID = 6362052836181968031L;
 
@@ -41,8 +45,11 @@ public class SimpleTridentTupleMapper implements TridentTupleMapper<String, Stri
     public Map<String, String> mapToColumns(TridentTuple tuple) throws TupleMappingException {
         HashMap<String, String> retval = new HashMap<String, String>();
         for(String field : this.fields.toList()){
-            retval.put(field, tuple.getStringByField(field));
+        	String value = tuple.getStringByField(field);
+//        	LOG.debug("Field: {}, Value:{}", field, value);
+            retval.put(field, value);
         }
+//        LOG.debug("{}", retval);
         return retval;
     }
     
