@@ -15,7 +15,7 @@ import com.hmsonline.storm.cassandra.bolt.mapper.TupleMapper;
  * This is a batching bolt that can be used outside of a transactional topology.
  * It does *not* implement IBatchBolt for that reason. If you want to use the
  * batching inside a transactional topology, use
- * <code>TransactionBatchingCassandraBolt</code>.
+ * <code>TransactionalBatchingCassandraBolt</code>.
  * 
  * @author boneill42
  */

@@ -17,6 +17,7 @@ import com.hmsonline.storm.cassandra.client.AstyanaxClient;
 import com.hmsonline.storm.cassandra.exceptions.StormCassandraException;
 import com.hmsonline.storm.cassandra.exceptions.TupleMappingException;
 
+@Deprecated
 public class TridentCassandraWriteFunction<K, C, V> implements Function {
     private static final long serialVersionUID = 1L;
     private static final Logger LOG = LoggerFactory.getLogger(TridentCassandraWriteFunction.class);

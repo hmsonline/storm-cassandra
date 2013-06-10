@@ -5,10 +5,12 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.hmsonline.storm.cassandra.StormCassandraConstants;
 import com.hmsonline.storm.cassandra.bolt.mapper.TridentTupleMapper;
 import com.hmsonline.storm.cassandra.client.AstyanaxClient;
 
 import backtype.storm.task.IMetricsContext;
+import backtype.storm.utils.Utils;
 import storm.trident.state.State;
 import storm.trident.state.StateFactory;
 
@@ -33,7 +35,8 @@ public class CassandraStateFactory implements StateFactory {
 		LOG.debug("makeState partitionIndex:{} numPartitions:{}", partitionIndex, numPartitions);
 		AstyanaxClient client = new AstyanaxClient();
 		client.start((Map)conf.get(this.configKey));
-		return new CassandraState(client, this.mapper);
+		int batchMaxSize = Utils.getInt(Utils.get(conf, StormCassandraConstants.CASSANDRA_BATCH_MAX_SIZE, CassandraState.DEFAULT_MAX_BATCH_SIZE));
+		return new CassandraState(client, this.mapper, batchMaxSize);
 	}
 
 }
