@@ -2,6 +2,7 @@
 
 package com.hmsonline.storm.cassandra.example;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -39,7 +40,7 @@ public class CassandraReachTopology {
         String configKey = "cassandra-config";
         HashMap<String, Object> clientConfig = new HashMap<String, Object>();
         clientConfig.put(StormCassandraConstants.CASSANDRA_HOST, "localhost:9160");
-        clientConfig.put(StormCassandraConstants.CASSANDRA_KEYSPACE, "stormks");
+        clientConfig.put(StormCassandraConstants.CASSANDRA_KEYSPACE, Arrays.asList(new String [] {"stormks"}));
         config.put(configKey, clientConfig);
 
         // DelimitedColumnLookupBolt tweetersBolt =
@@ -51,14 +52,14 @@ public class CassandraReachTopology {
         // "followers", ":", "rowKey", "follower", true);
 
         // cf = "tweeters", rowkey = tuple["url"]
-        TupleMapper<String, String, String> tweetersTupleMapper = new DefaultTupleMapper("tweeters", "url");
+        TupleMapper<String, String, String> tweetersTupleMapper = new DefaultTupleMapper("stormks", "tweeters", "url");
         // cf (url -> tweeters) -> emit(url, follower)
         ColumnMapper<String, String, String> tweetersColumnsMapper = new ValuelessColumnsMapper("url", "tweeter", true);
         CassandraLookupBolt<String, String, String> tweetersBolt = new CassandraLookupBolt<String, String, String>(configKey,
                 tweetersTupleMapper, tweetersColumnsMapper);
 
         // cf = "followers", rowkey = tuple["tweeter"]
-        TupleMapper<String, String, String> followersTupleMapper = new DefaultTupleMapper("followers", "tweeter");
+        TupleMapper<String, String, String> followersTupleMapper = new DefaultTupleMapper("stormks", "followers", "tweeter");
         // cf (tweeter -> followers) ==> emit(url, follower)
         ValuelessColumnsMapper followersColumnsMapper = new ValuelessColumnsMapper("url", "follower", true);
         CassandraLookupBolt<String, String, String> followersBolt = new CassandraLookupBolt<String, String, String>(configKey,

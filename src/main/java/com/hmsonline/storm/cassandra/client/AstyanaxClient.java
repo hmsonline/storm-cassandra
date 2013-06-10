@@ -1,9 +1,14 @@
 package com.hmsonline.storm.cassandra.client;
 
+import java.beans.IntrospectionException;
+import java.beans.PropertyDescriptor;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -27,7 +32,6 @@ import com.hmsonline.storm.cassandra.bolt.mapper.TupleCounterMapper;
 import com.hmsonline.storm.cassandra.bolt.mapper.TupleMapper;
 import com.netflix.astyanax.AstyanaxConfiguration;
 import com.netflix.astyanax.AstyanaxContext;
-import com.netflix.astyanax.Cluster;
 import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.MutationBatch;
 import com.netflix.astyanax.Serializer;
@@ -37,7 +41,8 @@ import com.netflix.astyanax.connectionpool.ConnectionPoolMonitor;
 import com.netflix.astyanax.connectionpool.NodeDiscoveryType;
 import com.netflix.astyanax.connectionpool.OperationResult;
 import com.netflix.astyanax.connectionpool.impl.ConnectionPoolConfigurationImpl;
-import com.netflix.astyanax.connectionpool.impl.CountingConnectionPoolMonitor;
+import com.netflix.astyanax.connectionpool.impl.ConnectionPoolType;
+import com.netflix.astyanax.connectionpool.impl.Slf4jConnectionPoolMonitorImpl;
 import com.netflix.astyanax.impl.AstyanaxConfigurationImpl;
 import com.netflix.astyanax.model.ByteBufferRange;
 import com.netflix.astyanax.model.Column;
@@ -74,21 +79,23 @@ public class AstyanaxClient<K, C, V> {
     public static final String ASTYANAX_CONFIGURATION = "astyanax.configuration";
     public static final String ASTYANAX_CONNECTION_POOL_CONFIGURATION = "astyanax.connectionPoolConfiguration";
     public static final String ASTYANAX_CONNECTION_POOL_MONITOR = "astyanax.connectioPoolMonitor";
-    private AstyanaxContext<Keyspace> astyanaxContext;
-    protected Cluster cluster;
-    protected Keyspace keyspace;
+    private Map<String, AstyanaxContext<Keyspace>> astyanaxContext = new HashMap<String, AstyanaxContext<Keyspace>>();
+
+
 
     // not static since we're carting instances around and do not want to share
     // them
     // between bolts
     private final Map<String, Object> DEFAULTS = new ImmutableMap.Builder<String, Object>()
             .put(CASSANDRA_CLUSTER_NAME, "ClusterName")
-            .put(ASTYANAX_CONFIGURATION, new AstyanaxConfigurationImpl().setDiscoveryType(NodeDiscoveryType.NONE))
+            .put(ASTYANAX_CONFIGURATION, new AstyanaxConfigurationImpl().setDiscoveryType(NodeDiscoveryType.RING_DESCRIBE)
+            		.setConnectionPoolType(ConnectionPoolType.TOKEN_AWARE))
             .put(ASTYANAX_CONNECTION_POOL_CONFIGURATION,
-                    new ConnectionPoolConfigurationImpl("MyConnectionPool").setMaxConnsPerHost(1))
-            .put(ASTYANAX_CONNECTION_POOL_MONITOR, new CountingConnectionPoolMonitor()).build();
+                    new ConnectionPoolConfigurationImpl("MyConnectionPool"))
+            .put(ASTYANAX_CONNECTION_POOL_MONITOR, new Slf4jConnectionPoolMonitorImpl()).build();
 
-    protected AstyanaxContext<Keyspace> createContext(Map<String, Object> config) {
+    protected List<AstyanaxContext<Keyspace>> createContext(Map<String, Object> config) {
+        List<AstyanaxContext<Keyspace>> returnVal = new ArrayList<AstyanaxContext<Keyspace>>();
         Map<String, Object> settings = Maps.newHashMap();
         for (Map.Entry<String, Object> defaultEntry : DEFAULTS.entrySet()) {
             if (config.containsKey(defaultEntry.getKey())) {
@@ -103,26 +110,39 @@ public class AstyanaxClient<K, C, V> {
             ConnectionPoolConfigurationImpl cpConfig = (ConnectionPoolConfigurationImpl) settings
                     .get(ASTYANAX_CONNECTION_POOL_CONFIGURATION);
             cpConfig.setSeeds((String) config.get(StormCassandraConstants.CASSANDRA_HOST));
+            Integer port = (Integer)config.get(StormCassandraConstants.CASSANDRA_PORT);
+            if(port != null){
+            	cpConfig.setPort(port);
+            }
         }
 
-        return new AstyanaxContext.Builder()
-                .forCluster((String) settings.get(CASSANDRA_CLUSTER_NAME))
-                .forKeyspace((String) config.get(StormCassandraConstants.CASSANDRA_KEYSPACE))
-                .withAstyanaxConfiguration((AstyanaxConfiguration) settings.get(ASTYANAX_CONFIGURATION))
-                .withConnectionPoolConfiguration(
-                        (ConnectionPoolConfiguration) settings.get(ASTYANAX_CONNECTION_POOL_CONFIGURATION))
-                .withConnectionPoolMonitor((ConnectionPoolMonitor) settings.get(ASTYANAX_CONNECTION_POOL_MONITOR))
-                .buildKeyspace(ThriftFamilyFactory.getInstance());
+        @SuppressWarnings("unchecked")
+        Collection<String> keyspaces = (Collection<String>) config.get(StormCassandraConstants.CASSANDRA_KEYSPACE);
+        for (String keyspace : keyspaces) {
+            returnVal.add(new AstyanaxContext.Builder()
+                            .forCluster((String) settings.get(CASSANDRA_CLUSTER_NAME))
+                            .forKeyspace(keyspace)
+                            .withAstyanaxConfiguration((AstyanaxConfiguration) settings.get(ASTYANAX_CONFIGURATION))
+                            .withConnectionPoolConfiguration(
+                                            (ConnectionPoolConfiguration) settings
+                                                            .get(ASTYANAX_CONNECTION_POOL_CONFIGURATION))
+                            .withConnectionPoolMonitor(
+                                            (ConnectionPoolMonitor) settings.get(ASTYANAX_CONNECTION_POOL_MONITOR))
+                            .buildKeyspace(ThriftFamilyFactory.getInstance()));
+        }
+        return returnVal;
     }
 
     public void start(Map<String, Object> config) {
         try {
-            this.astyanaxContext = createContext(config);
+            List<AstyanaxContext<Keyspace>> contexts = createContext(config);
+            for (AstyanaxContext<Keyspace> context : contexts) {
+                this.addAstyanaxContext(context.getKeyspaceName(), context);
 
-            this.astyanaxContext.start();
-            this.keyspace = this.astyanaxContext.getEntity();
-            // test the connection
-            this.keyspace.describeKeyspace();
+                this.getAstyanaxContext(context.getKeyspaceName()).start();
+                // test the connection
+                this.getKeyspace(context.getKeyspaceName()).describeKeyspace();
+            }
         } catch (Throwable e) {
             LOG.warn("Astyanax initialization failed.", e);
             throw new IllegalStateException("Failed to prepare Astyanax", e);
@@ -130,12 +150,13 @@ public class AstyanaxClient<K, C, V> {
     }
 
     public void stop() {
-        this.astyanaxContext.shutdown();
+        this.getAstyanaxContext().shutdown();
     }
 
     @SuppressWarnings("unchecked")
     public Map<C, V> lookup(TupleMapper<K, C, V> tupleMapper, Tuple input) throws Exception {
         String cf = tupleMapper.mapToColumnFamily(input);
+        String keyspace = tupleMapper.mapToKeyspace(input);
         K rowKey = tupleMapper.mapToRowKey(input);
         Class<K> keyClass = tupleMapper.getKeyClass();
         Class<C> colClass = tupleMapper.getColumnNameClass();
@@ -143,7 +164,7 @@ public class AstyanaxClient<K, C, V> {
         ColumnFamily<K, C> columnFamily = new ColumnFamily<K, C>(cf, (Serializer<K>) serializerFor(keyClass),
                 (Serializer<C>) serializerFor(colClass));
         OperationResult<ColumnList<C>> result;
-        result = this.keyspace.prepareQuery(columnFamily).getKey(rowKey).execute();
+        result = this.getKeyspace(keyspace).prepareQuery(columnFamily).getKey(rowKey).execute();
         ColumnList<C> columns = (ColumnList<C>) result.getResult();
         HashMap<C, V> retval = new HashMap<C, V>();
         Iterator<Column<C>> it = columns.iterator();
@@ -157,6 +178,7 @@ public class AstyanaxClient<K, C, V> {
     @SuppressWarnings("unchecked")
     public Map<C, V> lookup(TridentTupleMapper<K, C, V> tupleMapper, TridentTuple input) throws Exception {
         String cf = tupleMapper.mapToColumnFamily(input);
+        String keyspace = tupleMapper.mapToKeyspace(input);
         K rowKey = tupleMapper.mapToRowKey(input);
         Class<K> keyClass = tupleMapper.getKeyClass();
         Class<C> colClass = tupleMapper.getColumnNameClass();
@@ -164,7 +186,7 @@ public class AstyanaxClient<K, C, V> {
         ColumnFamily<K, C> columnFamily = new ColumnFamily<K, C>(cf, (Serializer<K>) serializerFor(keyClass),
                 (Serializer<C>) serializerFor(colClass));
         OperationResult<ColumnList<C>> result;
-        result = this.keyspace.prepareQuery(columnFamily).getKey(rowKey).execute();
+        result = this.getKeyspace(keyspace).prepareQuery(columnFamily).getKey(rowKey).execute();
         ColumnList<C> columns = (ColumnList<C>) result.getResult();
         HashMap<C, V> retval = new HashMap<C, V>();
         Iterator<Column<C>> it = columns.iterator();
@@ -178,6 +200,7 @@ public class AstyanaxClient<K, C, V> {
     @SuppressWarnings("unchecked")
     public Map<C, V> lookup(TupleMapper<K, C, V> tupleMapper, Tuple input, List<C> slice) throws Exception {
         String cf = tupleMapper.mapToColumnFamily(input);
+        String keyspace = tupleMapper.mapToKeyspace(input);
         K rowKey = tupleMapper.mapToRowKey(input);
         Class<K> keyClass = tupleMapper.getKeyClass();
         Class<C> colClass = tupleMapper.getColumnNameClass();
@@ -187,7 +210,7 @@ public class AstyanaxClient<K, C, V> {
 
         HashMap<C, V> retval = new HashMap<C, V>();
         for (C c : slice) {
-            RowQuery<K, C> query = this.keyspace.prepareQuery(columnFamily).getKey(rowKey);
+            RowQuery<K, C> query = this.getKeyspace(keyspace).prepareQuery(columnFamily).getKey(rowKey);
             query = query.withColumnRange(getRangeBuilder(c, c, null, (Serializer<C>) serializerFor(colClass)));
             OperationResult<ColumnList<C>> result = query.execute();
             Iterator<Column<C>> it = result.getResult().iterator();
@@ -204,6 +227,7 @@ public class AstyanaxClient<K, C, V> {
     public Map<C, V> lookup(TridentTupleMapper<K, C, V> tupleMapper, TridentTuple input, List<C> slice)
             throws Exception {
         String cf = tupleMapper.mapToColumnFamily(input);
+        String keyspace = tupleMapper.mapToKeyspace(input);
         K rowKey = tupleMapper.mapToRowKey(input);
         Class<K> keyClass = tupleMapper.getKeyClass();
         Class<C> colClass = tupleMapper.getColumnNameClass();
@@ -213,7 +237,7 @@ public class AstyanaxClient<K, C, V> {
 
         HashMap<C, V> retval = new HashMap<C, V>();
         for (C c : slice) {
-            RowQuery<K, C> query = this.keyspace.prepareQuery(columnFamily).getKey(rowKey);
+            RowQuery<K, C> query = this.getKeyspace(keyspace).prepareQuery(columnFamily).getKey(rowKey);
             query = query.withColumnRange(getRangeBuilder(c, c, null, (Serializer<C>) serializerFor(colClass)));
 
             OperationResult<ColumnList<C>> result = query.execute();
@@ -240,12 +264,13 @@ public class AstyanaxClient<K, C, V> {
         }
 
         String cf = tupleMapper.mapToColumnFamily(input);
+        String keyspace = tupleMapper.mapToKeyspace(input);
         K rowKey = tupleMapper.mapToRowKey(input);
         Class<K> keyClass = tupleMapper.getKeyClass();
         Class<C> colClass = tupleMapper.getColumnNameClass();
         ColumnFamily<K, C> columnFamily = new ColumnFamily<K, C>(cf, (Serializer<K>) serializerFor(keyClass),
                 (Serializer<C>) serializerFor(colClass));
-        OperationResult<ColumnList<C>> result = this.keyspace.prepareQuery(columnFamily).getKey(rowKey)
+        OperationResult<ColumnList<C>> result = this.getKeyspace(keyspace).prepareQuery(columnFamily).getKey(rowKey)
                 .withColumnRange(getRangeBuilder(start, end, equality, (Serializer<C>) serializerFor(colClass)))
                 .execute();
         ColumnList<C> columns = (ColumnList<C>) result.getResult();
@@ -266,13 +291,14 @@ public class AstyanaxClient<K, C, V> {
         }
 
         String cf = tupleMapper.mapToColumnFamily(input);
+        String keyspace = tupleMapper.mapToKeyspace(input);
         K rowKey = tupleMapper.mapToRowKey(input);
         Class<K> keyClass = tupleMapper.getKeyClass();
         Class<C> colClass = tupleMapper.getColumnNameClass();
         ColumnFamily<K, C> columnFamily = new ColumnFamily<K, C>(cf, (Serializer<K>) serializerFor(keyClass),
                 (Serializer<C>) serializerFor(colClass));
 
-        RowQuery<K, C> query = this.keyspace.prepareQuery(columnFamily).getKey(rowKey);
+        RowQuery<K, C> query = this.getKeyspace(keyspace).prepareQuery(columnFamily).getKey(rowKey);
 
         query = query.withColumnRange(getRangeBuilder(start, end, equality, (Serializer<C>) serializerFor(colClass)));
 
@@ -290,8 +316,9 @@ public class AstyanaxClient<K, C, V> {
     @SuppressWarnings("unchecked")
     public void writeTuple(Tuple input, TupleMapper<K, C, V> tupleMapper) throws Exception {
         String columnFamilyName = tupleMapper.mapToColumnFamily(input);
+        String keyspace = tupleMapper.mapToKeyspace(input);
         K rowKey = tupleMapper.mapToRowKey(input);
-        MutationBatch mutation = keyspace.prepareMutationBatch();
+        MutationBatch mutation = getKeyspace(keyspace).prepareMutationBatch();
         ColumnFamily<K, C> columnFamily = new ColumnFamily<K, C>(columnFamilyName,
                 (Serializer<K>) serializerFor(tupleMapper.getKeyClass()),
                 (Serializer<C>) serializerFor(tupleMapper.getColumnNameClass()));
@@ -302,19 +329,27 @@ public class AstyanaxClient<K, C, V> {
     @SuppressWarnings("unchecked")
     public void writeTuple(TridentTuple input, TridentTupleMapper<K, C, V> tupleMapper) throws Exception {
         String columnFamilyName = tupleMapper.mapToColumnFamily(input);
+        String keyspace = tupleMapper.mapToKeyspace(input);
         K rowKey = tupleMapper.mapToRowKey(input);
-        MutationBatch mutation = keyspace.prepareMutationBatch();
+        MutationBatch mutation = getKeyspace(keyspace).prepareMutationBatch();
         ColumnFamily<K, C> columnFamily = new ColumnFamily<K, C>(columnFamilyName,
                 (Serializer<K>) serializerFor(tupleMapper.getKeyClass()),
                 (Serializer<C>) serializerFor(tupleMapper.getColumnNameClass()));
         this.addTupleToMutation(input, columnFamily, rowKey, mutation, tupleMapper);
         mutation.execute();
     }
-
+    
     @SuppressWarnings({ "static-access", "unchecked" })
-    public void writeTuples(List<Tuple> inputs, TupleMapper<K, C, V> tupleMapper) throws Exception {
-        MutationBatch mutation = keyspace.prepareMutationBatch();
-        for (Tuple input : inputs) {
+    public void writeTuples(List<TridentTuple> inputs, TridentTupleMapper<K, C, V> tupleMapper) throws Exception {
+        Map<String, MutationBatch> mutations = new HashMap<String, MutationBatch>();
+        for (TridentTuple input : inputs) {
+            String keyspace = tupleMapper.mapToKeyspace(input);
+            MutationBatch mutation = mutations.get(keyspace);
+            if(mutation == null) {
+                mutation = getKeyspace(keyspace).prepareMutationBatch();
+                mutations.put(keyspace, mutation);
+            }
+            
             String columnFamilyName = tupleMapper.mapToColumnFamily(input);
             K rowKey = tupleMapper.mapToRowKey(input);
             ColumnFamily<K, C> columnFamily = new ColumnFamily<K, C>(columnFamilyName,
@@ -322,7 +357,32 @@ public class AstyanaxClient<K, C, V> {
                     (Serializer<C>) this.serializerFor(tupleMapper.getColumnNameClass()));
             this.addTupleToMutation(input, columnFamily, rowKey, mutation, tupleMapper);
         }
-        mutation.execute();
+        for(String key : mutations.keySet()) {
+            mutations.get(key).execute();
+        }
+    }
+
+    @SuppressWarnings({ "static-access", "unchecked" })
+    public void writeTuples(List<Tuple> inputs, TupleMapper<K, C, V> tupleMapper) throws Exception {
+        Map<String, MutationBatch> mutations = new HashMap<String, MutationBatch>();
+        for (Tuple input : inputs) {
+            String keyspace = tupleMapper.mapToKeyspace(input);
+            MutationBatch mutation = mutations.get(keyspace);
+            if(mutation == null) {
+                mutation = getKeyspace(keyspace).prepareMutationBatch();
+                mutations.put(keyspace, mutation);
+            }
+            
+            String columnFamilyName = tupleMapper.mapToColumnFamily(input);
+            K rowKey = tupleMapper.mapToRowKey(input);
+            ColumnFamily<K, C> columnFamily = new ColumnFamily<K, C>(columnFamilyName,
+                    (Serializer<K>) serializerFor(tupleMapper.getKeyClass()),
+                    (Serializer<C>) this.serializerFor(tupleMapper.getColumnNameClass()));
+            this.addTupleToMutation(input, columnFamily, rowKey, mutation, tupleMapper);
+        }
+        for(String key : mutations.keySet()) {
+            mutations.get(key).execute();
+        }
     }
 
     @SuppressWarnings({ "static-access", "unchecked" })
@@ -352,9 +412,10 @@ public class AstyanaxClient<K, C, V> {
 
     public void incrementCountColumn(Tuple input, TupleCounterMapper tupleMapper) throws Exception {
         String columnFamilyName = tupleMapper.mapToColumnFamily(input);
+        String keyspace = tupleMapper.mapToKeyspace(input);
         String rowKey = (String) tupleMapper.mapToRowKey(input);
         long incrementAmount = tupleMapper.mapToIncrementAmount(input);
-        MutationBatch mutation = keyspace.prepareMutationBatch();
+        MutationBatch mutation = getKeyspace(keyspace).prepareMutationBatch();
         ColumnFamily<String, String> columnFamily = new ColumnFamily<String, String>(columnFamilyName,
                 StringSerializer.get(), StringSerializer.get());
         for (String columnName : tupleMapper.mapToColumnList(input)) {
@@ -363,9 +424,15 @@ public class AstyanaxClient<K, C, V> {
         mutation.execute();
     }
 
-    public void incrementCountColumns(List<Tuple> inputs, TupleCounterMapper tupleMapper) throws Exception {
-        MutationBatch mutation = keyspace.prepareMutationBatch();
+    public void incrementCountColumns(List<Tuple> inputs, TupleCounterMapper tupleMapper) throws Exception {    
+        Map<String, MutationBatch> mutations = new HashMap<String, MutationBatch>();
         for (Tuple input : inputs) {
+            String keyspace = tupleMapper.mapToKeyspace(input);            
+            MutationBatch mutation = mutations.get(keyspace);
+            if(mutation == null) {
+                mutation = getKeyspace(keyspace).prepareMutationBatch();
+                mutations.put(keyspace, mutation);
+            }
             String columnFamilyName = tupleMapper.mapToColumnFamily(input);
             String rowKey = (String) tupleMapper.mapToRowKey(input);
             long incrementAmount = tupleMapper.mapToIncrementAmount(input);
@@ -375,12 +442,14 @@ public class AstyanaxClient<K, C, V> {
                 mutation.withRow(columnFamily, rowKey).incrementCounterColumn(columnName, incrementAmount);
             }
         }
-        mutation.execute();
+        for(String key : mutations.keySet()) {
+            mutations.get(key).execute();
+        }
     }
 
     @SuppressWarnings({ "rawtypes" })
     private ByteBufferRange getRangeBuilder(C start, C end, Equality equality, Serializer<C> serializer)
-            throws IllegalArgumentException, IllegalAccessException {
+            throws IllegalAccessException, IntrospectionException, InvocationTargetException {
         if (!(serializer instanceof AnnotatedCompositeSerializer)) {
             return new RangeBuilder().setStart(start, serializerFor(start.getClass()))
                     .setEnd(end, serializerFor(end.getClass())).build();
@@ -390,14 +459,14 @@ public class AstyanaxClient<K, C, V> {
             List<ComponentField> componentFields = componentFieldsForClass(start.getClass());
             List<ComponentField> nonNullFields = new ArrayList<ComponentField>();
             for (ComponentField field : componentFields) {
-                if ((field.getField().get(start) != null) && field.getField().get(end) != null) {
+                if ((field.getValue(start) != null) && field.getValue(end) != null) {
                     nonNullFields.add(field);
                 }
             }
 
             for (int i = 0; i < nonNullFields.size(); i++) {
-                Object objStart = nonNullFields.get(i).getField().get(start);
-                Object objEnd = nonNullFields.get(i).getField().get(end);
+                Object objStart = nonNullFields.get(i).getValue(start);
+                Object objEnd = nonNullFields.get(i).getValue(end);
                 if (i + 1 != nonNullFields.size()) {
                     rangeBuilder.withPrefix(objStart);
                     LOG.debug("withPrefix(" + objStart + ")");
@@ -413,16 +482,16 @@ public class AstyanaxClient<K, C, V> {
     }
 
     static class ComponentField implements Comparable<ComponentField> {
-        private Field field;
+        private Method getter;
         private int ordinal;
 
-        ComponentField(Field field, int ordinal) {
-            this.field = field;
+        ComponentField(Method getter, int ordinal) {
+            this.getter = getter;
             this.ordinal = ordinal;
         }
 
-        Field getField() {
-            return this.field;
+        Object getValue(Object obj) throws IllegalAccessException, InvocationTargetException {
+            return getter.invoke(obj);
         }
 
         @Override
@@ -431,14 +500,14 @@ public class AstyanaxClient<K, C, V> {
         }
     }
 
-    private static List<ComponentField> componentFieldsForClass(Class<?> c) {
+    private static List<ComponentField> componentFieldsForClass(Class<?> c) throws IntrospectionException {
         ArrayList<ComponentField> retval = new ArrayList<ComponentField>();
 
         List<Field> fields = getInheritedFields(c);
         for (Field field : fields) {
             Component comp = field.getAnnotation(Component.class);
             if (comp != null) {
-                retval.add(new ComponentField(field, comp.ordinal()));
+                retval.add(new ComponentField(new PropertyDescriptor(field.getName(), c).getReadMethod(), comp.ordinal()));
             }
         }
         Collections.sort(retval);
@@ -512,5 +581,33 @@ public class AstyanaxClient<K, C, V> {
         }
         return serializer;
     }
+    
+    public Keyspace getKeyspace() {
+        return this.getAstyanaxContext().getEntity();
+    }
+    
+    public Keyspace getKeyspace(String keyspace) {
+        return this.getAstyanaxContext(keyspace).getEntity();
+    }
 
+    public AstyanaxContext<Keyspace> getAstyanaxContext() {
+        if(astyanaxContext.size() == 1) {
+            return astyanaxContext.values().iterator().next();
+        } else {
+            throw new IllegalArgumentException("if using no args get context there can only be one keyspace, instead there was " + astyanaxContext.size());
+        }
+    }
+
+    public AstyanaxContext<Keyspace> getAstyanaxContext(String keyspace) {
+        String keyspaceLower = keyspace.toLowerCase();
+        AstyanaxContext<Keyspace> returnVal = astyanaxContext.get(keyspaceLower);
+        if(returnVal == null) {
+            throw new IllegalArgumentException("Cannnot find client for keyspace: " + keyspaceLower);
+        }
+        return returnVal;
+    }
+
+    public void addAstyanaxContext(String keyspace, AstyanaxContext<Keyspace> astyanaxContext) {
+        this.astyanaxContext.put(keyspace.toLowerCase(), astyanaxContext);
+    }
 }

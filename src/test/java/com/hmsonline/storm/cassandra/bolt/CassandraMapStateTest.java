@@ -32,14 +32,14 @@ import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Values;
 
 import com.hmsonline.storm.cassandra.StormCassandraConstants;
-import com.hmsonline.storm.cassandra.trident.DefaultCassandraState;
-import com.hmsonline.storm.cassandra.trident.DefaultCassandraState.Options;
+import com.hmsonline.storm.cassandra.trident.CassandraMapState;
+import com.hmsonline.storm.cassandra.trident.CassandraMapState.Options;
 import com.netflix.astyanax.AstyanaxContext;
 import com.netflix.astyanax.Cluster;
 
-public class CassandraStateTest {
-    private static Logger LOG = LoggerFactory.getLogger(CassandraStateTest.class);
-    private static String KEYSPACE = CassandraStateTest.class.getSimpleName().toLowerCase();
+public class CassandraMapStateTest {
+    private static Logger LOG = LoggerFactory.getLogger(CassandraMapStateTest.class);
+    private static String KEYSPACE = CassandraMapStateTest.class.getSimpleName().toLowerCase();
     
     private enum TransactionType {
         TRANSACTIONAL, NON_TRANSACTIONAL, OPAQUE;
@@ -66,23 +66,23 @@ public class CassandraStateTest {
     
     @Test
     public void testTransactionalState() throws Exception {
-        testCassandraState(TransactionType.TRANSACTIONAL);
+        testCassandraMapState(TransactionType.TRANSACTIONAL);
     }
     
     @Test
     public void testNonTransactionalState() throws Exception {
-        testCassandraState(TransactionType.NON_TRANSACTIONAL);
+        testCassandraMapState(TransactionType.NON_TRANSACTIONAL);
     }
 
     @Test
     public void testOpaqueTransactionalState() throws Exception {
-        testCassandraState(TransactionType.OPAQUE);
+        testCassandraMapState(TransactionType.OPAQUE);
     }
 
     
     
     @SuppressWarnings({ "unchecked", "rawtypes" })
-    private void testCassandraState(TransactionType txType) throws Exception {
+    private void testCassandraMapState(TransactionType txType) throws Exception {
         FixedBatchSpout spout = new FixedBatchSpout(
                 new Fields("sentence"), 3, 
                 new Values("the cow jumped over the moon"), 
@@ -95,7 +95,7 @@ public class CassandraStateTest {
 
         HashMap<String, Object> clientConfig = new HashMap<String, Object>();
         clientConfig.put(StormCassandraConstants.CASSANDRA_HOST, "localhost:9160");
-        clientConfig.put(StormCassandraConstants.CASSANDRA_KEYSPACE, KEYSPACE);
+        clientConfig.put(StormCassandraConstants.CASSANDRA_STATE_KEYSPACE, KEYSPACE);
         Config config = new Config();
         config.setMaxSpoutPending(25);
         config.put("cassandra.config", clientConfig);
@@ -106,18 +106,18 @@ public class CassandraStateTest {
         case TRANSACTIONAL:
             options = new Options<TransactionalValue>();
             options.columnFamily = "transactional";
-            cassandraStateFactory = DefaultCassandraState.transactional(options);
+            cassandraStateFactory = CassandraMapState.transactional(options);
             
             break;
         case OPAQUE:
             options = new Options<OpaqueValue>();
             options.columnFamily = "opaque";
-            cassandraStateFactory = DefaultCassandraState.opaque(options);
+            cassandraStateFactory = CassandraMapState.opaque(options);
             break;
         case NON_TRANSACTIONAL:
             options = new Options<Object>();
             options.columnFamily = "nontransactional";
-            cassandraStateFactory = DefaultCassandraState.nonTransactional(options);
+            cassandraStateFactory = CassandraMapState.nonTransactional(options);
             break;
         }
         

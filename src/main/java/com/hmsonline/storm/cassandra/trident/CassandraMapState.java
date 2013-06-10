@@ -53,9 +53,9 @@ import com.netflix.astyanax.serializers.CompositeSerializer;
 import com.netflix.astyanax.serializers.StringSerializer;
 import com.netflix.astyanax.thrift.ThriftFamilyFactory;
 
-public class DefaultCassandraState<T> implements IBackingMap<T> {
+public class CassandraMapState<T> implements IBackingMap<T> {
     @SuppressWarnings("unused")
-    private static final Logger LOG = LoggerFactory.getLogger(DefaultCassandraState.class);
+    private static final Logger LOG = LoggerFactory.getLogger(CassandraMapState.class);
 
     @SuppressWarnings("rawtypes")
     private static final Map<StateType, Serializer> DEFAULT_SERIALZERS = Maps.newHashMap();
@@ -101,7 +101,7 @@ public class DefaultCassandraState<T> implements IBackingMap<T> {
 
         return new AstyanaxContext.Builder()
                 .forCluster((String) settings.get(CASSANDRA_CLUSTER_NAME))
-                .forKeyspace((String) config.get(StormCassandraConstants.CASSANDRA_KEYSPACE))
+                .forKeyspace((String) config.get(StormCassandraConstants.CASSANDRA_STATE_KEYSPACE))
                 .withAstyanaxConfiguration((AstyanaxConfiguration) settings.get(ASTYANAX_CONFIGURATION))
                 .withConnectionPoolConfiguration(
                         (ConnectionPoolConfiguration) settings.get(ASTYANAX_CONNECTION_POOL_CONFIGURATION))
@@ -118,6 +118,7 @@ public class DefaultCassandraState<T> implements IBackingMap<T> {
         public String columnFamily = "cassandra_state";
         public String rowkey = "default_cassandra_state";
         public String clientConfigKey = "cassandra.config";
+        public Integer ttl = 86400; // 1 day
 
     }
 
@@ -173,7 +174,7 @@ public class DefaultCassandraState<T> implements IBackingMap<T> {
 
         @SuppressWarnings({ "rawtypes", "unchecked" })
         public State makeState(Map conf, IMetricsContext metrics, int partitionIndex, int numPartitions) {
-            DefaultCassandraState state = new DefaultCassandraState(options, conf);
+            CassandraMapState state = new CassandraMapState(options, conf);
 
             CachedMap cachedMap = new CachedMap(state, options.localCacheSize);
 
@@ -194,7 +195,7 @@ public class DefaultCassandraState<T> implements IBackingMap<T> {
     }
 
     @SuppressWarnings({ "rawtypes", "unchecked" })
-    public DefaultCassandraState(Options<T> options, Map conf) {
+    public CassandraMapState(Options<T> options, Map conf) {
         this.options = options;
         this.serializer = options.serializer;
         AstyanaxContext<Keyspace> context = createContext((Map<String, Object>) conf.get(options.clientConfigKey));
@@ -214,16 +215,19 @@ public class DefaultCassandraState<T> implements IBackingMap<T> {
         try {
             result = query.execute().getResult();
         } catch (ConnectionException e) {
-            e.printStackTrace();
+            //TODO throw a specific error.
+            throw new RuntimeException(e);
         }
         Map<List<Object>, byte[]> resultMap = new HashMap<List<Object>, byte[]>();
-        Collection<Composite> columns = result.getColumnNames();
-        for (Composite columnName : columns) {
-            List<Object> dimensions = new ArrayList<Object>();
-            for (int i = 0; i < columnName.size(); i++) {
-                dimensions.add(columnName.get(i, StringSerializer.get()));
+        if (result != null) {
+            Collection<Composite> columns = result.getColumnNames();
+            for (Composite columnName : columns) {
+                List<Object> dimensions = new ArrayList<Object>();
+                for (int i = 0; i < columnName.size(); i++) {
+                    dimensions.add(columnName.get(i, StringSerializer.get()));
+                }
+                resultMap.put(dimensions, result.getByteArrayValue(columnName, new byte[0]));
             }
-            resultMap.put(dimensions, result.getByteArrayValue(columnName, new byte[0]));
         }
 
         List<T> values = new ArrayList<T>();
@@ -248,7 +252,11 @@ public class DefaultCassandraState<T> implements IBackingMap<T> {
         for (int i = 0; i < keys.size(); i++) {
             Composite columnName = toColumnName(keys.get(i));
             byte[] bytes = serializer.serialize(values.get(i));
-            mutation.withRow(cf, this.options.rowkey).putColumn(columnName, bytes);
+            if (options.ttl != null && options.ttl > 0) {
+                mutation.withRow(cf, this.options.rowkey).putColumn(columnName, bytes, options.ttl);
+            } else {
+                mutation.withRow(cf, this.options.rowkey).putColumn(columnName, bytes);
+            }
         }
         try {
             mutation.execute();
@@ -269,7 +277,10 @@ public class DefaultCassandraState<T> implements IBackingMap<T> {
     private Composite toColumnName(List<Object> key) {
         Composite columnName = new Composite();
         for (Object component : key) {
-            columnName.addComponent((String) component, StringSerializer.get());
+            if (component == null) {
+                component = "[NULL]";
+            }
+            columnName.addComponent(component.toString(), StringSerializer.get());
         }
         return columnName;
     }

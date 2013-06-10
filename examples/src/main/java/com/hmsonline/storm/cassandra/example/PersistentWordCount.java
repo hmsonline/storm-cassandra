@@ -1,5 +1,6 @@
 package com.hmsonline.storm.cassandra.example;
 
+import java.util.Arrays;
 import java.util.HashMap;
 
 import backtype.storm.Config;
@@ -23,7 +24,7 @@ public class PersistentWordCount {
         String configKey = "cassandra-config";
         HashMap<String, Object> clientConfig = new HashMap<String, Object>();
         clientConfig.put(StormCassandraConstants.CASSANDRA_HOST, "localhost:9160");
-        clientConfig.put(StormCassandraConstants.CASSANDRA_KEYSPACE, "stormks");
+        clientConfig.put(StormCassandraConstants.CASSANDRA_KEYSPACE, Arrays.asList(new String [] {"stormks"}));
         config.put(configKey, clientConfig);
 
         TestWordSpout wordSpout = new TestWordSpout();
@@ -33,7 +34,7 @@ public class PersistentWordCount {
         // create a CassandraBolt that writes to the "stormcf" column
         // family and uses the Tuple field "word" as the row key
         CassandraBatchingBolt<String, String, String> cassandraBolt = new CassandraBatchingBolt<String, String, String>(configKey,
-                new DefaultTupleMapper("stormcf", "word"));
+                new DefaultTupleMapper("stormks", "stormcf", "word"));
         cassandraBolt.setAckStrategy(AckStrategy.ACK_ON_WRITE);
 
         // setup topology:

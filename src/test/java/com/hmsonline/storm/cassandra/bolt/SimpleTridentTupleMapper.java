@@ -4,26 +4,36 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import storm.trident.tuple.TridentTuple;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import storm.trident.tuple.TridentTuple;
 import backtype.storm.tuple.Fields;
 
 import com.hmsonline.storm.cassandra.bolt.mapper.TridentTupleMapper;
 import com.hmsonline.storm.cassandra.exceptions.TupleMappingException;
 
 public class SimpleTridentTupleMapper implements TridentTupleMapper<String, String, String> {
+	private static final Logger LOG = LoggerFactory.getLogger(SimpleTridentTupleMapper.class);
 
     private static final long serialVersionUID = 6362052836181968031L;
 
     private Fields fields;
+    private String keyspace;
 
-    public SimpleTridentTupleMapper(Fields fields){
+    public SimpleTridentTupleMapper(String keyspace, Fields fields){
         this.fields = fields;
+        this.keyspace = keyspace;
     }
 
     @Override
     public String mapToColumnFamily(TridentTuple tuple) throws TupleMappingException {
         return "trident";
+    }
+    
+    @Override
+    public String mapToKeyspace(TridentTuple tuple) {
+        return this.keyspace;
     }
 
     @Override
@@ -35,8 +45,11 @@ public class SimpleTridentTupleMapper implements TridentTupleMapper<String, Stri
     public Map<String, String> mapToColumns(TridentTuple tuple) throws TupleMappingException {
         HashMap<String, String> retval = new HashMap<String, String>();
         for(String field : this.fields.toList()){
-            retval.put(field, tuple.getStringByField(field));
+        	String value = tuple.getStringByField(field);
+//        	LOG.debug("Field: {}, Value:{}", field, value);
+            retval.put(field, value);
         }
+//        LOG.debug("{}", retval);
         return retval;
     }
     
