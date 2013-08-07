@@ -10,7 +10,6 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.cassandra.config.ConfigurationException;
 import org.apache.thrift.transport.TTransportException;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -41,8 +40,7 @@ public class CassandraBoltTest {
 
 
     @BeforeClass
-    public static void setupCassandra() throws TTransportException, IOException, InterruptedException,
-            ConfigurationException, Exception {
+    public static void setupCassandra() throws Exception {
         SingletonEmbeddedCassandra.getInstance();
         try {
 

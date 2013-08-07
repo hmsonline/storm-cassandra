@@ -43,7 +43,7 @@
 
 	<properties>
 		<storm.version>0.8.2</storm.version>
-		<cassandra.version>1.2.5</cassandra.version>
+		<astyanax.version>1.56.42</astyanax.version>
 	</properties>
 
 	<dependencies>
@@ -78,7 +78,7 @@
 		<dependency>
 			<groupId>com.netflix.astyanax</groupId>
 			<artifactId>astyanax</artifactId>
-			<version>1.56.24</version>
+			<version>${astyanax.version}</version>
 			<exclusions>
 				<exclusion>
 					<artifactId>commons-lang</artifactId>

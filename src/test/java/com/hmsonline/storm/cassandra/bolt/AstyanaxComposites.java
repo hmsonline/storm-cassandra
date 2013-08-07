@@ -10,7 +10,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.cassandra.config.ConfigurationException;
 import org.apache.thrift.transport.TTransportException;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -35,8 +34,7 @@ public class AstyanaxComposites {
     private static String KEYSPACE = AstyanaxComposites.class.getSimpleName();
 
     @BeforeClass
-    public static void setupCassandra() throws TTransportException, IOException, InterruptedException,
-            ConfigurationException, Exception {
+    public static void setupCassandra() throws Exception {
         SingletonEmbeddedCassandra.getInstance();
         try {
 

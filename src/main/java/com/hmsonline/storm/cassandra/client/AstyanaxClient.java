@@ -75,12 +75,14 @@ import com.netflix.astyanax.util.RangeBuilder;
  */
 public class AstyanaxClient<K, C, V> {
     private static final Logger LOG = LoggerFactory.getLogger(AstyanaxClient.class);
+
     public static final String CASSANDRA_CLUSTER_NAME = "cassandra.clusterName";
+
     public static final String ASTYANAX_CONFIGURATION = "astyanax.configuration";
     public static final String ASTYANAX_CONNECTION_POOL_CONFIGURATION = "astyanax.connectionPoolConfiguration";
     public static final String ASTYANAX_CONNECTION_POOL_MONITOR = "astyanax.connectioPoolMonitor";
-    private Map<String, AstyanaxContext<Keyspace>> astyanaxContext = new HashMap<String, AstyanaxContext<Keyspace>>();
 
+    private Map<String, AstyanaxContext<Keyspace>> astyanaxContext = new HashMap<String, AstyanaxContext<Keyspace>>();
 
 
     // not static since we're carting instances around and do not want to share
@@ -89,7 +91,7 @@ public class AstyanaxClient<K, C, V> {
     private final Map<String, Object> DEFAULTS = new ImmutableMap.Builder<String, Object>()
             .put(CASSANDRA_CLUSTER_NAME, "ClusterName")
             .put(ASTYANAX_CONFIGURATION, new AstyanaxConfigurationImpl().setDiscoveryType(NodeDiscoveryType.RING_DESCRIBE)
-            		.setConnectionPoolType(ConnectionPoolType.TOKEN_AWARE))
+            		.setConnectionPoolType(ConnectionPoolType.TOKEN_AWARE).setCqlVersion("3.0.0").setTargetCassandraVersion("1.2"))
             .put(ASTYANAX_CONNECTION_POOL_CONFIGURATION,
                     new ConnectionPoolConfigurationImpl("MyConnectionPool"))
             .put(ASTYANAX_CONNECTION_POOL_MONITOR, new Slf4jConnectionPoolMonitorImpl()).build();
