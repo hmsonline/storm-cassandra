@@ -222,7 +222,7 @@ public class CassandraMapState<T> implements IBackingMap<T> {
             throw new RuntimeException(e);
         }
         Map<List<Object>, byte[]> resultMap = new HashMap<List<Object>, byte[]>();
-        if (result != null) {
+        if (result != null && result.size() > 0) {
             Collection<Composite> rowKeys = result.getKeys();
             for (Composite rowKey : rowKeys) {
                 List<Object> dimensions = new ArrayList<Object>();
