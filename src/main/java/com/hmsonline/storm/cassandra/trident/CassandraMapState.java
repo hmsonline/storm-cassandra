@@ -41,6 +41,7 @@ import com.netflix.astyanax.MutationBatch;
 import com.netflix.astyanax.connectionpool.ConnectionPoolConfiguration;
 import com.netflix.astyanax.connectionpool.ConnectionPoolMonitor;
 import com.netflix.astyanax.connectionpool.NodeDiscoveryType;
+import com.netflix.astyanax.connectionpool.OperationResult;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 import com.netflix.astyanax.connectionpool.impl.ConnectionPoolConfigurationImpl;
 import com.netflix.astyanax.connectionpool.impl.CountingConnectionPoolMonitor;
@@ -48,7 +49,10 @@ import com.netflix.astyanax.impl.AstyanaxConfigurationImpl;
 import com.netflix.astyanax.model.ColumnFamily;
 import com.netflix.astyanax.model.ColumnList;
 import com.netflix.astyanax.model.Composite;
+import com.netflix.astyanax.model.Rows;
+import com.netflix.astyanax.model.Row;
 import com.netflix.astyanax.query.RowQuery;
+import com.netflix.astyanax.query.RowSliceQuery;
 import com.netflix.astyanax.serializers.CompositeSerializer;
 import com.netflix.astyanax.serializers.StringSerializer;
 import com.netflix.astyanax.thrift.ThriftFamilyFactory;
@@ -67,7 +71,7 @@ public class CassandraMapState<T> implements IBackingMap<T> {
 
     private final Map<String, Object> DEFAULTS = new ImmutableMap.Builder<String, Object>()
             .put(CASSANDRA_CLUSTER_NAME, "ClusterName")
-            .put(ASTYANAX_CONFIGURATION, new AstyanaxConfigurationImpl().setDiscoveryType(NodeDiscoveryType.NONE))
+            .put(ASTYANAX_CONFIGURATION, new AstyanaxConfigurationImpl().setDiscoveryType(NodeDiscoveryType.RING_DESCRIBE))
             .put(ASTYANAX_CONNECTION_POOL_CONFIGURATION,
                     new ConnectionPoolConfigurationImpl("MyConnectionPool").setMaxConnsPerHost(1))
             .put(ASTYANAX_CONNECTION_POOL_MONITOR, new CountingConnectionPoolMonitor()).build();
@@ -116,7 +120,7 @@ public class CassandraMapState<T> implements IBackingMap<T> {
         public int localCacheSize = 5000;
         public String globalKey = "globalkey";
         public String columnFamily = "cassandra_state";
-        public String rowkey = "default_cassandra_state";
+        public String columnName = "default_cassandra_state";
         public String clientConfigKey = "cassandra.config";
         public Integer ttl = 86400; // 1 day
 
@@ -205,13 +209,12 @@ public class CassandraMapState<T> implements IBackingMap<T> {
 
     @Override
     public List<T> multiGet(List<List<Object>> keys) {
-        Collection<Composite> columnNames = toColumnNames(keys);
-        ColumnFamily<String, Composite> cf = new ColumnFamily<String, Composite>(this.options.columnFamily,
-                StringSerializer.get(), CompositeSerializer.get());
-        RowQuery<String, Composite> query = this.keyspace.prepareQuery(cf).getKey(this.options.rowkey)
-                .withColumnSlice(columnNames);
+        Collection<Composite> keyNames = toKeyNames(keys);
+        ColumnFamily<Composite, String> cf = new ColumnFamily<Composite, String>(this.options.columnFamily,
+                CompositeSerializer.get(), StringSerializer.get());
+        RowSliceQuery<Composite, String> query = this.keyspace.prepareQuery(cf).getKeySlice(keyNames);
 
-        ColumnList<Composite> result = null;
+        Rows<Composite, String> result = null;
         try {
             result = query.execute().getResult();
         } catch (ConnectionException e) {
@@ -219,14 +222,14 @@ public class CassandraMapState<T> implements IBackingMap<T> {
             throw new RuntimeException(e);
         }
         Map<List<Object>, byte[]> resultMap = new HashMap<List<Object>, byte[]>();
-        if (result != null) {
-            Collection<Composite> columns = result.getColumnNames();
-            for (Composite columnName : columns) {
+        if (result != null && result.size() > 0) {
+            Collection<Composite> rowKeys = result.getKeys();
+            for (Composite rowKey : rowKeys) {
                 List<Object> dimensions = new ArrayList<Object>();
-                for (int i = 0; i < columnName.size(); i++) {
-                    dimensions.add(columnName.get(i, StringSerializer.get()));
+                for (int i = 0; i < rowKey.size(); i++) {
+                    dimensions.add(rowKey.get(i, StringSerializer.get()));
                 }
-                resultMap.put(dimensions, result.getByteArrayValue(columnName, new byte[0]));
+                resultMap.put(dimensions, result.getRow(rowKey).getColumns().getByteArrayValue(this.options.columnName, null));
             }
         }
 
@@ -246,16 +249,16 @@ public class CassandraMapState<T> implements IBackingMap<T> {
     @Override
     public void multiPut(List<List<Object>> keys, List<T> values) {
         MutationBatch mutation = this.keyspace.prepareMutationBatch();
-        ColumnFamily<String, Composite> cf = new ColumnFamily<String, Composite>(this.options.columnFamily,
-                StringSerializer.get(), CompositeSerializer.get());
+        ColumnFamily<Composite, String> cf = new ColumnFamily<Composite, String>(this.options.columnFamily,
+                CompositeSerializer.get(), StringSerializer.get());
 
         for (int i = 0; i < keys.size(); i++) {
-            Composite columnName = toColumnName(keys.get(i));
+            Composite keyName = toKeyName(keys.get(i));
             byte[] bytes = serializer.serialize(values.get(i));
             if (options.ttl != null && options.ttl > 0) {
-                mutation.withRow(cf, this.options.rowkey).putColumn(columnName, bytes, options.ttl);
+                mutation.withRow(cf, keyName).putColumn(this.options.columnName, bytes, options.ttl);
             } else {
-                mutation.withRow(cf, this.options.rowkey).putColumn(columnName, bytes);
+                mutation.withRow(cf, keyName).putColumn(this.options.columnName, bytes);
             }
         }
         try {
@@ -265,23 +268,23 @@ public class CassandraMapState<T> implements IBackingMap<T> {
         }
     }
 
-    private Collection<Composite> toColumnNames(List<List<Object>> keys) {
+    private Collection<Composite> toKeyNames(List<List<Object>> keys) {
         return Collections2.transform(keys, new Function<List<Object>, Composite>() {
             @Override
             public Composite apply(List<Object> key) {
-                return toColumnName(key);
+                return toKeyName(key);
             }
         });
     }
 
-    private Composite toColumnName(List<Object> key) {
-        Composite columnName = new Composite();
+    private Composite toKeyName(List<Object> key) {
+        Composite keyName = new Composite();
         for (Object component : key) {
             if (component == null) {
                 component = "[NULL]";
             }
-            columnName.addComponent(component.toString(), StringSerializer.get());
+            keyName.addComponent(component.toString(), StringSerializer.get());
         }
-        return columnName;
+        return keyName;
     }
 }
