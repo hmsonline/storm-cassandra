@@ -10,7 +10,7 @@ bolt will write the data to a Cassandra cluster.
 
 ### Project Location
 Primary development of storm-cassandra will take place at: 
-https://github.com/ptgoetz/storm-cassandra
+https://github.com/hmsonline/storm-cassandra
 
 Point/stable (non-SNAPSHOT) release souce code will be pushed to:
 https://github.com/nathanmarz/storm-contrib

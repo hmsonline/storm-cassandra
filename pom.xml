@@ -9,7 +9,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.hmsonline</groupId>
 	<artifactId>storm-cassandra</artifactId>
-	<version>0.4.0-rc2-SNAPSHOT</version>
+	<version>0.4.0-rc3-SNAPSHOT</version>
 	<name>Storm Cassandra Support</name>
 	<description>Storm Cassandra Support</description>
 
@@ -51,6 +51,7 @@
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
 			<version>4.10</version>
+			<scope>test</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.slf4j</groupId>
