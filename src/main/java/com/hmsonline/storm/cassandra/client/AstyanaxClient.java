@@ -42,6 +42,7 @@ import com.netflix.astyanax.connectionpool.NodeDiscoveryType;
 import com.netflix.astyanax.connectionpool.OperationResult;
 import com.netflix.astyanax.connectionpool.impl.ConnectionPoolConfigurationImpl;
 import com.netflix.astyanax.connectionpool.impl.ConnectionPoolType;
+import com.netflix.astyanax.connectionpool.impl.SimpleAuthenticationCredentials;
 import com.netflix.astyanax.connectionpool.impl.Slf4jConnectionPoolMonitorImpl;
 import com.netflix.astyanax.impl.AstyanaxConfigurationImpl;
 import com.netflix.astyanax.model.ByteBufferRange;
@@ -115,6 +116,17 @@ public class AstyanaxClient<K, C, V> {
             Integer port = (Integer)config.get(StormCassandraConstants.CASSANDRA_PORT);
             if(port != null){
             	cpConfig.setPort(port);
+            }
+            
+            // 
+            String user = (String) config.get(StormCassandraConstants.CASSANDRA_USERNAME);
+
+            if( user != null && ! user.trim().isEmpty() ){
+                String password = config.containsKey(StormCassandraConstants.CASSANDRA_PASSWORD) ?
+                		(String) config.get(StormCassandraConstants.CASSANDRA_PASSWORD) : "password";
+
+        		cpConfig.setAuthenticationCredentials(
+            			 new SimpleAuthenticationCredentials(new String(user), new String(password)));
             }
         }
 
