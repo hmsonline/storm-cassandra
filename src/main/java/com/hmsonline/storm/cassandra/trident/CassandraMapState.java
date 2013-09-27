@@ -235,7 +235,8 @@ public class CassandraMapState<T> implements IBackingMap<T> {
 
         List<T> values = new ArrayList<T>();
         for (List<Object> key : keys) {
-            byte[] bytes = resultMap.get(key);
+            List<String> stringKey = toKeyStrings(key);
+            byte[] bytes = resultMap.get(stringKey);
             if (bytes != null) {
                 values.add(serializer.deserialize(bytes));
             } else {
@@ -279,12 +280,22 @@ public class CassandraMapState<T> implements IBackingMap<T> {
 
     private Composite toKeyName(List<Object> key) {
         Composite keyName = new Composite();
-        for (Object component : key) {
+        List<String> keyStrings = toKeyStrings(key);
+        for (String componentString : keyStrings) {
+            keyName.addComponent(componentString, StringSerializer.get());
+        }
+        return keyName;
+    }
+
+    private ArrayList<String> toKeyStrings(List<Object> key) {
+        ArrayList keyStrings = new ArrayList<String>();
+        for (int i = 0; i < key.size(); i++){
+            Object component = key.get(i);
             if (component == null) {
                 component = "[NULL]";
             }
-            keyName.addComponent(component.toString(), StringSerializer.get());
+            keyStrings.add(component.toString());
         }
-        return keyName;
+        return keyStrings;
     }
 }
