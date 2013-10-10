@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import com.hmsonline.storm.cassandra.exceptions.ExceptionHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -25,15 +26,24 @@ public class CassandraState implements State {
     @SuppressWarnings("rawtypes")
     private AstyanaxClient client = null;
     private int maxBatchSize = 0;
+    private ExceptionHandler exceptionHandler;
 
     public CassandraState(AstyanaxClient<?, ?, ?> client) {
         this(client, DEFAULT_MAX_BATCH_SIZE);
     }
 
-    public CassandraState(AstyanaxClient<?, ?, ?> client, int maxBatchSize) {
+    public CassandraState(AstyanaxClient<?, ?, ?> client, ExceptionHandler exceptionHandler) {
+        this(client, DEFAULT_MAX_BATCH_SIZE, exceptionHandler);
+    }
+
+    public CassandraState(AstyanaxClient<?, ?, ?> client, int maxBatchSize){
+        this(client, maxBatchSize, null);
+    }
+
+    public CassandraState(AstyanaxClient<?, ?, ?> client, int maxBatchSize, ExceptionHandler exceptionHandler) {
         this.maxBatchSize = maxBatchSize;
         this.client = client;
-        // this.mapper = mapper;
+        this.exceptionHandler = exceptionHandler;
     }
 
     @Override
@@ -69,8 +79,12 @@ public class CassandraState implements State {
             }
 
         } catch (Exception e) {
-            LOG.warn("Batch write failed. Triggering replay.", e);
-            throw new FailedException(e);
+            if(this.exceptionHandler != null){
+                this.exceptionHandler.onException(e, collector);
+            } else {
+                LOG.warn("Batch write failed. Triggering replay.", e);
+                throw new FailedException(e);
+            }
         }
     }
     
@@ -99,7 +113,12 @@ public class CassandraState implements State {
                 }
                 retval.add(colMap);
             } catch (Exception e) {
-                LOG.warn("Cassandra lookup failed.", e);
+                if(this.exceptionHandler != null){
+                    this.exceptionHandler.onException(e, null);
+                } else {
+                    LOG.warn("Cassandra lookup failed. Triggering replay.", e);
+                    throw new FailedException(e);
+                }
             }
 
         }

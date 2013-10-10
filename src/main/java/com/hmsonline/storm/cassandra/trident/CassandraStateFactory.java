@@ -2,6 +2,7 @@ package com.hmsonline.storm.cassandra.trident;
 
 import java.util.Map;
 
+import com.hmsonline.storm.cassandra.exceptions.ExceptionHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -21,9 +22,15 @@ public class CassandraStateFactory implements StateFactory {
     private static final Logger LOG = LoggerFactory.getLogger(CassandraStateFactory.class);
 
     private String configKey;
+    private ExceptionHandler exceptionHandler;
 
-    public CassandraStateFactory(String configKey) {
+    public CassandraStateFactory(String configKey){
+        this(configKey, null);
+    }
+
+    public CassandraStateFactory(String configKey, ExceptionHandler exceptionHandler) {
         this.configKey = configKey;
+        this.exceptionHandler = exceptionHandler;
     }
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
@@ -34,7 +41,7 @@ public class CassandraStateFactory implements StateFactory {
         client.start((Map) conf.get(this.configKey));
         int batchMaxSize = Utils.getInt(Utils.get(conf, StormCassandraConstants.CASSANDRA_BATCH_MAX_SIZE,
                 CassandraState.DEFAULT_MAX_BATCH_SIZE));
-        return new CassandraState(client, batchMaxSize);
+        return new CassandraState(client, batchMaxSize, this.exceptionHandler);
     }
 
 }
