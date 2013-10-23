@@ -48,6 +48,7 @@ import com.netflix.astyanax.model.ByteBufferRange;
 import com.netflix.astyanax.model.Column;
 import com.netflix.astyanax.model.ColumnFamily;
 import com.netflix.astyanax.model.ColumnList;
+import com.netflix.astyanax.model.Composite;
 import com.netflix.astyanax.query.RowQuery;
 import com.netflix.astyanax.serializers.AnnotatedCompositeSerializer;
 import com.netflix.astyanax.serializers.BigIntegerSerializer;
@@ -56,6 +57,7 @@ import com.netflix.astyanax.serializers.ByteBufferSerializer;
 import com.netflix.astyanax.serializers.ByteSerializer;
 import com.netflix.astyanax.serializers.BytesArraySerializer;
 import com.netflix.astyanax.serializers.CompositeRangeBuilder;
+import com.netflix.astyanax.serializers.CompositeSerializer;
 import com.netflix.astyanax.serializers.DateSerializer;
 import com.netflix.astyanax.serializers.DoubleSerializer;
 import com.netflix.astyanax.serializers.FloatSerializer;
@@ -571,7 +573,10 @@ public class AstyanaxClient<K, C, V> {
             serializer = ByteBufferSerializer.get();
         } else if (valueClass.equals(Date.class)) {
             serializer = DateSerializer.get();
+        } else if (valueClass.equals(Composite.class)) {
+            serializer = CompositeSerializer.get();
         }
+
         if (serializer == null) {
             if (containsComponentAnnotation(valueClass)) {
                 serializer = new AnnotatedCompositeSerializer(valueClass);
