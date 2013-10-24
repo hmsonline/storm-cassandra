@@ -2,6 +2,7 @@ package com.hmsonline.storm.cassandra.bolt.mapper;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Arrays;
 
 import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Tuple;
@@ -52,8 +53,8 @@ public class CompositeRowTupleMapper implements TupleMapper<Composite, String, S
     }
 
     /**
-     * Default behavior is to write each value in the tuple as a key:value pair
-     * in the Cassandra row.
+     * Write each value in the tuple as a key:value pair
+     * in the Cassandra row, excluding fields that were included in the row.
      *
      * @param tuple
      * @return
@@ -64,8 +65,11 @@ public class CompositeRowTupleMapper implements TupleMapper<Composite, String, S
         Map<String, String> columns = new HashMap<String, String>();
         for (int i = 0; i < fields.size(); i++) {
             String name = fields.get(i);
-            Object value = tuple.getValueByField(name);
-            columns.put(name, (value != null ? value.toString() : ""));
+	    Boolean isRowField = Arrays.asList(this.rowKeyFields).contains(name);
+	    if (!isRowField) {
+		Object value = tuple.getValueByField(name);
+		columns.put(name, (value != null ? value.toString() : ""));
+	    }
         }
         return columns;
     }
