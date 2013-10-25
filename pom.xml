@@ -42,7 +42,7 @@
 	</repositories>
 
 	<properties>
-		<storm.version>0.8.2</storm.version>
+		<storm.version>0.9.0-rc2</storm.version>
 		<cassandra.version>1.2.5</cassandra.version>
 	</properties>
 
