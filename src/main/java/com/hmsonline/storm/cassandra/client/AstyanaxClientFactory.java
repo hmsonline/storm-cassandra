@@ -23,30 +23,31 @@ public class AstyanaxClientFactory {
     }
 	
 	/**
-	 * @param configKey only one client will be created per config key
-	 * @param conf the config map for the given configKey
-	 * @return AstyanaxClient that maps to a configKey
+	 * @param cassandraClusterId only one instance will be available per Cassandra Cluster identifer
+	 * @param conf the configuration for the given cassandraClusterId
+	 * @return AstyanaxClient that maps to a cassandraClusterId
 	 */
 	@SuppressWarnings("rawtypes")
-	public static AstyanaxClient getInstance(String configKey, Map conf) {
-		if (clients.containsKey(configKey)) {
-			LOG.debug("Returning existing client for configKey " + configKey);
-			return clients.get(configKey);
+	public static AstyanaxClient getInstance(String cassandraClusterId, Map conf) {
+		if (clients.containsKey(cassandraClusterId)) {
+			LOG.debug("Returning existing instance that maps to cassandra cluster " + cassandraClusterId);
+			return clients.get(cassandraClusterId);
 		} else {
-			return createClient(configKey, conf);
+			return createClient(cassandraClusterId, conf);
 		}
 	}
 
 	@SuppressWarnings({ "rawtypes", "unchecked" })
-	private synchronized static AstyanaxClient createClient(String configKey, Map conf) {
-		// in case > 1 factory client with same configKey arrive here
-		if (clients.containsKey(configKey)) {
-			return clients.get(configKey);
+	private synchronized static AstyanaxClient createClient(String cassandraClusterId, Map conf) {
+		// in case > 1 factory client with same cassandraClusterId arrive here
+		if (clients.containsKey(cassandraClusterId)) {
+			LOG.debug("Returning existing instance that maps to cassandra cluster " + cassandraClusterId);
+			return clients.get(cassandraClusterId);
 		}
-		LOG.debug("Creating new AstyanaxClient for configKey " + configKey + " and starting with config " + conf);
+		LOG.debug("Creating new AstyanaxClient instance for cassandra cluster " + cassandraClusterId + " and starting with config " + conf);
 		AstyanaxClient client = new AstyanaxClient();
 		client.start(conf);
-		clients.put(configKey, client);
+		clients.put(cassandraClusterId, client);
 		return client;
 	}
 }
