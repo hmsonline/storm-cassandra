@@ -15,6 +15,8 @@ public class DefaultTupleMapper implements TupleMapper<String, String, String> {
     /**
      * Construct default mapper.
      * 
+     * @param keyspace
+     *            keyspace to use.
      * @param columnFamily
      *            column family to write to.
      * @param rowKeyField
