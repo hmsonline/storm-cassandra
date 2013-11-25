@@ -24,8 +24,11 @@ public class CassandraStateFactory implements StateFactory {
     private String cassandraClusterId;
     private ExceptionHandler exceptionHandler;
 
-    public CassandraStateFactory(String configKey){
-        this(configKey, null);
+    /**
+     * @param  Identifier that uniquely identifies the Cassandra Cluster
+     */
+    public CassandraStateFactory(String cassandraClusterId) {
+        this(cassandraClusterId, null);
     }
 
     /**
