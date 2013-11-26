@@ -14,6 +14,7 @@ import backtype.storm.tuple.Values;
 
 import com.hmsonline.storm.cassandra.bolt.mapper.TridentTupleMapper;
 import com.hmsonline.storm.cassandra.client.AstyanaxClient;
+import com.hmsonline.storm.cassandra.client.AstyanaxClientFactory;
 import com.hmsonline.storm.cassandra.exceptions.StormCassandraException;
 import com.hmsonline.storm.cassandra.exceptions.TupleMappingException;
 
@@ -24,16 +25,16 @@ public class TridentCassandraWriteFunction<K, C, V> implements Function {
     protected TridentTupleMapper<K, C, V> tupleMapper;
     private AstyanaxClient<K, C, V> client;
 
-    private String clientConfigKey;
+    private String cassandraClusterId;
     private Object valueToEmit;
     
     public void setValueToEmitAfterWrite(Object valueToEmit) {
         this.valueToEmit = valueToEmit;
     }
 
-    public TridentCassandraWriteFunction(String clientConfigKey, TridentTupleMapper<K, C, V> tupleMapper) {
+    public TridentCassandraWriteFunction(String cassandraClusterId, TridentTupleMapper<K, C, V> tupleMapper) {
         this.tupleMapper = tupleMapper;
-        this.clientConfigKey = clientConfigKey;
+        this.cassandraClusterId = cassandraClusterId;
         this.valueToEmit = null;
     }
     public TridentCassandraWriteFunction(String clientConfigKey, TridentTupleMapper<K, C, V> tupleMapper,
@@ -45,9 +46,8 @@ public class TridentCassandraWriteFunction<K, C, V> implements Function {
     @Override
     @SuppressWarnings({ "rawtypes", "unchecked" })
     public void prepare(Map stormConf, TridentOperationContext context) {
-        Map<String, Object> config = (Map<String, Object>) stormConf.get(this.clientConfigKey);
-        client = new AstyanaxClient<K, C, V>();
-        client.start(config);
+        Map<String, Object> config = (Map<String, Object>) stormConf.get(this.cassandraClusterId);
+        client = AstyanaxClientFactory.getInstance(cassandraClusterId, config);
     }
 
     @Override
