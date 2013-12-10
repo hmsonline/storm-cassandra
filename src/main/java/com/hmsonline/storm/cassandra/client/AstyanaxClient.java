@@ -110,9 +110,9 @@ public class AstyanaxClient<K, C, V> {
             ConnectionPoolConfigurationImpl cpConfig = (ConnectionPoolConfigurationImpl) settings
                     .get(ASTYANAX_CONNECTION_POOL_CONFIGURATION);
             cpConfig.setSeeds((String) config.get(StormCassandraConstants.CASSANDRA_HOST));
-            Integer port = (Integer)config.get(StormCassandraConstants.CASSANDRA_PORT);
+            Long port = (Long)config.get(StormCassandraConstants.CASSANDRA_PORT);
             if(port != null){
-            	cpConfig.setPort(port);
+            	cpConfig.setPort(port.intValue());
             }
         }
 
