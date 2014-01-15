@@ -99,7 +99,7 @@ public class CassandraBoltTest {
     @Test
     public void testCounterBolt() throws Exception {
         String configKey = "cassandra-config";
-        CassandraCounterBatchingBolt<String, String, String> bolt = new CassandraCounterBatchingBolt<String, String, String>(KEYSPACE, configKey, "Counts", "Timestamp", "IncrementAmount");
+        CassandraCounterBatchingBolt<String, String,Long> bolt = new CassandraCounterBatchingBolt<String, String, Long>(KEYSPACE, configKey, "Counts", "Timestamp", "IncrementAmount");
         TopologyBuilder builder = new TopologyBuilder();
         builder.setBolt("TEST__COUNTER_BOLT", bolt);
 
@@ -118,7 +118,7 @@ public class CassandraBoltTest {
         bolt.prepare(config, context, null);
         System.out.println("Bolt Preparation Complete.");
 
-        Values values = new Values(1L, 1L, "MyCountColumn");
+        Values values = new Values("1", 1L, "MyCountColumn");
         Tuple tuple = new TupleImpl(context, values, 5, "test");
         bolt.execute(tuple);
 
