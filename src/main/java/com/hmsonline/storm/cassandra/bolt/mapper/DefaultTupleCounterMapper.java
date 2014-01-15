@@ -12,7 +12,7 @@ import backtype.storm.tuple.Tuple;
  * must be specified: rowKey, and incrementAmount, all remaining fields are
  * assumed to be column names to be incremented by the specified amount.
  */
-public class DefaultTupleCounterMapper implements TupleCounterMapper {
+public class DefaultTupleCounterMapper implements TupleCounterMapper<String, String> {
 
     private static final long serialVersionUID = 1L;
     private String rowKeyField;
@@ -58,6 +58,16 @@ public class DefaultTupleCounterMapper implements TupleCounterMapper {
                 result.add(tuple.getValueByField(fieldName).toString());
         }
         return result;
+    }
+
+    @Override
+    public Class<String> getKeyClass() {
+        return String.class;
+    }
+
+    @Override
+    public Class<String> getColumnNameClass() {
+        return String.class;
     }
 
 }

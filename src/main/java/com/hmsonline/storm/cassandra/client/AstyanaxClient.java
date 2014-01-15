@@ -410,21 +410,24 @@ public class AstyanaxClient<K, C, V> {
         }
     }
 
-    public void incrementCountColumn(Tuple input, TupleCounterMapper tupleMapper) throws Exception {
+    @SuppressWarnings("unchecked")
+    public void incrementCountColumn(Tuple input, TupleCounterMapper<K, C> tupleMapper) throws Exception {
         String columnFamilyName = tupleMapper.mapToColumnFamily(input);
         String keyspace = tupleMapper.mapToKeyspace(input);
-        String rowKey = (String) tupleMapper.mapToRowKey(input);
+        K rowKey = (String) tupleMapper.mapToRowKey(input);
         long incrementAmount = tupleMapper.mapToIncrementAmount(input);
         MutationBatch mutation = getKeyspace(keyspace).prepareMutationBatch();
-        ColumnFamily<String, String> columnFamily = new ColumnFamily<String, String>(columnFamilyName,
-                StringSerializer.get(), StringSerializer.get());
-        for (String columnName : tupleMapper.mapToColumnList(input)) {
+        ColumnFamily<K, C> columnFamily = new ColumnFamily<K, C>(columnFamilyName,
+                (Serializer<K>) serializerFor(tupleMapper.getKeyClass()), 
+                (Serializer<C>) serializerFor(tupleMapper.getColumnNameClass()));
+        for (C columnName : tupleMapper.mapToColumnList(input)) {
             mutation.withRow(columnFamily, rowKey).incrementCounterColumn(columnName, incrementAmount);
         }
         mutation.execute();
     }
 
-    public void incrementCountColumns(List<Tuple> inputs, TupleCounterMapper tupleMapper) throws Exception {    
+    @SuppressWarnings("unchecked")
+    public void incrementCountColumns(List<Tuple> inputs, TupleCounterMapper<K, C> tupleMapper) throws Exception {    
         Map<String, MutationBatch> mutations = new HashMap<String, MutationBatch>();
         for (Tuple input : inputs) {
             String keyspace = tupleMapper.mapToKeyspace(input);            
@@ -434,11 +437,12 @@ public class AstyanaxClient<K, C, V> {
                 mutations.put(keyspace, mutation);
             }
             String columnFamilyName = tupleMapper.mapToColumnFamily(input);
-            String rowKey = (String) tupleMapper.mapToRowKey(input);
+            K rowKey = (String) tupleMapper.mapToRowKey(input);
             long incrementAmount = tupleMapper.mapToIncrementAmount(input);
-            ColumnFamily<String, String> columnFamily = new ColumnFamily<String, String>(columnFamilyName,
-                    StringSerializer.get(), StringSerializer.get());
-            for (String columnName : tupleMapper.mapToColumnList(input)) {
+            ColumnFamily<K, C> columnFamily = new ColumnFamily<K, C>(columnFamilyName,
+                    (Serializer<K>) serializerFor(tupleMapper.getKeyClass()), 
+                    (Serializer<C>) serializerFor(tupleMapper.getColumnNameClass()));
+            for (C columnName : tupleMapper.mapToColumnList(input)) {
                 mutation.withRow(columnFamily, rowKey).incrementCounterColumn(columnName, incrementAmount);
             }
         }

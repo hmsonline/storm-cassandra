@@ -11,7 +11,7 @@ import backtype.storm.tuple.Tuple;
  * @author tgoetz
  *
  */
-public interface TupleCounterMapper extends Serializable {
+public interface TupleCounterMapper<K, C> extends Serializable {
 
     /**
      * Given a <code>backtype.storm.tuple.Tuple</code> object, map the column
@@ -37,7 +37,7 @@ public interface TupleCounterMapper extends Serializable {
      * @param tuple
      * @return
      */
-    String mapToRowKey(Tuple tuple);
+    K mapToRowKey(Tuple tuple);
 
     /**
      * Given a <code>backtype.storm.tuple.Tuple</code> return the amount that
@@ -55,6 +55,20 @@ public interface TupleCounterMapper extends Serializable {
      * @param tuple
      * @return
      */
-    List<String> mapToColumnList(Tuple tuple);
+    List<C> mapToColumnList(Tuple tuple);
+
+    /**
+     * Returns the row key class
+     * 
+     * @return
+     */
+    Class<K> getKeyClass();
+
+    /**
+     * Returns the column name class
+     * 
+     * @return
+     */
+    Class<C> getColumnNameClass();
 
 }
