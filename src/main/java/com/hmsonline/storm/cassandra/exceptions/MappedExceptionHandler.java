@@ -8,6 +8,7 @@ import storm.trident.operation.TridentCollector;
 import java.util.HashSet;
 
 public class MappedExceptionHandler implements ExceptionHandler {
+    private static final long serialVersionUID = 1L;
     private static final Logger LOG = LoggerFactory.getLogger(MappedExceptionHandler.class);
 
 
