@@ -47,8 +47,13 @@ public class AstyanaxUtil {
         return context;
     }
     
+    public static void createColumnFamily(AstyanaxContext<Cluster> ctx,String ks, String cf, String comparator, 
+    		String keyValidator, String defValidator) throws ConnectionException{
+    	createColumnFamily(ctx, ks, cf, comparator, keyValidator, defValidator, false);
+    }
     
-    public static void createColumnFamily(AstyanaxContext<Cluster> ctx,String ks, String cf, String comparator, String keyValidator, String defValidator) throws ConnectionException{
+    public static void createColumnFamily(AstyanaxContext<Cluster> ctx,String ks, String cf, String comparator, 
+    		String keyValidator, String defValidator, boolean dropFirst) throws ConnectionException{
         Cluster cluster = ctx.getEntity();
         KeyspaceDefinition keyspace = cluster.describeKeyspace(ks);
         if(keyspace != null){
@@ -64,6 +69,15 @@ public class AstyanaxUtil {
             cluster.addKeyspace(ksDef);
         }
         
+        if (dropFirst){
+            LOG.warn("Dropping {} column family.", cf);
+            try{
+        	cluster.dropColumnFamily(ks,cf);
+            } catch (BadRequestException bre){
+            	LOG.warn("Could not drop column family, likely doesn't exist. [" + bre.getMessage() + "]");
+            }
+        }
+        
         LOG.warn("Adding column family: '{}'", cf);
         try {
         cluster.addColumnFamily(cluster.makeColumnFamilyDefinition().setKeyspace(ks).setName(cf).setComparatorType(comparator)
@@ -71,7 +85,6 @@ public class AstyanaxUtil {
         } catch (BadRequestException bre){
         	LOG.warn("Could not create column family [" + bre.getMessage() + "]");
         }
-
     }
     
     public static void createCounterColumnFamily(AstyanaxContext<Cluster> ctx,String ks, String cf) throws ConnectionException{

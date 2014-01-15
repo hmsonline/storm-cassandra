@@ -32,8 +32,8 @@ using a key and a map.  The key to indicate which map to use is set in the const
 them.
 
 		Map<String, Object> cassandraConfig = new HashMap<String, Object>();
-		cassandraConfig.put(CassandraBolt.CASSANDRA_HOST, "localhost:9160");
-		cassandraConfig.put(CassandraBolt.CASSANDRA_KEYSPACE, "testKeyspace");
+		cassandraConfig.put(StormCassandraConstants.CASSANDRA_HOST, "localhost:9160");
+		cassandraConfig.put(StormCassandraConstants.CASSANDRA_KEYSPACE, "testKeyspace");
 		Config config = new Config();
 		config.put("CassandraLocal", cassandraConfig);
 		

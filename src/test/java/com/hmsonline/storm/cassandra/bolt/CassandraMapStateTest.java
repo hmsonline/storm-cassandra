@@ -65,6 +65,11 @@ public class CassandraMapStateTest {
     }
     
     @Test
+    public void testOpaqueTransactionalState() throws Exception {
+        testCassandraMapState(TransactionType.OPAQUE);
+    }
+
+    @Test
     public void testTransactionalState() throws Exception {
         testCassandraMapState(TransactionType.TRANSACTIONAL);
     }
@@ -73,13 +78,6 @@ public class CassandraMapStateTest {
     public void testNonTransactionalState() throws Exception {
         testCassandraMapState(TransactionType.NON_TRANSACTIONAL);
     }
-
-    @Test
-    public void testOpaqueTransactionalState() throws Exception {
-        testCassandraMapState(TransactionType.OPAQUE);
-    }
-
-    
     
     @SuppressWarnings({ "unchecked", "rawtypes" })
     private void testCassandraMapState(TransactionType txType) throws Exception {
@@ -106,14 +104,15 @@ public class CassandraMapStateTest {
         case TRANSACTIONAL:
             options = new Options<TransactionalValue>();
             options.columnFamily = "transactional";
-            cassandraStateFactory = CassandraMapState.transactional(options);
-            
+            cassandraStateFactory = CassandraMapState.transactional(options);            
             break;
+            
         case OPAQUE:
             options = new Options<OpaqueValue>();
             options.columnFamily = "opaque";
             cassandraStateFactory = CassandraMapState.opaque(options);
             break;
+            
         case NON_TRANSACTIONAL:
             options = new Options<Object>();
             options.columnFamily = "nontransactional";
@@ -136,11 +135,11 @@ public class CassandraMapStateTest {
         LocalCluster cluster = new LocalCluster();
         cluster.submitTopology("test", config, topology.build());
 
-            Thread.sleep(5000);
+            Thread.sleep(10000); 
 
 
-            assertEquals("[[5]]", client.execute("words", "cat dog the man"));// 5
-            assertEquals("[[0]]",client.execute("words", "cat")); // 0
+            assertEquals("[[5]]", client.execute("words", "cat dog the man")); // 5
+            assertEquals("[[0]]", client.execute("words", "cat")); // 0
             assertEquals("[[0]]", client.execute("words", "dog")); // 0
             assertEquals("[[4]]", client.execute("words", "the")); // 4
             assertEquals("[[1]]", client.execute("words", "man")); // 1

@@ -15,15 +15,16 @@ public class CassandraCounterBatchingBolt<K, C, V> extends AbstractBatchingBolt<
     private static final long serialVersionUID = 1L;
     private static final Logger LOG = LoggerFactory.getLogger(CassandraCounterBatchingBolt.class);
 
-    private TupleCounterMapper tupleMapper;
+    private TupleCounterMapper<K, C> tupleMapper;
 
-    public CassandraCounterBatchingBolt(String clientConfigKey, TupleCounterMapper tupleMapper) {
+    public CassandraCounterBatchingBolt(String clientConfigKey, TupleCounterMapper<K, C> tupleMapper) {
         super(clientConfigKey, null);
         this.tupleMapper = tupleMapper;
     }
 
-    public CassandraCounterBatchingBolt(String keyspace, String clientConfigKey, String columnFamily, String rowKeyField, String incrementAmountField) {
-        this(clientConfigKey, new DefaultTupleCounterMapper(keyspace, columnFamily, rowKeyField, incrementAmountField));
+    @SuppressWarnings("unchecked")
+	public CassandraCounterBatchingBolt(String keyspace, String clientConfigKey, String columnFamily, String rowKeyField, String incrementAmountField) {
+        this(clientConfigKey, (TupleCounterMapper<K, C>) new DefaultTupleCounterMapper(keyspace, columnFamily, rowKeyField, incrementAmountField) );
     }
 
     @Override
