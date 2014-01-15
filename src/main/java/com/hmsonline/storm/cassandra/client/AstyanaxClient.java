@@ -414,7 +414,7 @@ public class AstyanaxClient<K, C, V> {
     public void incrementCountColumn(Tuple input, TupleCounterMapper<K, C> tupleMapper) throws Exception {
         String columnFamilyName = tupleMapper.mapToColumnFamily(input);
         String keyspace = tupleMapper.mapToKeyspace(input);
-        K rowKey = (String) tupleMapper.mapToRowKey(input);
+        K rowKey = (K) tupleMapper.mapToRowKey(input);
         long incrementAmount = tupleMapper.mapToIncrementAmount(input);
         MutationBatch mutation = getKeyspace(keyspace).prepareMutationBatch();
         ColumnFamily<K, C> columnFamily = new ColumnFamily<K, C>(columnFamilyName,
@@ -437,7 +437,7 @@ public class AstyanaxClient<K, C, V> {
                 mutations.put(keyspace, mutation);
             }
             String columnFamilyName = tupleMapper.mapToColumnFamily(input);
-            K rowKey = (String) tupleMapper.mapToRowKey(input);
+            K rowKey = (K) tupleMapper.mapToRowKey(input);
             long incrementAmount = tupleMapper.mapToIncrementAmount(input);
             ColumnFamily<K, C> columnFamily = new ColumnFamily<K, C>(columnFamilyName,
                     (Serializer<K>) serializerFor(tupleMapper.getKeyClass()), 
