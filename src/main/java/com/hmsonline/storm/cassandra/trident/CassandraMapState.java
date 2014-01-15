@@ -41,17 +41,13 @@ import com.netflix.astyanax.MutationBatch;
 import com.netflix.astyanax.connectionpool.ConnectionPoolConfiguration;
 import com.netflix.astyanax.connectionpool.ConnectionPoolMonitor;
 import com.netflix.astyanax.connectionpool.NodeDiscoveryType;
-import com.netflix.astyanax.connectionpool.OperationResult;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 import com.netflix.astyanax.connectionpool.impl.ConnectionPoolConfigurationImpl;
 import com.netflix.astyanax.connectionpool.impl.CountingConnectionPoolMonitor;
 import com.netflix.astyanax.impl.AstyanaxConfigurationImpl;
 import com.netflix.astyanax.model.ColumnFamily;
-import com.netflix.astyanax.model.ColumnList;
 import com.netflix.astyanax.model.Composite;
 import com.netflix.astyanax.model.Rows;
-import com.netflix.astyanax.model.Row;
-import com.netflix.astyanax.query.RowQuery;
 import com.netflix.astyanax.query.RowSliceQuery;
 import com.netflix.astyanax.serializers.CompositeSerializer;
 import com.netflix.astyanax.serializers.StringSerializer;
@@ -71,7 +67,8 @@ public class CassandraMapState<T> implements IBackingMap<T> {
 
     private final Map<String, Object> DEFAULTS = new ImmutableMap.Builder<String, Object>()
             .put(CASSANDRA_CLUSTER_NAME, "ClusterName")
-            .put(ASTYANAX_CONFIGURATION, new AstyanaxConfigurationImpl().setDiscoveryType(NodeDiscoveryType.RING_DESCRIBE))
+            .put(ASTYANAX_CONFIGURATION,
+                    new AstyanaxConfigurationImpl().setDiscoveryType(NodeDiscoveryType.RING_DESCRIBE))
             .put(ASTYANAX_CONNECTION_POOL_CONFIGURATION,
                     new ConnectionPoolConfigurationImpl("MyConnectionPool").setMaxConnsPerHost(1))
             .put(ASTYANAX_CONNECTION_POOL_MONITOR, new CountingConnectionPoolMonitor()).build();
@@ -218,7 +215,7 @@ public class CassandraMapState<T> implements IBackingMap<T> {
         try {
             result = query.execute().getResult();
         } catch (ConnectionException e) {
-            //TODO throw a specific error.
+            // TODO throw a specific error.
             throw new RuntimeException(e);
         }
         Map<List<Object>, byte[]> resultMap = new HashMap<List<Object>, byte[]>();
@@ -229,7 +226,8 @@ public class CassandraMapState<T> implements IBackingMap<T> {
                 for (int i = 0; i < rowKey.size(); i++) {
                     dimensions.add(rowKey.get(i, StringSerializer.get()));
                 }
-                resultMap.put(dimensions, result.getRow(rowKey).getColumns().getByteArrayValue(this.options.columnName, null));
+                resultMap.put(dimensions,
+                        result.getRow(rowKey).getColumns().getByteArrayValue(this.options.columnName, null));
             }
         }
 
@@ -288,8 +286,8 @@ public class CassandraMapState<T> implements IBackingMap<T> {
     }
 
     private ArrayList<String> toKeyStrings(List<Object> key) {
-        ArrayList keyStrings = new ArrayList<String>();
-        for (int i = 0; i < key.size(); i++){
+        ArrayList<String> keyStrings = new ArrayList<String>();
+        for (int i = 0; i < key.size(); i++) {
             Object component = key.get(i);
             if (component == null) {
                 component = "[NULL]";

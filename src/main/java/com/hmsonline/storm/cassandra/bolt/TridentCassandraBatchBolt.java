@@ -16,8 +16,6 @@ import backtype.storm.tuple.Tuple;
 import com.hmsonline.storm.cassandra.bolt.mapper.TupleMapper;
 
 /**
- * Still WIP.
- * 
  * @author boneill42
  */
 @SuppressWarnings({ "serial", "rawtypes", "unchecked" })
