@@ -48,7 +48,7 @@ public class CassandraBoltTest {
 
             AstyanaxContext<Cluster> clusterContext = newClusterContext("localhost:9160");
             createColumnFamily(clusterContext, KEYSPACE, "users","UTF8Type", "UTF8Type", "UTF8Type");
-            createColumnFamily(clusterContext, KEYSPACE, "Counts", "UTF8Type", "UTF8Type", "CounterColumnType");
+            createColumnFamily(clusterContext, KEYSPACE, "Counts", "UTF8Type", "UTF8Type", "CounterColumnType", true);
 
         } catch (Exception e) {
             LOG.warn("Couldn't setup cassandra.", e);
