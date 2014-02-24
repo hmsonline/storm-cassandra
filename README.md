@@ -91,14 +91,14 @@ The "examples" directory contains two examples:
 
 ## Cassandra Reach Topology
 
-The [`CassandraReachTopology`](https://github.com/ptgoetz/storm-cassandra/blob/master/examples/src/main/java/backtype/storm/contrib/cassandra/example/CassandraReachTopology.java) 
+The [`CassandraReachTopology`](https://github.com/hmsonline/storm-cassandra/blob/master/examples/src/main/java/com/hmsonline/storm/cassandra/example/CassandraReachTopology.java) 
 example is a Storm [Distributed RPC](https://github.com/nathanmarz/storm/wiki/Distributed-RPC) example 
 that is essentially a clone of Nathan Marz' [`ReachTopology`](https://github.com/nathanmarz/storm-starter/blob/master/src/jvm/storm/starter/ReachTopology.java), 
 that instead of using in-memory data stores  is backed by a [Cassandra](http://cassandra.apache.org/) database and uses generic 
 *storm-cassandra* bolts to query the database.
 
 ## Persistent Word Count  
-The sample [`PersistentWordCount`](https://github.com/ptgoetz/storm-cassandra/blob/master/examples/src/main/java/backtype/storm/contrib/cassandra/example/PersistentWordCount.java) 
+The sample [`PersistentWordCount`](https://github.com/hmsonline/storm-cassandra/blob/master/examples/src/main/java/com/hmsonline/storm/cassandra/example/PersistentWordCount.java) 
 topology illustrates the basic usage of the Cassandra Bolt implementation. It reuses the [`TestWordSpout`](https://github.com/nathanmarz/storm/blob/master/src/jvm/backtype/storm/testing/TestWordSpout.java) 
 spout and [`TestWordCounter`](https://github.com/nathanmarz/storm/blob/master/src/jvm/backtype/storm/testing/TestWordCounter.java) 
 bolt from the Storm tutorial, and adds an instance of `CassandraBolt` to persist the results.
