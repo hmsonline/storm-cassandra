@@ -32,8 +32,8 @@ using a key and a map.  The key to indicate which map to use is set in the const
 them.
 
 		Map<String, Object> cassandraConfig = new HashMap<String, Object>();
-		cassandraConfig.put(CassandraBolt.CASSANDRA_HOST, "localhost:9160");
-		cassandraConfig.put(CassandraBolt.CASSANDRA_KEYSPACE, "testKeyspace");
+		cassandraConfig.put(StormCassandraConstants.CASSANDRA_HOST, "localhost:9160");
+		cassandraConfig.put(StormCassandraConstants.CASSANDRA_KEYSPACE, "testKeyspace");
 		Config config = new Config();
 		config.put("CassandraLocal", cassandraConfig);
 		
@@ -91,14 +91,14 @@ The "examples" directory contains two examples:
 
 ## Cassandra Reach Topology
 
-The [`CassandraReachTopology`](https://github.com/ptgoetz/storm-cassandra/blob/master/examples/src/main/java/backtype/storm/contrib/cassandra/example/CassandraReachTopology.java) 
+The [`CassandraReachTopology`](https://github.com/hmsonline/storm-cassandra/blob/master/examples/src/main/java/com/hmsonline/storm/cassandra/example/CassandraReachTopology.java) 
 example is a Storm [Distributed RPC](https://github.com/nathanmarz/storm/wiki/Distributed-RPC) example 
 that is essentially a clone of Nathan Marz' [`ReachTopology`](https://github.com/nathanmarz/storm-starter/blob/master/src/jvm/storm/starter/ReachTopology.java), 
 that instead of using in-memory data stores  is backed by a [Cassandra](http://cassandra.apache.org/) database and uses generic 
 *storm-cassandra* bolts to query the database.
 
 ## Persistent Word Count  
-The sample [`PersistentWordCount`](https://github.com/ptgoetz/storm-cassandra/blob/master/examples/src/main/java/backtype/storm/contrib/cassandra/example/PersistentWordCount.java) 
+The sample [`PersistentWordCount`](https://github.com/hmsonline/storm-cassandra/blob/master/examples/src/main/java/com/hmsonline/storm/cassandra/example/PersistentWordCount.java) 
 topology illustrates the basic usage of the Cassandra Bolt implementation. It reuses the [`TestWordSpout`](https://github.com/nathanmarz/storm/blob/master/src/jvm/backtype/storm/testing/TestWordSpout.java) 
 spout and [`TestWordCounter`](https://github.com/nathanmarz/storm/blob/master/src/jvm/backtype/storm/testing/TestWordCounter.java) 
 bolt from the Storm tutorial, and adds an instance of `CassandraBolt` to persist the results.
@@ -190,3 +190,22 @@ The output should resemble the following:
 		5 Rows Returned.
 		Elapsed time: 8 msec(s).
 
+
+## License
+
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.

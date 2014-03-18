@@ -1,3 +1,21 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package com.hmsonline.storm.cassandra.client;
 
 import java.beans.IntrospectionException;
@@ -49,6 +67,7 @@ import com.netflix.astyanax.model.ByteBufferRange;
 import com.netflix.astyanax.model.Column;
 import com.netflix.astyanax.model.ColumnFamily;
 import com.netflix.astyanax.model.ColumnList;
+import com.netflix.astyanax.model.Composite;
 import com.netflix.astyanax.query.RowQuery;
 import com.netflix.astyanax.serializers.AnnotatedCompositeSerializer;
 import com.netflix.astyanax.serializers.BigIntegerSerializer;
@@ -57,6 +76,7 @@ import com.netflix.astyanax.serializers.ByteBufferSerializer;
 import com.netflix.astyanax.serializers.ByteSerializer;
 import com.netflix.astyanax.serializers.BytesArraySerializer;
 import com.netflix.astyanax.serializers.CompositeRangeBuilder;
+import com.netflix.astyanax.serializers.CompositeSerializer;
 import com.netflix.astyanax.serializers.DateSerializer;
 import com.netflix.astyanax.serializers.DoubleSerializer;
 import com.netflix.astyanax.serializers.FloatSerializer;
@@ -70,20 +90,19 @@ import com.netflix.astyanax.thrift.ThriftFamilyFactory;
 import com.netflix.astyanax.util.RangeBuilder;
 
 /**
- * 
- * @author tgoetz
- * 
+ *
+ * @param <K>
+ * @param <C>
+ * @param <V>
  */
 public class AstyanaxClient<K, C, V> {
     private static final Logger LOG = LoggerFactory.getLogger(AstyanaxClient.class);
-
     public static final String CASSANDRA_CLUSTER_NAME = "cassandra.clusterName";
-
     public static final String ASTYANAX_CONFIGURATION = "astyanax.configuration";
     public static final String ASTYANAX_CONNECTION_POOL_CONFIGURATION = "astyanax.connectionPoolConfiguration";
     public static final String ASTYANAX_CONNECTION_POOL_MONITOR = "astyanax.connectioPoolMonitor";
-
     private Map<String, AstyanaxContext<Keyspace>> astyanaxContext = new HashMap<String, AstyanaxContext<Keyspace>>();
+
 
 
     // not static since we're carting instances around and do not want to share
@@ -92,7 +111,7 @@ public class AstyanaxClient<K, C, V> {
     private final Map<String, Object> DEFAULTS = new ImmutableMap.Builder<String, Object>()
             .put(CASSANDRA_CLUSTER_NAME, "ClusterName")
             .put(ASTYANAX_CONFIGURATION, new AstyanaxConfigurationImpl().setDiscoveryType(NodeDiscoveryType.RING_DESCRIBE)
-            		.setConnectionPoolType(ConnectionPoolType.TOKEN_AWARE).setCqlVersion("3.0.0").setTargetCassandraVersion("1.2"))
+            		.setConnectionPoolType(ConnectionPoolType.TOKEN_AWARE))
             .put(ASTYANAX_CONNECTION_POOL_CONFIGURATION,
                     new ConnectionPoolConfigurationImpl("MyConnectionPool"))
             .put(ASTYANAX_CONNECTION_POOL_MONITOR, new Slf4jConnectionPoolMonitorImpl()).build();
@@ -113,9 +132,9 @@ public class AstyanaxClient<K, C, V> {
             ConnectionPoolConfigurationImpl cpConfig = (ConnectionPoolConfigurationImpl) settings
                     .get(ASTYANAX_CONNECTION_POOL_CONFIGURATION);
             cpConfig.setSeeds((String) config.get(StormCassandraConstants.CASSANDRA_HOST));
-            Integer port = (Integer)config.get(StormCassandraConstants.CASSANDRA_PORT);
+            Long port = (Long)config.get(StormCassandraConstants.CASSANDRA_PORT);
             if(port != null){
-            	cpConfig.setPort(port);
+            	cpConfig.setPort(port.intValue());
             }
             
             // 
@@ -424,21 +443,24 @@ public class AstyanaxClient<K, C, V> {
         }
     }
 
-    public void incrementCountColumn(Tuple input, TupleCounterMapper tupleMapper) throws Exception {
+    @SuppressWarnings("unchecked")
+	public void incrementCountColumn(Tuple input, TupleCounterMapper<K,C> tupleMapper) throws Exception {
         String columnFamilyName = tupleMapper.mapToColumnFamily(input);
         String keyspace = tupleMapper.mapToKeyspace(input);
-        String rowKey = (String) tupleMapper.mapToRowKey(input);
+        K rowKey = tupleMapper.mapToRowKey(input);
         long incrementAmount = tupleMapper.mapToIncrementAmount(input);
         MutationBatch mutation = getKeyspace(keyspace).prepareMutationBatch();
-        ColumnFamily<String, String> columnFamily = new ColumnFamily<String, String>(columnFamilyName,
-                StringSerializer.get(), StringSerializer.get());
-        for (String columnName : tupleMapper.mapToColumnList(input)) {
+        ColumnFamily<K, C> columnFamily = new ColumnFamily<K, C>(columnFamilyName,
+                (Serializer<K>) serializerFor(tupleMapper.getKeyClass()),
+                (Serializer<C>) serializerFor(tupleMapper.getColumnNameClass()));
+        for (C columnName : tupleMapper.mapToColumnList(input)) {
             mutation.withRow(columnFamily, rowKey).incrementCounterColumn(columnName, incrementAmount);
         }
         mutation.execute();
     }
 
-    public void incrementCountColumns(List<Tuple> inputs, TupleCounterMapper tupleMapper) throws Exception {    
+    @SuppressWarnings("unchecked")
+	public void incrementCountColumns(List<Tuple> inputs, TupleCounterMapper<K,C> tupleMapper) throws Exception {    
         Map<String, MutationBatch> mutations = new HashMap<String, MutationBatch>();
         for (Tuple input : inputs) {
             String keyspace = tupleMapper.mapToKeyspace(input);            
@@ -448,11 +470,12 @@ public class AstyanaxClient<K, C, V> {
                 mutations.put(keyspace, mutation);
             }
             String columnFamilyName = tupleMapper.mapToColumnFamily(input);
-            String rowKey = (String) tupleMapper.mapToRowKey(input);
+            K rowKey = tupleMapper.mapToRowKey(input);
             long incrementAmount = tupleMapper.mapToIncrementAmount(input);
-            ColumnFamily<String, String> columnFamily = new ColumnFamily<String, String>(columnFamilyName,
-                    StringSerializer.get(), StringSerializer.get());
-            for (String columnName : tupleMapper.mapToColumnList(input)) {
+            ColumnFamily<K, C> columnFamily = new ColumnFamily<K, C>(columnFamilyName,
+                    (Serializer<K>) serializerFor(tupleMapper.getKeyClass()),
+                    (Serializer<C>) serializerFor(tupleMapper.getColumnNameClass()));
+            for (C columnName : tupleMapper.mapToColumnList(input)) {
                 mutation.withRow(columnFamily, rowKey).incrementCounterColumn(columnName, incrementAmount);
             }
         }
@@ -585,7 +608,10 @@ public class AstyanaxClient<K, C, V> {
             serializer = ByteBufferSerializer.get();
         } else if (valueClass.equals(Date.class)) {
             serializer = DateSerializer.get();
+        } else if (valueClass.equals(Composite.class)) {
+            serializer = CompositeSerializer.get();
         }
+
         if (serializer == null) {
             if (containsComponentAnnotation(valueClass)) {
                 serializer = new AnnotatedCompositeSerializer(valueClass);

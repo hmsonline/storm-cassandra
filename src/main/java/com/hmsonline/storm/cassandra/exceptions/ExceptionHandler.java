@@ -15,36 +15,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.hmsonline.storm.cassandra.bolt.mapper;
+package com.hmsonline.storm.cassandra.exceptions;
+
+
+import storm.trident.operation.TridentCollector;
 
 import java.io.Serializable;
-import java.util.List;
-import java.util.Map;
 
-import backtype.storm.topology.OutputFieldsDeclarer;
-import backtype.storm.tuple.Tuple;
-import backtype.storm.tuple.Values;
-
-/**
- *
- * @param <K>
- * @param <C>
- * @param <V>
- */
-public interface ColumnMapper<K, C, V> extends Serializable {
+public interface ExceptionHandler extends Serializable {
 
     /**
-     * Declares the fields produced by the bolt using this mapper.
-     * 
-     * @param declarer
+     * Called by CassandraState when an exception is encountered.
+     *
+     * The TridentCollection parameter is provided for reporting
+     * errors and optionally emitting tuples.
+     *
+     * Note that the <code>Collector</code> parameter may be null if
+     * an exception occurs outside of a context where a TridentCollector
+     * is available.
+     *
+     * @param ex
+     * @param collector
      */
-    void declareOutputFields(OutputFieldsDeclarer declarer);
-    
-    /**
-     * Given a set of columns, maps to values to emit.
-     * 
-     * @param columns
-     * @return
-     */
-    public List<Values> mapToValues(K rowKey, Map<C, V> columns, Tuple input);
+    void onException(Exception ex, TridentCollector collector);
 }

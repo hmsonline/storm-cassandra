@@ -1,3 +1,20 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.hmsonline.storm.cassandra.bolt;
 
 import static com.hmsonline.storm.cassandra.bolt.AstyanaxUtil.createColumnFamily;
@@ -10,6 +27,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.cassandra.exceptions.ConfigurationException;
 import org.apache.thrift.transport.TTransportException;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -40,13 +58,14 @@ public class CassandraBoltTest {
 
 
     @BeforeClass
-    public static void setupCassandra() throws Exception {
+    public static void setupCassandra() throws TTransportException, IOException, InterruptedException,
+            ConfigurationException, Exception {
         SingletonEmbeddedCassandra.getInstance();
         try {
 
             AstyanaxContext<Cluster> clusterContext = newClusterContext("localhost:9160");
             createColumnFamily(clusterContext, KEYSPACE, "users","UTF8Type", "UTF8Type", "UTF8Type");
-            createColumnFamily(clusterContext, KEYSPACE, "Counts", "UTF8Type", "UTF8Type", "CounterColumnType");
+            createColumnFamily(clusterContext, KEYSPACE, "Counts", "UTF8Type", "UTF8Type", "CounterColumnType", true);
 
         } catch (Exception e) {
             LOG.warn("Couldn't setup cassandra.", e);
@@ -97,7 +116,7 @@ public class CassandraBoltTest {
     @Test
     public void testCounterBolt() throws Exception {
         String configKey = "cassandra-config";
-        CassandraCounterBatchingBolt<String, String, String> bolt = new CassandraCounterBatchingBolt<String, String, String>(KEYSPACE, configKey, "Counts", "Timestamp", "IncrementAmount");
+        CassandraCounterBatchingBolt<String, String,Long> bolt = new CassandraCounterBatchingBolt<String, String, Long>(KEYSPACE, configKey, "Counts", "Timestamp", "IncrementAmount");
         TopologyBuilder builder = new TopologyBuilder();
         builder.setBolt("TEST__COUNTER_BOLT", bolt);
 
@@ -116,7 +135,7 @@ public class CassandraBoltTest {
         bolt.prepare(config, context, null);
         System.out.println("Bolt Preparation Complete.");
 
-        Values values = new Values(1L, 1L, "MyCountColumn");
+        Values values = new Values("1", 1L, "MyCountColumn");
         Tuple tuple = new TupleImpl(context, values, 5, "test");
         bolt.execute(tuple);
 

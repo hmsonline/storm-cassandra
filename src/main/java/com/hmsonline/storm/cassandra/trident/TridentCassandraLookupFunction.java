@@ -1,3 +1,20 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.hmsonline.storm.cassandra.trident;
 
 import java.util.ArrayList;
@@ -18,6 +35,7 @@ import com.hmsonline.storm.cassandra.bolt.mapper.Equality;
 import com.hmsonline.storm.cassandra.bolt.mapper.TridentColumnMapper;
 import com.hmsonline.storm.cassandra.bolt.mapper.TridentTupleMapper;
 import com.hmsonline.storm.cassandra.client.AstyanaxClient;
+import com.hmsonline.storm.cassandra.client.AstyanaxClientFactory;
 
 public class TridentCassandraLookupFunction<K, C, V> implements Function {
     private static final long serialVersionUID = 12132012L;
@@ -27,7 +45,7 @@ public class TridentCassandraLookupFunction<K, C, V> implements Function {
     private TridentColumnMapper<K, C, V> columnsMapper;
     private TridentTupleMapper<K, C, V> tupleMapper;
     private AstyanaxClient<K, C, V> client;
-    private String clientConfigKey;
+    private String cassandraClusterId;
 
     private Filter tupleFilter = null; // used to prevent processing for tuples
                                        // that should be skipped by the lookup
@@ -35,16 +53,27 @@ public class TridentCassandraLookupFunction<K, C, V> implements Function {
                                           // tuple doesn't pass the filter check
     private boolean emitEmptyOnFailure = false;
 
-    public TridentCassandraLookupFunction(String clientConfigKey, TridentTupleMapper<K, C, V> tupleMapper,
+    /**
+     * @param cassandraClusterId Unique identifier for the Cassandra cluster
+     * @param tupleMapper
+     * @param columnMapper
+     */
+    public TridentCassandraLookupFunction(String cassandraClusterId, TridentTupleMapper<K, C, V> tupleMapper,
             TridentColumnMapper<K, C, V> columnMapper) {
         this.columnsMapper = columnMapper;
         this.tupleMapper = tupleMapper;
-        this.clientConfigKey = clientConfigKey;
+        this.cassandraClusterId = cassandraClusterId;
     }
 
-    public TridentCassandraLookupFunction(String clientConfigKey, TridentTupleMapper<K, C, V> tupleMapper,
+    /**
+     * @param cassandraClusterId Unique identifier for the Cassandra cluster
+     * @param tupleMapper
+     * @param columnMapper
+     * @param emitEmptyOnFailure
+     */
+    public TridentCassandraLookupFunction(String cassandraClusterId, TridentTupleMapper<K, C, V> tupleMapper,
             TridentColumnMapper<K, C, V> columnMapper, boolean emitEmptyOnFailure) {
-        this(clientConfigKey, tupleMapper, columnMapper);
+        this(cassandraClusterId, tupleMapper, columnMapper);
         this.emitEmptyOnFailure = emitEmptyOnFailure;
     }
 
@@ -63,10 +92,8 @@ public class TridentCassandraLookupFunction<K, C, V> implements Function {
     @Override
     @SuppressWarnings({ "unchecked", "rawtypes" })
     public void prepare(Map stormConf, TridentOperationContext context) {
-        Map<String, Object> config = (Map<String, Object>) stormConf.get(this.clientConfigKey);
-
-        this.client = new AstyanaxClient<K, C, V>();
-        this.client.start(config);
+        Map<String, Object> config = (Map<String, Object>) stormConf.get(this.cassandraClusterId);
+        this.client = AstyanaxClientFactory.getInstance(cassandraClusterId, config);
     }
 
     @Override

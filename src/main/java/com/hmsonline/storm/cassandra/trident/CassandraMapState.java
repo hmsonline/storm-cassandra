@@ -1,3 +1,20 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.hmsonline.storm.cassandra.trident;
 
 import java.io.Serializable;
@@ -41,17 +58,13 @@ import com.netflix.astyanax.MutationBatch;
 import com.netflix.astyanax.connectionpool.ConnectionPoolConfiguration;
 import com.netflix.astyanax.connectionpool.ConnectionPoolMonitor;
 import com.netflix.astyanax.connectionpool.NodeDiscoveryType;
-import com.netflix.astyanax.connectionpool.OperationResult;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 import com.netflix.astyanax.connectionpool.impl.ConnectionPoolConfigurationImpl;
 import com.netflix.astyanax.connectionpool.impl.CountingConnectionPoolMonitor;
 import com.netflix.astyanax.impl.AstyanaxConfigurationImpl;
 import com.netflix.astyanax.model.ColumnFamily;
-import com.netflix.astyanax.model.ColumnList;
 import com.netflix.astyanax.model.Composite;
 import com.netflix.astyanax.model.Rows;
-import com.netflix.astyanax.model.Row;
-import com.netflix.astyanax.query.RowQuery;
 import com.netflix.astyanax.query.RowSliceQuery;
 import com.netflix.astyanax.serializers.CompositeSerializer;
 import com.netflix.astyanax.serializers.StringSerializer;
@@ -71,7 +84,8 @@ public class CassandraMapState<T> implements IBackingMap<T> {
 
     private final Map<String, Object> DEFAULTS = new ImmutableMap.Builder<String, Object>()
             .put(CASSANDRA_CLUSTER_NAME, "ClusterName")
-            .put(ASTYANAX_CONFIGURATION, new AstyanaxConfigurationImpl().setDiscoveryType(NodeDiscoveryType.RING_DESCRIBE))
+            .put(ASTYANAX_CONFIGURATION,
+                    new AstyanaxConfigurationImpl().setDiscoveryType(NodeDiscoveryType.RING_DESCRIBE))
             .put(ASTYANAX_CONNECTION_POOL_CONFIGURATION,
                     new ConnectionPoolConfigurationImpl("MyConnectionPool").setMaxConnsPerHost(1))
             .put(ASTYANAX_CONNECTION_POOL_MONITOR, new CountingConnectionPoolMonitor()).build();
@@ -218,7 +232,7 @@ public class CassandraMapState<T> implements IBackingMap<T> {
         try {
             result = query.execute().getResult();
         } catch (ConnectionException e) {
-            //TODO throw a specific error.
+            // TODO throw a specific error.
             throw new RuntimeException(e);
         }
         Map<List<Object>, byte[]> resultMap = new HashMap<List<Object>, byte[]>();
@@ -229,13 +243,15 @@ public class CassandraMapState<T> implements IBackingMap<T> {
                 for (int i = 0; i < rowKey.size(); i++) {
                     dimensions.add(rowKey.get(i, StringSerializer.get()));
                 }
-                resultMap.put(dimensions, result.getRow(rowKey).getColumns().getByteArrayValue(this.options.columnName, null));
+                resultMap.put(dimensions,
+                        result.getRow(rowKey).getColumns().getByteArrayValue(this.options.columnName, null));
             }
         }
 
         List<T> values = new ArrayList<T>();
         for (List<Object> key : keys) {
-            byte[] bytes = resultMap.get(key);
+            List<String> stringKey = toKeyStrings(key);
+            byte[] bytes = resultMap.get(stringKey);
             if (bytes != null) {
                 values.add(serializer.deserialize(bytes));
             } else {
@@ -279,12 +295,22 @@ public class CassandraMapState<T> implements IBackingMap<T> {
 
     private Composite toKeyName(List<Object> key) {
         Composite keyName = new Composite();
-        for (Object component : key) {
+        List<String> keyStrings = toKeyStrings(key);
+        for (String componentString : keyStrings) {
+            keyName.addComponent(componentString, StringSerializer.get());
+        }
+        return keyName;
+    }
+
+    private ArrayList<String> toKeyStrings(List<Object> key) {
+        ArrayList<String> keyStrings = new ArrayList<String>();
+        for (int i = 0; i < key.size(); i++) {
+            Object component = key.get(i);
             if (component == null) {
                 component = "[NULL]";
             }
-            keyName.addComponent(component.toString(), StringSerializer.get());
+            keyStrings.add(component.toString());
         }
-        return keyName;
+        return keyStrings;
     }
 }
