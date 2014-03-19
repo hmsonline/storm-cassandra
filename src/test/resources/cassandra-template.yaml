@@ -19,9 +19,10 @@ initial_token: 0
 auto_bootstrap: false
 hinted_handoff_enabled: false
 max_hint_window_in_ms: 3600000 # one hour
-hinted_handoff_throttle_delay_in_ms: 50
+#hinted_handoff_throttle_delay_in_ms: 50
 authenticator: org.apache.cassandra.auth.AllowAllAuthenticator
-authority: org.apache.cassandra.auth.AllowAllAuthority
+#authority: org.apache.cassandra.auth.AllowAllAuthority
+authorizer: org.apache.cassandra.auth.AllowAllAuthorizer
 partitioner: org.apache.cassandra.dht.RandomPartitioner
 data_file_directories:
     - $DIR$/data
@@ -57,7 +58,7 @@ column_index_size_in_kb: 64
 in_memory_compaction_limit_in_mb: 64
 compaction_throughput_mb_per_sec: 16
 compaction_preheat_key_cache: true
-rpc_timeout_in_ms: 10000
+#rpc_timeout_in_ms: 10000
 endpoint_snitch: org.apache.cassandra.locator.SimpleSnitch
 dynamic_snitch: true
 dynamic_snitch_update_interval_in_ms: 100 
