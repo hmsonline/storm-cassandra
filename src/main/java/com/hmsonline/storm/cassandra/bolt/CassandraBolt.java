@@ -35,19 +35,14 @@ import com.hmsonline.storm.cassandra.client.AstyanaxClient;
 public abstract class CassandraBolt<K, C, V> implements Serializable {
     private static final Logger LOG = LoggerFactory.getLogger(CassandraBolt.class);
 
-    // private Class<K> columnNameClass;
-    // private Class<V> columnValueClass;
     private String clientConfigKey;
 
-    protected AstyanaxClient<K, C, V> client;
+    protected transient AstyanaxClient<K, C, V> client;
 
     protected TupleMapper<K, C, V> tupleMapper;
-    protected Map<String, Object> stormConfig;
 
     public CassandraBolt(String clientConfigKey, TupleMapper<K, C, V> tupleMapper) {
         this.tupleMapper = tupleMapper;
-        // this.columnNameClass = columnNameClass;
-        // this.columnValueClass = columnValueClass;
         this.clientConfigKey = clientConfigKey;
 
         LOG.debug("Creating Cassandra Bolt (" + this + ")");
