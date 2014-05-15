@@ -102,8 +102,7 @@ public class AstyanaxClient<K, C, V> {
     public static final String ASTYANAX_CONNECTION_POOL_CONFIGURATION = "astyanax.connectionPoolConfiguration";
     public static final String ASTYANAX_CONNECTION_POOL_MONITOR = "astyanax.connectioPoolMonitor";
     private Map<String, AstyanaxContext<Keyspace>> astyanaxContext = new HashMap<String, AstyanaxContext<Keyspace>>();
-
-
+    public Integer ttl = null;
 
     // not static since we're carting instances around and do not want to share
     // them
@@ -148,6 +147,10 @@ public class AstyanaxClient<K, C, V> {
             			 new SimpleAuthenticationCredentials(new String(user), new String(password)));
             }
         }
+	// set ttl
+	// this coerce-via long business is to handle Integers or longs
+	Long confTtl = (Long) config.get(StormCassandraConstants.CASSANDRA_TTL);
+	ttl = confTtl != null ? confTtl.intValue() : null;
 
         @SuppressWarnings("unchecked")
         Collection<String> keyspaces = (Collection<String>) config.get(StormCassandraConstants.CASSANDRA_KEYSPACE);
@@ -423,8 +426,10 @@ public class AstyanaxClient<K, C, V> {
             TupleMapper<K, C, V> tupleMapper) {
         Map<C, V> columns = tupleMapper.mapToColumns(input);
         for (Map.Entry<C, V> entry : columns.entrySet()) {
-            mutation.withRow(columnFamily, rowKey).putColumn(entry.getKey(), entry.getValue(),
-                    (Serializer<V>) this.serializerFor(tupleMapper.getColumnValueClass()), null);
+            mutation.withRow(columnFamily, rowKey).putColumn(entry.getKey(),
+							     entry.getValue(),
+							     (Serializer<V>) this.serializerFor(tupleMapper.getColumnValueClass()),
+							     ttl);
         }
     }
 
@@ -437,8 +442,10 @@ public class AstyanaxClient<K, C, V> {
             }
         } else {
             for (Map.Entry<C, V> entry : columns.entrySet()) {
-                mutation.withRow(columnFamily, rowKey).putColumn(entry.getKey(), entry.getValue(),
-                        serializerFor(tupleMapper.getColumnValueClass()), null);
+                mutation.withRow(columnFamily, rowKey).putColumn(entry.getKey(),
+								 entry.getValue(),
+								 serializerFor(tupleMapper.getColumnValueClass()),
+								 ttl);
             }
         }
     }
